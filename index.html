@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Record Capture Station — QR / Barcode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1013; --panel:#171a1f; --panel-2:#1e232a; --line:#2a3038;
+    --ink:#e8ebee; --muted:#8a929c;
+    --signal:#ffb020; --signal-soft:rgba(255,176,32,.14);
+    --ok:#19c37d; --alert:#ff5a5f;
+    --sans:'Space Grotesk', system-ui, Arial, sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:radial-gradient(1200px 600px at 80% -10%, #191d24 0%, transparent 60%), var(--bg);
+    color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;
+    min-height:100vh; padding:18px;
+  }
+  .station{max-width:1120px; margin:0 auto}
+
+  /* ---- Top bar ---- */
+  .topbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:14px 18px;
+    border:1px solid var(--line); border-radius:14px;
+    background:linear-gradient(180deg, var(--panel-2), var(--panel))}
+  .mark{font-family:var(--mono); font-weight:600; font-size:12px; letter-spacing:.14em; color:var(--signal);
+    border:1px solid var(--signal); padding:4px 8px; border-radius:6px; background:var(--signal-soft)}
+  .title h1{font-size:16px; margin:0; font-weight:600}
+  .title p{margin:1px 0 0; font-size:11.5px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase}
+  .bar-right{margin-left:auto; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .live{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; color:var(--muted)}
+  .led{width:9px; height:9px; border-radius:50%; background:#3a4048; box-shadow:0 0 0 3px rgba(255,255,255,.03)}
+  .led.on{background:var(--ok); box-shadow:0 0 10px var(--ok), 0 0 0 3px rgba(25,195,125,.15); animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.5}}
+  .user-chip{display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink);
+    border:1px solid var(--line); background:var(--panel-2); padding:6px 8px 6px 11px; border-radius:20px}
+  .user-chip .who{font-family:var(--mono); color:var(--muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .user-chip.hidden{display:none}
+  .signout{font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer; color:var(--ink);
+    border:1px solid var(--line); background:transparent; padding:5px 10px; border-radius:15px}
+  .signout:hover{border-color:#3a424c; background:#232932}
+
+  /* ---- Auth screen ---- */
+  .auth-wrap{display:flex; align-items:center; justify-content:center; padding:56px 18px 40px}
+  .auth-card{width:100%; max-width:400px; border:1px solid var(--line); border-radius:16px;
+    background:var(--panel); overflow:hidden}
+  .auth-head{padding:22px 22px 6px}
+  .auth-head h2{margin:0; font-size:19px; font-weight:600}
+  .auth-head p{margin:6px 0 0; font-size:13px; color:var(--muted); line-height:1.5}
+  .tabs{display:flex; gap:4px; padding:16px 22px 0}
+  .tab{flex:1; text-align:center; font-family:var(--sans); font-weight:600; font-size:13px; cursor:pointer;
+    padding:10px; border-radius:9px 9px 0 0; color:var(--muted); border-bottom:2px solid transparent; background:transparent}
+  .tab.active{color:var(--signal); border-bottom-color:var(--signal)}
+  .auth-body{padding:18px 22px 22px}
+  .auth-field{margin-bottom:13px}
+  .auth-field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:6px}
+  .auth-field input{width:100%}
+  .auth-msg{font-size:12.5px; line-height:1.5; padding:10px 12px; border-radius:9px; margin-bottom:13px; display:none}
+  .auth-msg.err{display:block; background:#2a1e20; border:1px solid #4a2325; color:#ffb5b7}
+  .auth-msg.ok{display:block; background:#12241c; border:1px solid #1e4a37; color:#8ef0c4}
+  .auth-msg.warn{display:block; background:#2b230f; border:1px solid #4a3a12; color:#ffd98a}
+  .hint{font-size:11.5px; color:var(--muted); margin-top:10px; line-height:1.5}
+
+  /* ---- Layout ---- */
+  .grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-top:16px}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  .hidden{display:none !important}
+
+  .card{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden}
+  .card-hd{display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line);
+    background:var(--panel-2); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .card-hd .n{margin-left:auto; font-family:var(--mono); color:var(--signal); font-size:13px; letter-spacing:0}
+  .card-bd{padding:14px}
+
+  /* ---- Viewport ---- */
+  .viewport{position:relative; width:100%; aspect-ratio:4/3; background:#05070a; border-radius:10px; overflow:hidden; border:1px solid var(--line)}
+  #reader{width:100%; height:100%}
+  #reader video{width:100% !important; height:100% !important; object-fit:cover; display:block}
+  #reader img{max-width:100%; margin:0 auto; display:block}
+  .reticle{position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center}
+  .frame{position:relative; width:72%; height:58%}
+  .corner{position:absolute; width:26px; height:26px; border:2.5px solid var(--signal)}
+  .corner.tl{top:0; left:0; border-right:0; border-bottom:0; border-radius:4px 0 0 0}
+  .corner.tr{top:0; right:0; border-left:0; border-bottom:0; border-radius:0 4px 0 0}
+  .corner.bl{bottom:0; left:0; border-right:0; border-top:0; border-radius:0 0 0 4px}
+  .corner.br{bottom:0; right:0; border-left:0; border-top:0; border-radius:0 0 4px 0}
+  .scanline{position:absolute; left:6%; right:6%; top:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--signal), transparent); box-shadow:0 0 10px var(--signal); animation:sweep 2.4s ease-in-out infinite}
+  @keyframes sweep{0%{top:4%}50%{top:96%}100%{top:4%}}
+  @media (prefers-reduced-motion:reduce){ .scanline{animation:none; top:50%} .led.on{animation:none} }
+  .vp-overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:22px; color:var(--muted); font-size:13px; line-height:1.5}
+  .vp-overlay .big{color:var(--ink); font-weight:600; font-size:15px; margin-bottom:6px}
+  .flash{position:absolute; inset:0; pointer-events:none; opacity:0; border-radius:10px}
+  .flash.ok{box-shadow:inset 0 0 0 3px var(--ok), inset 0 0 40px rgba(25,195,125,.35); animation:fl .5s ease-out}
+  .flash.dup{box-shadow:inset 0 0 0 3px var(--signal), inset 0 0 40px rgba(255,176,32,.30); animation:fl .5s ease-out}
+  @keyframes fl{0%{opacity:1}100%{opacity:0}}
+
+  /* ---- Controls ---- */
+  .row{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .btn{font-family:var(--sans); font-weight:600; font-size:13px; cursor:pointer; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); padding:9px 13px; border-radius:9px; display:inline-flex; align-items:center; gap:7px; transition:.15s; width:auto}
+  .btn:hover{border-color:#3a424c; background:#232932}
+  .btn:focus-visible{outline:2px solid var(--signal); outline-offset:2px}
+  .btn.primary{background:var(--signal); color:#1a1204; border-color:var(--signal); width:100%; justify-content:center; padding:11px}
+  .btn.primary:hover{background:#ffbf3d}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:var(--alert); border-color:#3a2a2c}
+  .btn.danger:hover{background:#2a1e20}
+  .btn[disabled]{opacity:.5; cursor:not-allowed}
+  .btn svg{width:15px; height:15px}
+
+  select, input[type=text], input[type=email], input[type=password]{font-family:var(--sans); font-size:13px; color:var(--ink);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:10px 11px; width:100%}
+  input::placeholder{color:#5c636d}
+  select:focus, input:focus{outline:2px solid var(--signal); outline-offset:1px; border-color:transparent}
+  .field{margin-top:12px}
+  .field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:5px}
+  .inline{display:flex; gap:8px}
+  .inline input{flex:1}
+  .inline .btn{flex:0 0 auto}
+
+  .switch{display:flex; align-items:center; gap:9px; font-size:13px; color:var(--muted); margin-top:12px; cursor:pointer; user-select:none}
+  .switch input{position:absolute; opacity:0}
+  .track{width:38px; height:22px; border-radius:20px; background:#2a3038; position:relative; transition:.15s; flex:0 0 auto}
+  .track::after{content:''; position:absolute; width:16px; height:16px; border-radius:50%; background:#8a929c; top:3px; left:3px; transition:.15s}
+  .switch input:checked + .track{background:var(--signal-soft)}
+  .switch input:checked + .track::after{left:19px; background:var(--signal)}
+  .switch input:focus-visible + .track{outline:2px solid var(--signal); outline-offset:2px}
+
+  /* ---- Records ---- */
+  .stats{display:flex; gap:10px; margin-bottom:12px}
+  .stat{flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel-2)}
+  .stat .k{font-family:var(--mono); font-size:22px; font-weight:600; color:var(--ink); line-height:1}
+  .stat .l{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-top:5px}
+  .stat.accent .k{color:var(--signal)}
+  .tablewrap{max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px}
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  thead th{position:sticky; top:0; background:var(--panel-2); text-align:left; padding:9px 12px; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line); z-index:1}
+  tbody td{padding:9px 12px; border-bottom:1px solid #21262d; vertical-align:top}
+  tbody tr:hover{background:#1b2027}
+  td.code{font-family:var(--mono); color:var(--ink); word-break:break-all; max-width:200px}
+  td.idx{font-family:var(--mono); color:var(--muted)}
+  td.time{font-family:var(--mono); color:var(--muted); white-space:nowrap}
+  .tag{display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 6px; border-radius:5px; letter-spacing:.03em}
+  .tag.fmt{background:#1e2a24; color:var(--ok); border:1px solid #24493a}
+  .tag.src{background:#242229; color:#b7a1e0; border:1px solid #3a3350; margin-left:5px}
+  .tag.dup{background:#2b230f; color:var(--signal); border:1px solid #4a3a12}
+  .sync{display:inline-block; width:7px; height:7px; border-radius:50%; margin-left:6px; vertical-align:middle}
+  .sync.synced{background:var(--ok)} .sync.pending{background:var(--signal); animation:pulse 1s infinite} .sync.error{background:var(--alert)}
+  .empty{padding:34px 16px; text-align:center; color:var(--muted); font-size:13px}
+
+  .foot{margin-top:16px; font-size:11.5px; color:var(--muted); line-height:1.6; text-align:center}
+  .foot code{font-family:var(--mono); color:var(--signal); background:var(--signal-soft); padding:1px 5px; border-radius:4px}
+
+  .toasts{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:50; align-items:center}
+  .toast{font-family:var(--mono); font-size:12.5px; padding:10px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); box-shadow:0 8px 24px rgba(0,0,0,.4); animation:tin .2s ease-out}
+  .toast .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:middle}
+  .toast.ok{border-color:#1e4a37} .toast.ok .dot{background:var(--ok)}
+  .toast.dup{border-color:#4a3a12} .toast.dup .dot{background:var(--signal)}
+  .toast.alert{border-color:#4a2325} .toast.alert .dot{background:var(--alert)}
+  @keyframes tin{from{opacity:0; transform:translateY(6px)}}
+</style>
+</head>
+<body>
+<div class="station">
+
+  <div class="topbar">
+    <span class="mark">[ SCAN ]</span>
+    <div class="title">
+      <h1>Record Capture Station</h1>
+      <p>QR &amp; Barcode &middot; Supabase</p>
+    </div>
+    <div class="bar-right">
+      <div class="live"><span class="led" id="led"></span><span id="liveTxt">Idle</span></div>
+      <div class="user-chip hidden" id="userChip">
+        <span class="who" id="userEmail"></span>
+        <button class="signout" id="signoutBtn">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AUTH SCREEN ============ -->
+  <div class="auth-wrap" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-head">
+        <h2 id="authTitle">Sign in</h2>
+        <p id="authSub">Access your saved scan records.</p>
+      </div>
+      <div class="tabs">
+        <div class="tab active" id="tabSignin">Sign in</div>
+        <div class="tab" id="tabSignup">Create account</div>
+      </div>
+      <div class="auth-body">
+        <div class="auth-msg" id="authMsg"></div>
+        <div class="auth-field">
+          <label for="email">Email</label>
+          <input type="email" id="email" autocomplete="email" placeholder="you@company.com">
+        </div>
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <button class="btn primary" id="authBtn">Sign in</button>
+        <div class="hint" id="authHint">Password must be at least 6 characters.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ APP ============ -->
+  <div class="grid hidden" id="appMain">
+
+    <!-- LEFT: Scanner -->
+    <div class="card">
+      <div class="card-hd">Scanner <span class="n" id="fmtHint">multi-format</span></div>
+      <div class="card-bd">
+        <div class="viewport">
+          <div id="reader"></div>
+          <div class="reticle" id="reticle" hidden>
+            <div class="frame">
+              <span class="corner tl"></span><span class="corner tr"></span>
+              <span class="corner bl"></span><span class="corner br"></span>
+              <span class="scanline"></span>
+            </div>
+          </div>
+          <div class="vp-overlay" id="vpOverlay">
+            <div><div class="big">Camera off</div>
+              Press <strong>Start camera</strong>, or use <strong>Scan image</strong> / <strong>manual entry</strong>.
+            </div>
+          </div>
+          <div class="flash" id="flash"></div>
+        </div>
+
+        <div class="row">
+          <button class="btn" id="startBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Start camera
+          </button>
+          <button class="btn" id="switchBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0114.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15"/></svg>
+            Switch
+          </button>
+          <label class="btn ghost" for="fileInput">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            Scan image
+            <input type="file" id="fileInput" accept="image/*" hidden>
+          </label>
+        </div>
+
+        <div class="field hidden" id="camField">
+          <label for="camSelect">Camera source</label>
+          <select id="camSelect"></select>
+        </div>
+
+        <div class="field">
+          <label for="manualCode">Manual entry</label>
+          <div class="inline">
+            <input type="text" id="manualCode" placeholder="Type or paste a code, then Enter" autocomplete="off">
+            <button class="btn" id="manualBtn">Add</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="session">Session label (saved with each record)</label>
+          <input type="text" id="session" placeholder="e.g. SS-OPCERT-20260728" autocomplete="off">
+        </div>
+
+        <label class="switch">
+          <input type="checkbox" id="dupToggle" checked>
+          <span class="track"></span>
+          Ignore duplicate codes
+        </label>
+      </div>
+    </div>
+
+    <!-- RIGHT: Records -->
+    <div class="card">
+      <div class="card-hd">Captured records <span class="n" id="countHd">0</span></div>
+      <div class="card-bd">
+        <div class="stats">
+          <div class="stat accent"><div class="k" id="statTotal">0</div><div class="l">Records</div></div>
+          <div class="stat"><div class="k" id="statUnique">0</div><div class="l">Unique</div></div>
+          <div class="stat"><div class="k" id="statDup">0</div><div class="l">Dup skipped</div></div>
+        </div>
+        <div class="row" style="margin-top:0; margin-bottom:12px">
+          <button class="btn" id="exportBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+          <button class="btn danger" id="clearBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            Clear all
+          </button>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th style="width:34px">#</th><th style="width:78px">Time</th><th>Code</th><th style="width:150px">Type</th></tr></thead>
+            <tbody id="tbody">
+              <tr><td colspan="4"><div class="empty">No records yet.</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Records are stored in your Supabase project, protected by row-level security — each account sees only its own scans.
+    Camera preview may be blocked inside embedded viewers; open the deployed URL directly for full camera access.
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // =====================================================================
+  // CONFIG — paste your Supabase project values here
+  //   Dashboard → Project Settings → Data API / API Keys
+  // =====================================================================
+  var SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+  var SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+  // =====================================================================
+
+  var NOT_CONFIGURED = SUPABASE_URL.indexOf("YOUR-PROJECT") !== -1 || SUPABASE_ANON_KEY.indexOf("YOUR-ANON") !== -1;
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ---------- State ----------
+  var sb = null, currentUser = null;
+  var records = [];            // {id, code, format, source, iso, timeStr, dup, sync}
+  var seen = new Set();
+  var dupSkipped = 0;
+  var lastAccepted = { code:"", ts:0 };
+  var scanner = null, isScanning = false, cameras = [], camIndex = 0, audioCtx = null;
+  var authMode = "signin";
+
+  // ---------- Elements ----------
+  var authScreen = $("authScreen"), appMain = $("appMain");
+  var userChip = $("userChip"), userEmail = $("userEmail"), signoutBtn = $("signoutBtn");
+  var tabSignin = $("tabSignin"), tabSignup = $("tabSignup");
+  var authTitle = $("authTitle"), authSub = $("authSub"), authBtn = $("authBtn"), authMsg = $("authMsg"), authHint = $("authHint");
+  var emailEl = $("email"), passEl = $("password");
+  var startBtn = $("startBtn"), switchBtn = $("switchBtn"), fileInput = $("fileInput");
+  var camField = $("camField"), camSelect = $("camSelect");
+  var manualCode = $("manualCode"), manualBtn = $("manualBtn"), sessionEl = $("session"), dupToggle = $("dupToggle");
+  var exportBtn = $("exportBtn"), clearBtn = $("clearBtn"), tbody = $("tbody");
+  var led = $("led"), liveTxt = $("liveTxt"), reticle = $("reticle"), vpOverlay = $("vpOverlay"), flashEl = $("flash");
+  var statTotal = $("statTotal"), statUnique = $("statUnique"), statDup = $("statDup"), countHd = $("countHd");
+
+  // ---------- Helpers ----------
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){
+    return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]; }); }
+  function prettyFormat(f){ return !f ? "—" : String(f).replace(/_/g," ").replace(/\bCODE\b/,"Code"); }
+  function nowParts(iso){ var d = iso ? new Date(iso) : new Date();
+    return { iso:d.toISOString(), t:d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"}) }; }
+  function beep(freq, dur){ try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime;
+    o.type = "sine"; o.frequency.value = freq || 880;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28, t+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+(dur||0.15));
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t+(dur||0.16));
+  }catch(e){} }
+  function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||40); }catch(e){} }
+  function flash(kind){ flashEl.className = "flash "+kind; void flashEl.offsetWidth;
+    flashEl.className = "flash "+kind; setTimeout(function(){ flashEl.className="flash"; }, 480); }
+  function toast(msg, kind){ var el = document.createElement("div"); el.className = "toast "+(kind||"ok");
+    el.innerHTML = '<span class="dot"></span>'+escapeHtml(msg); $("toasts").appendChild(el);
+    setTimeout(function(){ el.style.transition="opacity .3s"; el.style.opacity="0";
+      setTimeout(function(){ el.remove(); }, 300); }, 2200); }
+  function setLive(on, text){ led.classList.toggle("on", !!on); liveTxt.textContent = text;
+    reticle.hidden = !on; vpOverlay.style.display = on ? "none" : "flex"; }
+
+  // ---------- Auth ----------
+  function showAuthMsg(text, kind){ authMsg.className = "auth-msg "+kind; authMsg.textContent = text; }
+  function clearAuthMsg(){ authMsg.className = "auth-msg"; authMsg.textContent = ""; }
+  function setMode(mode){
+    authMode = mode;
+    var signin = mode === "signin";
+    tabSignin.classList.toggle("active", signin);
+    tabSignup.classList.toggle("active", !signin);
+    authTitle.textContent = signin ? "Sign in" : "Create account";
+    authSub.textContent = signin ? "Access your saved scan records." : "Set up an account to start capturing.";
+    authBtn.textContent = signin ? "Sign in" : "Create account";
+    passEl.setAttribute("autocomplete", signin ? "current-password" : "new-password");
+    clearAuthMsg();
+  }
+  tabSignin.addEventListener("click", function(){ setMode("signin"); });
+  tabSignup.addEventListener("click", function(){ setMode("signup"); });
+
+  function submitAuth(){
+    if(NOT_CONFIGURED) return;
+    var email = emailEl.value.trim(), pass = passEl.value;
+    if(!email || !pass){ showAuthMsg("Enter your email and password.", "err"); return; }
+    if(pass.length < 6){ showAuthMsg("Password must be at least 6 characters.", "err"); return; }
+    authBtn.disabled = true; authBtn.textContent = "Please wait…"; clearAuthMsg();
+
+    var op = authMode === "signin"
+      ? sb.auth.signInWithPassword({ email:email, password:pass })
+      : sb.auth.signUp({ email:email, password:pass });
+
+    op.then(function(res){
+      if(res.error){ showAuthMsg(res.error.message, "err"); return; }
+      if(authMode === "signup"){
+        // If email confirmation is ON, there is no active session yet.
+        if(res.data && res.data.session){ /* onAuthStateChange will enter app */ }
+        else { showAuthMsg("Account created. Check your email to confirm, then sign in.", "ok"); setMode("signin"); }
+      }
+    }).catch(function(e){ showAuthMsg(String(e && e.message || e), "err"); })
+      .finally(function(){ authBtn.disabled = false; authBtn.textContent = authMode==="signin" ? "Sign in" : "Create account"; });
+  }
+  authBtn.addEventListener("click", submitAuth);
+  passEl.addEventListener("keydown", function(e){ if(e.key === "Enter") submitAuth(); });
+  emailEl.addEventListener("keydown", function(e){ if(e.key === "Enter") passEl.focus(); });
+
+  signoutBtn.addEventListener("click", function(){
+    stopCamera();
+    if(sb) sb.auth.signOut();
+  });
+
+  function enterApp(user){
+    currentUser = user;
+    userEmail.textContent = user.email || user.id;
+    userChip.classList.remove("hidden");
+    authScreen.classList.add("hidden");
+    appMain.classList.remove("hidden");
+    loadRecords();
+  }
+  function showAuth(){
+    currentUser = null;
+    userChip.classList.add("hidden");
+    appMain.classList.add("hidden");
+    authScreen.classList.remove("hidden");
+    records = []; seen = new Set(); dupSkipped = 0;
+    renderTable(); updateStats();
+    passEl.value = "";
+  }
+
+  // ---------- Records: capture + persist ----------
+  function accept(code, format, source){
+    code = (code==null ? "" : String(code)).trim();
+    if(!code || !currentUser) return;
+    var now = Date.now();
+    if(code === lastAccepted.code && (now - lastAccepted.ts) < 1800) return;
+    lastAccepted = { code:code, ts:now };
+
+    var isDup = seen.has(code);
+    if(isDup && dupToggle.checked){
+      dupSkipped++; updateStats(); flash("dup"); beep(440,0.09); vibrate(20);
+      toast("Duplicate skipped: "+code, "dup"); return;
+    }
+    var tp = nowParts();
+    seen.add(code);
+    var rec = { id:null, code:code, format:prettyFormat(format), source:source,
+                iso:tp.iso, timeStr:tp.t, dup:isDup, sync:"pending" };
+    records.unshift(rec);
+    renderTable(); updateStats();
+    flash("ok"); beep(880,0.15); vibrate(45); toast("Captured: "+code, "ok");
+    persist(rec);
+  }
+  function persist(rec){
+    if(!sb || !currentUser){ rec.sync = "error"; renderTable(); return; }
+    sb.from("scan_records").insert({
+      user_id: currentUser.id,
+      code: rec.code,
+      format: rec.format,
+      source: rec.source,
+      session_label: sessionEl.value.trim() || null,
+      is_repeat: rec.dup
+    }).select("id").single().then(function(res){
+      if(res.error){ rec.sync = "error"; toast("Save failed — kept locally", "alert"); }
+      else { rec.id = res.data.id; rec.sync = "synced"; }
+      renderTable();
+    });
+  }
+  function loadRecords(){
+    if(!sb) return;
+    sb.from("scan_records").select("*").order("created_at", { ascending:false }).limit(2000)
+      .then(function(res){
+        if(res.error){ toast("Could not load records: "+res.error.message, "alert"); return; }
+        records = (res.data||[]).map(function(d){
+          var tp = nowParts(d.created_at);
+          return { id:d.id, code:d.code, format:prettyFormat(d.format), source:d.source||"manual",
+                   iso:tp.iso, timeStr:tp.t, dup:!!d.is_repeat, sync:"synced" };
+        });
+        seen = new Set(records.map(function(r){ return r.code; }));
+        renderTable(); updateStats();
+      });
+  }
+
+  // ---------- Rendering ----------
+  function renderTable(){
+    if(records.length === 0){ tbody.innerHTML = '<tr><td colspan="4"><div class="empty">No records yet.</div></td></tr>'; return; }
+    var srcIcon = { camera:"cam", image:"img", manual:"key" };
+    var html = "";
+    for(var i=0;i<records.length;i++){
+      var r = records[i];
+      html += "<tr>"
+        + '<td class="idx">'+(records.length-i)+"</td>"
+        + '<td class="time">'+r.timeStr+"</td>"
+        + '<td class="code">'+escapeHtml(r.code)+(r.dup?' <span class="tag dup">DUP</span>':"")
+            + '<span class="sync '+r.sync+'" title="'+r.sync+'"></span></td>'
+        + "<td><span class=\"tag fmt\">"+escapeHtml(r.format)+"</span>"
+            + '<span class="tag src">'+(srcIcon[r.source]||r.source)+"</span></td>"
+        + "</tr>";
+    }
+    tbody.innerHTML = html;
+  }
+  function updateStats(){
+    statTotal.textContent = records.length; statUnique.textContent = seen.size; statDup.textContent = dupSkipped;
+    countHd.textContent = records.length;
+    var has = records.length > 0; exportBtn.disabled = !has; clearBtn.disabled = !has;
+  }
+
+  // ---------- Camera ----------
+  function onScan(txt, res){ var fmt=""; try{ fmt = res&&res.result&&res.result.format ? res.result.format.formatName : ""; }catch(e){}
+    accept(txt, fmt, "camera"); }
+  function scanConfig(){ return { fps:12, aspectRatio:1.3333, rememberLastUsedCamera:true,
+    qrbox:function(vw,vh){ return { width:Math.floor(Math.min(vw*0.8,340)), height:Math.floor(Math.min(vh*0.6,240)) }; } }; }
+  function startCamera(deviceId){
+    if(!scanner){ toast("Scanner unavailable here", "alert"); return; }
+    var target = deviceId ? { deviceId:{ exact:deviceId } } : { facingMode:"environment" };
+    setLive(true, "Starting…");
+    scanner.start(target, scanConfig(), onScan, function(){})
+      .then(function(){ isScanning=true; setLive(true,"Live"); startBtn.innerHTML=stopIcon(); switchBtn.disabled=cameras.length<2; })
+      .catch(function(err){ isScanning=false; setLive(false,"Idle"); cameraError(err); });
+  }
+  function stopCamera(){
+    if(!scanner || !isScanning) return Promise.resolve();
+    return scanner.stop().then(function(){ isScanning=false; setLive(false,"Idle"); startBtn.innerHTML=startIcon(); })
+      .catch(function(){ isScanning=false; setLive(false,"Idle"); startBtn.innerHTML=startIcon(); });
+  }
+  function cameraError(err){
+    var msg = (err&&err.name) ? err.name : String(err||"error");
+    if(/NotAllowed|Permission/i.test(msg)){ toast("Camera permission denied","alert"); vpOverlay.querySelector(".big").textContent="Camera blocked"; }
+    else if(/NotFound|Devices/i.test(msg)){ toast("No camera found","alert"); vpOverlay.querySelector(".big").textContent="No camera detected"; }
+    else { toast("Camera error — use image/manual","alert"); vpOverlay.querySelector(".big").textContent="Camera unavailable"; }
+    startBtn.innerHTML = startIcon();
+  }
+  function startIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Start camera'; }
+  function stopIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg> Stop camera'; }
+
+  startBtn.addEventListener("click", function(){
+    if(!scanner) return;
+    if(isScanning){ stopCamera(); return; }
+    Html5Qrcode.getCameras().then(function(devices){
+      cameras = devices || [];
+      if(cameras.length === 0){ cameraError({name:"NotFoundError"}); return; }
+      camSelect.innerHTML = "";
+      cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
+      camField.classList.toggle("hidden", cameras.length < 2);
+      camIndex = 0;
+      for(var i=0;i<cameras.length;i++){ if(/back|rear|environment/i.test(cameras[i].label||"")){ camIndex=i; break; } }
+      camSelect.value = cameras[camIndex].id;
+      startCamera(cameras[camIndex].id);
+    }).catch(function(err){ cameraError(err); });
+  });
+  switchBtn.addEventListener("click", function(){
+    if(cameras.length<2) return; camIndex=(camIndex+1)%cameras.length; camSelect.value=cameras[camIndex].id;
+    stopCamera().then(function(){ startCamera(cameras[camIndex].id); });
+  });
+  camSelect.addEventListener("change", function(){
+    var id=camSelect.value; for(var i=0;i<cameras.length;i++){ if(cameras[i].id===id){ camIndex=i; break; } }
+    if(isScanning){ stopCamera().then(function(){ startCamera(id); }); } else { startCamera(id); }
+  });
+  fileInput.addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0]; if(!file || !scanner) return;
+    (isScanning ? stopCamera() : Promise.resolve()).then(function(){
+      var p = scanner.scanFileV2 ? scanner.scanFileV2(file,false) : scanner.scanFile(file,false);
+      Promise.resolve(p).then(function(res){
+        if(typeof res === "string"){ accept(res,"","image"); }
+        else { var fmt=""; try{ fmt=res.result&&res.result.format?res.result.format.formatName:""; }catch(_){} accept(res.decodedText,fmt,"image"); }
+      }).catch(function(){ toast("No code found in image","alert"); });
+    });
+    fileInput.value = "";
+  });
+
+  manualBtn.addEventListener("click", submitManual);
+  manualCode.addEventListener("keydown", function(e){ if(e.key==="Enter") submitManual(); });
+  function submitManual(){ var v=manualCode.value.trim(); if(!v) return; accept(v,"MANUAL","manual"); manualCode.value=""; manualCode.focus(); }
+
+  exportBtn.addEventListener("click", function(){
+    if(records.length===0) return;
+    var label = sessionEl.value.trim();
+    var head = ["index","timestamp_iso","time","code","format","source","session_label","is_repeat"];
+    var rows = [head.join(",")]; var ordered = records.slice().reverse();
+    ordered.forEach(function(r,i){ rows.push([ i+1, r.iso, r.timeStr, csv(r.code), csv(r.format), r.source, csv(label), r.dup?"yes":"no" ].join(",")); });
+    var blob = new Blob([rows.join("\r\n")], { type:"text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = "scan-records-"+new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")+".csv";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    toast("Exported "+records.length+" records","ok");
+  });
+  function csv(s){ s=(s==null?"":String(s)); return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+
+  clearBtn.addEventListener("click", function(){
+    if(records.length===0 || !currentUser) return;
+    if(!confirm("Delete all "+records.length+" records from the database? This cannot be undone.")) return;
+    sb.from("scan_records").delete().eq("user_id", currentUser.id).then(function(res){
+      if(res.error){ toast("Delete failed: "+res.error.message,"alert"); return; }
+      records=[]; seen=new Set(); dupSkipped=0; lastAccepted={code:"",ts:0};
+      renderTable(); updateStats(); toast("All records cleared","ok");
+    });
+  });
+
+  // ---------- Boot ----------
+  function boot(){
+    setLive(false, "Idle"); updateStats();
+    // scanner instance (works for image scan even before camera start)
+    if(typeof Html5Qrcode !== "undefined"){ try{ scanner = new Html5Qrcode("reader", { verbose:false }); }catch(e){ scanner=null; } }
+    else { startBtn.disabled = true; switchBtn.disabled = true; }
+
+    if(NOT_CONFIGURED){
+      authBtn.disabled = true;
+      showAuthMsg("Not configured yet: open this file and set SUPABASE_URL and SUPABASE_ANON_KEY at the top of the script.", "warn");
+      authHint.textContent = "See supabase-setup.sql to create the database table.";
+      return;
+    }
+    if(typeof window.supabase === "undefined"){ showAuthMsg("Supabase library failed to load. Check your internet connection.", "err"); authBtn.disabled = true; return; }
+
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sb.auth.getSession().then(function(res){
+      var session = res && res.data ? res.data.session : null;
+      if(session && session.user) enterApp(session.user); else showAuth();
+    });
+    sb.auth.onAuthStateChange(function(_event, session){
+      if(session && session.user){ enterApp(session.user); } else { showAuth(); }
+    });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
