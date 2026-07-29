@@ -42,6 +42,10 @@
   @keyframes pulse{50%{opacity:.5}}
   .chip{display:flex; align-items:center; gap:8px; font-size:12px; border:1px solid var(--line); background:var(--panel-2); padding:5px 8px 5px 11px; border-radius:20px}
   .chip .who{font-family:var(--mono); color:var(--muted); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rolebadge{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:5px; border:1px solid var(--line); color:var(--muted)}
+  .rolebadge.admin{color:var(--signal); border-color:#4a3a12; background:var(--signal-soft)}
+  .rolebadge.scan{color:var(--ok); border-color:#1e4a37; background:#12241c}
+  .rolebadge.view{color:var(--blue); border-color:#2f3a49}
   .btn{font-family:var(--sans); font-weight:600; font-size:13px; cursor:pointer; border:1px solid var(--line); background:var(--panel-2); color:var(--ink); padding:8px 12px; border-radius:9px; display:inline-flex; align-items:center; gap:7px}
   .btn:hover{border-color:#3a424c; background:#232932}
   .btn.go{background:var(--signal); color:#1a1204; border-color:var(--signal)}
@@ -155,7 +159,7 @@
 
   /* TV mode */
   body.tv{padding:0}
-  body.tv .topbar, body.tv #viewScan, body.tv #viewSetup, body.tv .unconf, body.tv .btn.tvhide{display:none !important}
+  body.tv .topbar, body.tv #viewScan, body.tv #viewSetup, body.tv #viewUsers, body.tv .unconf, body.tv .btn.tvhide{display:none !important}
   body.tv .wrap{max-width:none}
   body.tv #viewDash{padding:20px 26px}
   body.tv .dash-title h2{font-size:46px}
@@ -185,11 +189,12 @@
       <button data-view="dash" class="active">Dashboard</button>
       <button data-view="scan">Scan</button>
       <button data-view="setup">Setup</button>
+      <button data-view="users">Users</button>
     </div>
     <div class="bar-right">
       <button class="btn sm tvhide" id="tvBtn" title="Fullscreen TV view">TV</button>
       <div class="live"><span class="led" id="led"></span><span id="liveTxt">—</span></div>
-      <div class="chip hidden" id="userChip"><span class="who" id="userEmail"></span><button class="btn sm" id="signout">Sign out</button></div>
+      <div class="chip hidden" id="userChip"><span class="rolebadge view" id="roleBadge">view</span><span class="who" id="userEmail"></span><button class="btn sm" id="signout">Sign out</button></div>
     </div>
   </div>
 
@@ -277,6 +282,19 @@
     </div>
   </div>
 
+  <!-- USERS (admin) -->
+  <div id="viewUsers" class="hidden">
+    <div class="setup">
+      <div class="card"><div class="card-bd" style="padding:4px 0">
+        <table class="ptable">
+          <thead><tr><th>Email</th><th style="width:150px">Role</th><th style="width:90px"></th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div></div>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px"><b>view</b> = dashboard only &middot; <b>scan</b> = dashboard + check in/out &middot; <b>admin</b> = full access + manage users. New sign-ins default to <b>view</b>.</p>
+    </div>
+  </div>
+
 </div>
 <div class="toasts" id="toasts"></div>
 
@@ -288,17 +306,18 @@
 
   var sb=null, currentUser=null, scanner=null, isScanning=false, cameras=[], camIndex=0, audioCtx=null, startWatch=null, rtChannel=null, pollTimer=null;
   var processes=[], countsIn={}, workshops=[], currentWs=null, lastToggle={};
+  var accessToken=null, myRole="view";
 
   // elements
   var authScreen=$("authScreen"), authMsg=$("authMsg"), authBtn=$("authBtn"), emailEl=$("email"), passEl=$("password");
   var userChip=$("userChip"), userEmail=$("userEmail"), signout=$("signout");
   var led=$("led"), liveTxt=$("liveTxt");
-  var views={dash:$("viewDash"), scan:$("viewScan"), setup:$("viewSetup")};
+  var views={dash:$("viewDash"), scan:$("viewScan"), setup:$("viewSetup"), users:$("viewUsers")};
   var wsSelect=$("wsSelect"), wsName=$("wsName"), totalNum=$("totalNum"), asof=$("asof"), pgrid=$("pgrid"), unconf=$("unconf");
   var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput"), camField=$("camField"), camSelect=$("camSelect");
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg");
   var resultEl=$("result"), resDir=$("resDir"), resCode=$("resCode"), resMeta=$("resMeta"), evtBody=$("evtBody");
-  var setupBody=$("setupBody"), tvBtn=$("tvBtn"), tvExit=$("tvExit");
+  var setupBody=$("setupBody"), tvBtn=$("tvBtn"), tvExit=$("tvExit"), roleBadge=$("roleBadge"), usersBody=$("usersBody");
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];});}
   function nowT(iso){var d=iso?new Date(iso):new Date();return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});}
@@ -317,6 +336,7 @@
     Object.keys(views).forEach(function(k){ views[k].classList.toggle("hidden", k!==name); });
     Array.prototype.forEach.call($("nav").children, function(b){ b.classList.toggle("active", b.getAttribute("data-view")===name); });
     if(name!=="scan"){ stopCamera(); }
+    if(name==="users"){ loadUsers(); }
   }
   Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){ showView(b.getAttribute("data-view")); }); });
 
@@ -332,27 +352,47 @@
 
   function enterApp(u){ currentUser=u; userEmail.textContent=u.email||u.id; userChip.classList.remove("hidden");
     authScreen.classList.add("hidden"); showView("dash"); led.classList.add("on"); liveTxt.textContent="Live";
+    sb.from("user_roles").select("role").eq("user_id",u.id).maybeSingle()
+      .then(function(r){ myRole=(r.data&&r.data.role)||"view"; applyRole(); })
+      .catch(function(){ myRole="view"; applyRole(); });
     fetchState(); subscribeRealtime(); startPolling(); }
+
+  function isAdmin(){ return myRole==="admin"; }
+  function canScan(){ return myRole==="scan"||myRole==="admin"; }
+  function navBtn(v){ return $("nav").querySelector('[data-view="'+v+'"]'); }
+  function applyRole(){
+    roleBadge.textContent=myRole; roleBadge.className="rolebadge "+myRole;
+    navBtn("scan").style.display  = canScan()?"":"none";
+    navBtn("setup").style.display = isAdmin()?"":"none";
+    navBtn("users").style.display = isAdmin()?"":"none";
+    var dis=!canScan();
+    [startBtn,switchBtn,manualBtn].forEach(function(b){ if(b) b.disabled=dis; });
+    if(manualCode) manualCode.disabled=dis;
+    var cur=document.querySelector('.nav button.active'); var v=cur?cur.getAttribute("data-view"):"dash";
+    if((v==="scan"&&!canScan())||((v==="setup"||v==="users")&&!isAdmin())) showView("dash");
+  }
   function showAuth(){ currentUser=null; userChip.classList.add("hidden"); Object.keys(views).forEach(function(k){views[k].classList.add("hidden");}); authScreen.classList.remove("hidden");
     led.classList.remove("on"); liveTxt.textContent="—"; stopPolling(); if(rtChannel){ try{sb.removeChannel(rtChannel);}catch(e){} rtChannel=null; } }
 
   // ---- parse card ABC-xxxx-N ----
   function parseCard(raw){
-    var code=String(raw||"").trim().toUpperCase();
-    if(!code) return null;
-    var parts=code.split("-");
+    var s=String(raw||"").trim().toUpperCase();
+    if(!s) return null;
+    var parts=s.split("-");
     if(parts.length<3) return null;
     var type=parts[0];
     if(type!=="VEN"&&type!=="INT") return null;
-    var cardNo=parts[parts.length-1];
-    var proc=parts.slice(1, parts.length-1).join("-");
+    var proc=parts[1];              // process code = 2nd segment (BK, RUB/JR ...)
+    var cardNo=parts[2];            // card sequence number = 3rd segment
     if(!proc||!cardNo) return null;
-    return { code:code, type:type, processCode:proc, cardNo:cardNo };
+    var canonical=type+"-"+proc+"-"+cardNo;   // stable identity; ignore any trailing name
+    return { code:canonical, type:type, processCode:proc, cardNo:cardNo };
   }
   function procName(pc){ for(var i=0;i<processes.length;i++){ if(processes[i].process_code===pc) return processes[i].process_name||pc; } return null; }
 
   // ---- scan handling (toggle in/out) ----
   function handleScan(raw){
+    if(!canScan()){ toast("You don't have scan permission","alert"); return; }
     var p=parseCard(raw);
     if(!p){ setResult("bad","Invalid card", String(raw||"").toUpperCase(), "Expected TYPE-PROCESS-N (e.g. VEN-BK-6)"); sBad(); vibrate(60); return; }
     var now=Date.now();
@@ -479,6 +519,31 @@
     sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npSi").value="0";$("npSv").value="0"; fetchState(); });
   });
 
+  // ---- users & roles (admin) ----
+  function authHeaders(){ return { Authorization:"Bearer "+(accessToken||"") }; }
+  function loadUsers(){
+    if(!isAdmin()) return;
+    usersBody.innerHTML='<tr><td colspan="3" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    fetch("/api/roles",{ headers:authHeaders(), cache:"no-store" })
+      .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+      .then(function(list){
+        if(!list.length){ usersBody.innerHTML='<tr><td colspan="3" style="color:var(--muted);padding:16px">No users.</td></tr>'; return; }
+        usersBody.innerHTML=list.map(function(u){
+          var opts=["view","scan","admin"].map(function(rr){ return '<option value="'+rr+'"'+(u.role===rr?" selected":"")+'>'+rr+'</option>'; }).join("");
+          return '<tr data-id="'+esc(u.id)+'"><td class="mono">'+esc(u.email||u.id)+'</td><td><select class="urole">'+opts+'</select></td><td><button class="btn sm usave">Save</button></td></tr>';
+        }).join("");
+        Array.prototype.forEach.call(usersBody.querySelectorAll(".usave"), function(b){ b.addEventListener("click", function(){ saveUserRole(b.closest("tr")); }); });
+      })
+      .catch(function(e){ usersBody.innerHTML='<tr><td colspan="3" style="color:var(--alert);padding:16px">Could not load users ('+esc(String(e.message||e))+'). Check SUPABASE_SERVICE_KEY, or assign roles via SQL.</td></tr>'; });
+  }
+  function saveUserRole(tr){
+    var id=tr.getAttribute("data-id"), role=tr.querySelector(".urole").value;
+    fetch("/api/roles",{ method:"POST", headers:Object.assign({ "Content-Type":"application/json" }, authHeaders()), body:JSON.stringify({ user_id:id, role:role }) })
+      .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+      .then(function(){ toast("Role updated","ok"); if(id===currentUser.id){ myRole=role; applyRole(); } })
+      .catch(function(e){ toast("Update failed: "+String(e.message||e),"alert"); });
+  }
+
   // ---- realtime + polling ----
   function subscribeRealtime(){
     try{
@@ -551,8 +616,8 @@
     if(bad){ authBtn.disabled=true; showMsg("Not configured. Set SUPABASE_URL / SUPABASE_ANON_KEY in Vercel (served by /api/config).","warn"); return; }
     if(typeof window.supabase==="undefined"){ authBtn.disabled=true; showMsg("Supabase library failed to load.","err"); return; }
     sb=window.supabase.createClient(cfg.url,cfg.key);
-    sb.auth.getSession().then(function(r){ var s=r&&r.data?r.data.session:null; if(s&&s.user) enterApp(s.user); else showAuth(); });
-    sb.auth.onAuthStateChange(function(_e,ss){ if(ss&&ss.user) enterApp(ss.user); else showAuth(); });
+    sb.auth.getSession().then(function(r){ var s=r&&r.data?r.data.session:null; if(s&&s.user){ accessToken=s.access_token; enterApp(s.user); } else showAuth(); });
+    sb.auth.onAuthStateChange(function(_e,ss){ if(ss&&ss.user){ accessToken=ss.access_token; enterApp(ss.user); } else showAuth(); });
   });
 })();
 </script>
