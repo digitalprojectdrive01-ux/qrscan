@@ -3,514 +3,69 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Record Capture Station — QR / Barcode</title>
+<title>Scan Tools — Home</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-<script>if(typeof Html5Qrcode==="undefined"){var _hq=document.createElement("script");_hq.src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js";document.head.appendChild(_hq);}</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --bg:#0e1013; --panel:#171a1f; --panel-2:#1e232a; --line:#2a3038;
-    --ink:#e8ebee; --muted:#8a929c;
-    --signal:#ffb020; --signal-soft:rgba(255,176,32,.14);
-    --ok:#19c37d; --alert:#ff5a5f;
-    --sans:'Space Grotesk', system-ui, Arial, sans-serif;
-    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --ink:#e8ebee; --muted:#8a929c; --signal:#ffb020; --signal-soft:rgba(255,176,32,.14);
+    --ok:#19c37d; --blue:#4f9dff;
+    --sans:'Space Grotesk', system-ui, Arial, sans-serif; --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
-  body{background:radial-gradient(1200px 600px at 80% -10%, #191d24 0%, transparent 60%), var(--bg);
-    color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; min-height:100vh; padding:18px}
-  .station{max-width:1120px; margin:0 auto}
-
-  .topbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:14px 18px;
-    border:1px solid var(--line); border-radius:14px; background:linear-gradient(180deg, var(--panel-2), var(--panel))}
-  .mark{font-family:var(--mono); font-weight:600; font-size:12px; letter-spacing:.14em; color:var(--signal);
-    border:1px solid var(--signal); padding:4px 8px; border-radius:6px; background:var(--signal-soft)}
-  .title h1{font-size:16px; margin:0; font-weight:600}
-  .title p{margin:1px 0 0; font-size:11.5px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase}
-  .bar-right{margin-left:auto; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
-  .live{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; color:var(--muted)}
-  .led{width:9px; height:9px; border-radius:50%; background:#3a4048; box-shadow:0 0 0 3px rgba(255,255,255,.03)}
-  .led.on{background:var(--ok); box-shadow:0 0 10px var(--ok), 0 0 0 3px rgba(25,195,125,.15); animation:pulse 1.6s ease-in-out infinite}
-  @keyframes pulse{50%{opacity:.5}}
-  .user-chip{display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink);
-    border:1px solid var(--line); background:var(--panel-2); padding:6px 8px 6px 11px; border-radius:20px}
-  .user-chip .who{font-family:var(--mono); color:var(--muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .signout{font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer; color:var(--ink);
-    border:1px solid var(--line); background:transparent; padding:5px 10px; border-radius:15px}
-  .signout:hover{border-color:#3a424c; background:#232932}
-
-  .auth-wrap{display:flex; align-items:center; justify-content:center; padding:56px 18px 40px}
-  .auth-card{width:100%; max-width:400px; border:1px solid var(--line); border-radius:16px; background:var(--panel); overflow:hidden}
-  .auth-head{padding:22px 22px 8px}
-  .auth-head h2{margin:0; font-size:19px; font-weight:600}
-  .auth-head p{margin:6px 0 0; font-size:13px; color:var(--muted); line-height:1.5}
-  .auth-body{padding:18px 22px 22px}
-  .auth-field{margin-bottom:13px}
-  .auth-field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:6px}
-  .auth-field input{width:100%}
-  .auth-msg{font-size:12.5px; line-height:1.5; padding:10px 12px; border-radius:9px; margin-bottom:13px; display:none}
-  .auth-msg.err{display:block; background:#2a1e20; border:1px solid #4a2325; color:#ffb5b7}
-  .auth-msg.ok{display:block; background:#12241c; border:1px solid #1e4a37; color:#8ef0c4}
-  .auth-msg.warn{display:block; background:#2b230f; border:1px solid #4a3a12; color:#ffd98a}
-  .hint{font-size:11.5px; color:var(--muted); margin-top:10px; line-height:1.5}
-
-  .grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-top:16px}
-  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
-  .hidden{display:none !important}
-
-  .card{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden}
-  .card-hd{display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line);
-    background:var(--panel-2); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:600}
-  .card-hd .n{margin-left:auto; font-family:var(--mono); color:var(--signal); font-size:13px; letter-spacing:0}
-  .card-bd{padding:14px}
-
-  .viewport{position:relative; width:100%; aspect-ratio:4/3; background:#05070a; border-radius:10px; overflow:hidden; border:1px solid var(--line)}
-  #reader{width:100%; height:100%}
-  #reader video{width:100% !important; height:100% !important; object-fit:cover; display:block}
-  #reader img{max-width:100%; margin:0 auto; display:block}
-  .reticle{position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center}
-  .frame{position:relative; width:66%; aspect-ratio:1/1; max-height:80%}
-  .corner{position:absolute; width:26px; height:26px; border:2.5px solid var(--signal)}
-  .corner.tl{top:0; left:0; border-right:0; border-bottom:0; border-radius:4px 0 0 0}
-  .corner.tr{top:0; right:0; border-left:0; border-bottom:0; border-radius:0 4px 0 0}
-  .corner.bl{bottom:0; left:0; border-right:0; border-top:0; border-radius:0 0 0 4px}
-  .corner.br{bottom:0; right:0; border-left:0; border-top:0; border-radius:0 0 4px 0}
-  .scanline{position:absolute; left:4%; right:4%; top:0; height:2px;
-    background:linear-gradient(90deg, transparent, var(--signal), transparent); box-shadow:0 0 10px var(--signal); animation:sweep 2.2s ease-in-out infinite}
-  @keyframes sweep{0%{top:4%}50%{top:96%}100%{top:4%}}
-  @media (prefers-reduced-motion:reduce){ .scanline{animation:none; top:50%} .led.on{animation:none} }
-  .vp-overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:22px; color:var(--muted); font-size:13px; line-height:1.5}
-  .vp-overlay .big{color:var(--ink); font-weight:600; font-size:15px; margin-bottom:6px}
-  .vp-hint{position:absolute; left:0; right:0; bottom:10px; text-align:center; font-size:11.5px; color:var(--muted); text-shadow:0 1px 3px #000}
-  .flash{position:absolute; inset:0; pointer-events:none; opacity:0; border-radius:10px}
-  .flash.ok{box-shadow:inset 0 0 0 3px var(--ok), inset 0 0 40px rgba(25,195,125,.35); animation:fl .5s ease-out}
-  .flash.dup{box-shadow:inset 0 0 0 3px var(--signal), inset 0 0 40px rgba(255,176,32,.30); animation:fl .5s ease-out}
-  @keyframes fl{0%{opacity:1}100%{opacity:0}}
-
-  .row{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
-  .btn{font-family:var(--sans); font-weight:600; font-size:13px; cursor:pointer; border:1px solid var(--line);
-    background:var(--panel-2); color:var(--ink); padding:9px 13px; border-radius:9px; display:inline-flex; align-items:center; gap:7px; transition:.15s; width:auto}
-  .btn:hover{border-color:#3a424c; background:#232932}
-  .btn:focus-visible{outline:2px solid var(--signal); outline-offset:2px}
-  .btn.primary{background:var(--signal); color:#1a1204; border-color:var(--signal); width:100%; justify-content:center; padding:11px}
-  .btn.primary:hover{background:#ffbf3d}
-  .btn.go{background:var(--signal); color:#1a1204; border-color:var(--signal)}
-  .btn.go:hover{background:#ffbf3d}
-  .btn.ghost{background:transparent}
-  .btn.danger{color:var(--alert); border-color:#3a2a2c}
-  .btn.danger:hover{background:#2a1e20}
-  .btn.sm{padding:8px 11px; font-size:12px}
-  .btn[disabled]{opacity:.5; cursor:not-allowed}
-  .btn svg{width:15px; height:15px}
-
-  select, input[type=text], input[type=email], input[type=password]{font-family:var(--sans); font-size:13px; color:var(--ink);
-    background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:10px 11px; width:100%}
-  input::placeholder{color:#5c636d}
-  select:focus, input:focus{outline:2px solid var(--signal); outline-offset:1px; border-color:transparent}
-  .field{margin-top:12px}
-  .field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:5px}
-  .inline{display:flex; gap:8px}
-  .inline input{flex:1}
-  .inline .btn{flex:0 0 auto}
-  input.mono{font-family:var(--mono); font-size:12px}
-
-  .toggles{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px}
-  .switch{display:flex; align-items:center; gap:9px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none}
-  .switch input{position:absolute; opacity:0}
-  .track{width:38px; height:22px; border-radius:20px; background:#2a3038; position:relative; transition:.15s; flex:0 0 auto}
-  .track::after{content:''; position:absolute; width:16px; height:16px; border-radius:50%; background:#8a929c; top:3px; left:3px; transition:.15s}
-  .switch input:checked + .track{background:var(--signal-soft)}
-  .switch input:checked + .track::after{left:19px; background:var(--signal)}
-  .switch input:focus-visible + .track{outline:2px solid var(--signal); outline-offset:2px}
-
-  .stats{display:flex; gap:10px; margin-bottom:12px}
-  .stat{flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel-2)}
-  .stat .k{font-family:var(--mono); font-size:22px; font-weight:600; color:var(--ink); line-height:1}
-  .stat .l{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-top:5px}
-  .stat.accent .k{color:var(--signal)}
-  .tablewrap{max-height:420px; overflow:auto; border:1px solid var(--line); border-radius:10px}
-  table{width:100%; border-collapse:collapse; font-size:12.5px}
-  thead th{position:sticky; top:0; background:var(--panel-2); text-align:left; padding:9px 12px; font-size:10.5px;
-    text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line); z-index:1}
-  tbody td{padding:9px 12px; border-bottom:1px solid #21262d; vertical-align:top}
-  tbody tr:hover{background:#1b2027}
-  td.code{font-family:var(--mono); color:var(--ink); word-break:break-all; max-width:200px}
-  td.idx{font-family:var(--mono); color:var(--muted)}
-  td.time{font-family:var(--mono); color:var(--muted); white-space:nowrap}
-  .tag{display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 6px; border-radius:5px; letter-spacing:.03em}
-  .tag.fmt{background:#1e2a24; color:var(--ok); border:1px solid #24493a}
-  .tag.src{background:#242229; color:#b7a1e0; border:1px solid #3a3350; margin-left:5px}
-  .tag.dup{background:#2b230f; color:var(--signal); border:1px solid #4a3a12}
-  .sync{display:inline-block; width:7px; height:7px; border-radius:50%; margin-left:6px; vertical-align:middle}
-  .sync.synced{background:var(--ok)} .sync.pending{background:var(--signal); animation:pulse 1s infinite} .sync.error{background:var(--alert)}
-  .empty{padding:34px 16px; text-align:center; color:var(--muted); font-size:13px}
-
-  .pbi-row{margin-bottom:12px}
-  .pbi-row label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:5px}
-  .pbi-steps{font-size:12px; color:var(--muted); line-height:1.65; margin-top:6px}
-  .pbi-steps b{color:var(--ink); font-weight:600}
-  .pbi-steps code{font-family:var(--mono); color:var(--signal); background:var(--signal-soft); padding:1px 5px; border-radius:4px; font-size:11.5px}
-
-  .foot{margin-top:16px; font-size:11.5px; color:var(--muted); line-height:1.6; text-align:center}
+  body{min-height:100vh; background:radial-gradient(1200px 600px at 80% -10%, #191d24 0%, transparent 60%), var(--bg);
+    color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
+    padding:26px 18px}
+  .wrap{max-width:900px; margin:0 auto; width:100%}
+  .head{display:flex; align-items:center; gap:12px; margin-bottom:6px}
+  .mark{font-family:var(--mono); font-weight:600; font-size:12px; letter-spacing:.14em; color:var(--signal); border:1px solid var(--signal); padding:4px 8px; border-radius:6px; background:var(--signal-soft)}
+  h1{font-size:26px; margin:14px 0 4px; font-weight:700; letter-spacing:-.01em}
+  .sub{color:var(--muted); font-size:14px; margin:0 0 26px}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media (max-width:680px){ .grid{grid-template-columns:1fr} }
+  a.tile{display:flex; flex-direction:column; text-decoration:none; color:inherit; border:1px solid var(--line); border-radius:16px;
+    background:linear-gradient(180deg, var(--panel-2), var(--panel)); padding:22px; transition:.16s; position:relative; overflow:hidden}
+  a.tile:hover{border-color:#3a424c; transform:translateY(-2px); box-shadow:0 12px 30px rgba(0,0,0,.35)}
+  a.tile:focus-visible{outline:2px solid var(--signal); outline-offset:2px}
+  .ic{width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; border:1px solid var(--line)}
+  .ic.scan{background:rgba(25,195,125,.10); color:var(--ok); border-color:#1e4a37}
+  .ic.entry{background:var(--signal-soft); color:var(--signal); border-color:#4a3a12}
+  .ic svg{width:24px; height:24px}
+  .tile h2{margin:0 0 6px; font-size:18px; font-weight:600}
+  .tile p{margin:0; font-size:13.5px; color:var(--muted); line-height:1.55}
+  .go{margin-top:16px; font-family:var(--mono); font-size:12px; color:var(--ink); display:inline-flex; align-items:center; gap:6px; letter-spacing:.02em}
+  .go .arw{transition:.16s}
+  a.tile:hover .go .arw{transform:translateX(3px)}
+  .foot{margin-top:26px; font-size:11.5px; color:var(--muted); text-align:center; line-height:1.6}
   .foot code{font-family:var(--mono); color:var(--signal); background:var(--signal-soft); padding:1px 5px; border-radius:4px}
-
-  .toasts{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:50; align-items:center}
-  .toast{font-family:var(--mono); font-size:12.5px; padding:10px 14px; border-radius:10px; border:1px solid var(--line);
-    background:var(--panel-2); color:var(--ink); box-shadow:0 8px 24px rgba(0,0,0,.4); animation:tin .2s ease-out}
-  .toast .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:middle}
-  .toast.ok{border-color:#1e4a37} .toast.ok .dot{background:var(--ok)}
-  .toast.dup{border-color:#4a3a12} .toast.dup .dot{background:var(--signal)}
-  .toast.alert{border-color:#4a2325} .toast.alert .dot{background:var(--alert)}
-  @keyframes tin{from{opacity:0; transform:translateY(6px)}}
 </style>
 </head>
 <body>
-<div class="station">
+  <div class="wrap">
+    <div class="head"><span class="mark">[ SCAN ]</span></div>
+    <h1>Scan Tools</h1>
+    <p class="sub">Choose an application.</p>
 
-  <div class="topbar">
-    <span class="mark">[ SCAN ]</span>
-    <div class="title">
-      <h1>Record Capture Station</h1>
-      <p>QR &amp; Barcode &middot; Supabase</p>
+    <div class="grid">
+      <a class="tile" href="/scanner">
+        <div class="ic scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17h.01"/></svg></div>
+        <h2>Record Scanner</h2>
+        <p>Scan QR / barcodes into your personal record log. Saves to your account, exports to CSV, feeds Power BI.</p>
+        <span class="go">Open<span class="arw">→</span></span>
+      </a>
+
+      <a class="tile" href="/entry">
+        <div class="ic entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h4"/><path d="M14 12H3"/><path d="M18 8l4 4-4 4"/><path d="M14 3h5a2 2 0 012 2"/></svg></div>
+        <h2>Entry Control Dashboard</h2>
+        <p>Live workshop head-count. Scan cards to check people in / out, compare against spec per process, and view on a TV.</p>
+        <span class="go">Open<span class="arw">→</span></span>
+      </a>
     </div>
-    <div class="bar-right">
-      <div class="live"><span class="led" id="led"></span><span id="liveTxt">Idle</span></div>
-      <div class="user-chip hidden" id="userChip">
-        <span class="who" id="userEmail"></span>
-        <button class="signout" id="signoutBtn">Sign out</button>
-      </div>
-    </div>
+
+    <div class="foot">Each app has its own sign-in. Direct links: <code>/scanner</code> &middot; <code>/entry</code></div>
   </div>
-
-  <!-- AUTH -->
-  <div class="auth-wrap" id="authScreen">
-    <div class="auth-card">
-      <div class="auth-head"><h2>Sign in</h2><p>Access your saved scan records.</p></div>
-      <div class="auth-body">
-        <div class="auth-msg" id="authMsg"></div>
-        <div class="auth-field"><label for="email">Email</label><input type="email" id="email" autocomplete="email" placeholder="you@company.com"></div>
-        <div class="auth-field"><label for="password">Password</label><input type="password" id="password" autocomplete="current-password" placeholder="••••••••"></div>
-        <button class="btn primary" id="authBtn">Sign in</button>
-        <div class="hint">Accounts are provisioned by your administrator.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- APP -->
-  <div class="grid hidden" id="appMain">
-    <div class="card">
-      <div class="card-hd">Scanner <span class="n" id="fmtHint">multi-format</span></div>
-      <div class="card-bd">
-        <div class="viewport">
-          <div id="reader"></div>
-          <div class="reticle" id="reticle" hidden>
-            <div class="frame"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><span class="scanline"></span></div>
-          </div>
-          <div class="vp-overlay" id="vpOverlay"><div><div class="big" id="vpBig">Camera off</div><div id="vpMsg">Press <strong>Start camera</strong>, or use <strong>Scan image</strong> / <strong>manual entry</strong>.</div></div></div>
-          <div class="vp-hint hidden" id="vpHint">Center the QR, hold steady, fill about half the frame</div>
-          <div class="flash" id="flash"></div>
-        </div>
-
-        <div class="row">
-          <button class="btn go" id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Start camera</button>
-          <button class="btn" id="switchBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0114.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15"/></svg> Switch</button>
-          <label class="btn ghost" for="fileInput"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Scan image<input type="file" id="fileInput" accept="image/*" hidden></label>
-        </div>
-
-        <div class="field hidden" id="camField"><label for="camSelect">Camera source</label><select id="camSelect"></select></div>
-
-        <div id="compactZone">
-          <div class="field"><label for="manualCode">Manual entry</label>
-            <div class="inline"><input type="text" id="manualCode" placeholder="Type or paste a code, then Enter" autocomplete="off"><button class="btn" id="manualBtn">Add</button></div>
-          </div>
-          <div class="field"><label for="session">Session label (saved with each record)</label>
-            <input type="text" id="session" placeholder="e.g. SS-OPCERT-20260728" autocomplete="off"></div>
-        </div>
-
-        <div class="toggles">
-          <label class="switch"><input type="checkbox" id="dupToggle" checked><span class="track"></span> Ignore duplicates</label>
-          <label class="switch"><input type="checkbox" id="soundToggle" checked><span class="track"></span> Sound</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-hd">Captured records <span class="n" id="countHd">0</span></div>
-      <div class="card-bd">
-        <div class="stats">
-          <div class="stat accent"><div class="k" id="statTotal">0</div><div class="l">Records</div></div>
-          <div class="stat"><div class="k" id="statUnique">0</div><div class="l">Unique</div></div>
-          <div class="stat"><div class="k" id="statDup">0</div><div class="l">Dup skipped</div></div>
-        </div>
-        <div class="row" style="margin-top:0; margin-bottom:12px">
-          <button class="btn" id="exportBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export CSV</button>
-          <button class="btn danger" id="clearBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Clear all</button>
-        </div>
-        <div class="tablewrap">
-          <table>
-            <thead><tr><th style="width:34px">#</th><th style="width:78px">Time</th><th>Code</th><th style="width:150px">Type</th></tr></thead>
-            <tbody id="tbody"><tr><td colspan="4"><div class="empty">No records yet.</div></td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- POWER BI FEED -->
-  <div class="card hidden" id="pbiCard" style="margin-top:16px">
-    <div class="card-hd">Power BI live feed <span class="n">JSON / CSV</span></div>
-    <div class="card-bd">
-      <div class="pbi-row">
-        <label>JSON endpoint (Power BI → Get Data → Web)</label>
-        <div class="inline"><input type="text" id="pbiJson" class="mono" readonly><button class="btn sm" id="copyJson">Copy</button></div>
-      </div>
-      <div class="pbi-row">
-        <label>CSV endpoint</label>
-        <div class="inline"><input type="text" id="pbiCsv" class="mono" readonly><button class="btn sm" id="copyCsv">Copy</button></div>
-      </div>
-      <div class="pbi-steps">
-        <b>How to connect (near-live, refreshable):</b><br>
-        1. Replace <code>YOUR_TOKEN</code> with the value you set for <code>PBI_TOKEN</code> in Vercel.<br>
-        2. Power BI Desktop → <b>Get Data → Web</b> → paste the JSON URL → <b>Anonymous</b> access.<br>
-        3. Expand the list to a table, set data types, <b>Close &amp; Apply</b>.<br>
-        4. Publish, then set a <b>Scheduled refresh</b> (e.g. every 30 min) for live updates.<br>
-        <span style="color:#ffd98a">The feed returns every user's records (service-role, server-side). Keep the token private and rotate it if leaked.</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="foot">
-    Records are stored in your Supabase project, protected by row-level security. Camera and sound need the deployed HTTPS URL; embedded previews may block them.
-  </div>
-</div>
-
-<div class="toasts" id="toasts"></div>
-
-<script>
-(function(){
-  "use strict";
-
-  // Config loaded at runtime from /api/config (Vercel env vars). Placeholders only.
-  var SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-  var SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
-
-  var $ = function(id){ return document.getElementById(id); };
-
-  var sb = null, currentUser = null;
-  var records = [], seen = new Set(), dupSkipped = 0;
-  var lastAccepted = { code:"", ts:0 };
-  var scanner = null, isScanning = false, cameras = [], camIndex = 0, audioCtx = null;
-
-  var authScreen=$("authScreen"), appMain=$("appMain"), pbiCard=$("pbiCard");
-  var userChip=$("userChip"), userEmail=$("userEmail"), signoutBtn=$("signoutBtn");
-  var authBtn=$("authBtn"), authMsg=$("authMsg"), emailEl=$("email"), passEl=$("password");
-  var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput");
-  var camField=$("camField"), camSelect=$("camSelect"), compactZone=$("compactZone");
-  var manualCode=$("manualCode"), manualBtn=$("manualBtn"), sessionEl=$("session");
-  var dupToggle=$("dupToggle"), soundToggle=$("soundToggle");
-  var exportBtn=$("exportBtn"), clearBtn=$("clearBtn"), tbody=$("tbody");
-  var led=$("led"), liveTxt=$("liveTxt"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg"), vpHint=$("vpHint"), flashEl=$("flash");
-  var statTotal=$("statTotal"), statUnique=$("statUnique"), statDup=$("statDup"), countHd=$("countHd");
-  var pbiJson=$("pbiJson"), pbiCsv=$("pbiCsv"), copyJson=$("copyJson"), copyCsv=$("copyCsv");
-
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]; }); }
-  function prettyFormat(f){ return !f ? "—" : String(f).replace(/_/g," ").replace(/\bCODE\b/,"Code"); }
-  function nowParts(iso){ var d = iso ? new Date(iso) : new Date();
-    return { iso:d.toISOString(), t:d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"}) }; }
-
-  // audio
-  function unlockAudio(){ try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){} }
-  function tone(freq, start, dur, vol){ var o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq; g.gain.setValueAtTime(0.0001,start);
-    g.gain.exponentialRampToValueAtTime(vol,start+0.012); g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
-    o.connect(g); g.connect(audioCtx.destination); o.start(start); o.stop(start+dur+0.02); }
-  function successChime(){ if(!soundToggle.checked) return; try{ unlockAudio(); if(!audioCtx) return; var t=audioCtx.currentTime; tone(920,t,0.10,0.4); tone(1380,t+0.10,0.13,0.4); }catch(e){} }
-  function dupSound(){ if(!soundToggle.checked) return; try{ unlockAudio(); if(!audioCtx) return; var t=audioCtx.currentTime; tone(420,t,0.16,0.32); }catch(e){} }
-  function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
-
-  function flash(kind){ flashEl.className="flash "+kind; void flashEl.offsetWidth; flashEl.className="flash "+kind; setTimeout(function(){ flashEl.className="flash"; },480); }
-  function toast(msg, kind){ var el=document.createElement("div"); el.className="toast "+(kind||"ok"); el.innerHTML='<span class="dot"></span>'+escapeHtml(msg); $("toasts").appendChild(el);
-    setTimeout(function(){ el.style.transition="opacity .3s"; el.style.opacity="0"; setTimeout(function(){ el.remove(); },300); },2200); }
-  function setLive(on, text){ led.classList.toggle("on",!!on); liveTxt.textContent=text; reticle.hidden=!on; vpOverlay.style.display=on?"none":"flex"; vpHint.classList.toggle("hidden",!on); }
-  function setCompact(on){ compactZone.classList.toggle("hidden", on); }
-  function setVp(big, msg){ if(vpBig) vpBig.textContent=big; if(vpMsg) vpMsg.innerHTML=msg; }
-  function cameraPreflight(){
-    if(typeof Html5Qrcode==="undefined") return "Scanner library didn't load (network or CDN blocked). Manual entry still works.";
-    if(!window.isSecureContext) return "Camera needs HTTPS. Open the deployed https:// URL — the camera can't run from a file or an embedded preview.";
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return "This browser/context can't reach the camera. Open the https:// URL in Chrome or Safari.";
-    return null;
-  }
-
-  // auth
-  function showAuthMsg(text, kind){ authMsg.className="auth-msg "+kind; authMsg.textContent=text; }
-  function clearAuthMsg(){ authMsg.className="auth-msg"; authMsg.textContent=""; }
-  function submitAuth(){ if(!sb) return; var email=emailEl.value.trim(), pass=passEl.value;
-    if(!email||!pass){ showAuthMsg("Enter your email and password.","err"); return; }
-    authBtn.disabled=true; authBtn.textContent="Signing in…"; clearAuthMsg();
-    sb.auth.signInWithPassword({email:email,password:pass}).then(function(res){ if(res.error){ showAuthMsg(res.error.message,"err"); } })
-      .catch(function(e){ showAuthMsg(String(e&&e.message||e),"err"); })
-      .finally(function(){ authBtn.disabled=false; authBtn.textContent="Sign in"; }); }
-  authBtn.addEventListener("click", submitAuth);
-  emailEl.addEventListener("keydown", function(e){ if(e.key==="Enter") passEl.focus(); });
-  passEl.addEventListener("keydown", function(e){ if(e.key==="Enter") submitAuth(); });
-  signoutBtn.addEventListener("click", function(){ stopCamera(); if(sb) sb.auth.signOut(); });
-
-  function enterApp(user){ currentUser=user; userEmail.textContent=user.email||user.id;
-    userChip.classList.remove("hidden"); authScreen.classList.add("hidden"); appMain.classList.remove("hidden"); pbiCard.classList.remove("hidden");
-    var origin = location.origin;
-    pbiJson.value = origin + "/api/export?token=YOUR_TOKEN&format=json";
-    pbiCsv.value  = origin + "/api/export?token=YOUR_TOKEN&format=csv";
-    loadRecords(); }
-  function showAuth(){ currentUser=null; userChip.classList.add("hidden"); appMain.classList.add("hidden"); pbiCard.classList.add("hidden"); authScreen.classList.remove("hidden");
-    records=[]; seen=new Set(); dupSkipped=0; renderTable(); updateStats(); passEl.value=""; }
-
-  // capture
-  function accept(code, format, source){
-    code=(code==null?"":String(code)).trim(); if(!code||!currentUser) return;
-    var now=Date.now(); if(code===lastAccepted.code&&(now-lastAccepted.ts)<1800) return; lastAccepted={code:code,ts:now};
-    var isDup=seen.has(code);
-    if(isDup&&dupToggle.checked){ dupSkipped++; updateStats(); flash("dup"); dupSound(); vibrate(20); toast("Duplicate skipped: "+code,"dup"); return; }
-    var tp=nowParts(); seen.add(code);
-    var rec={id:null,code:code,format:prettyFormat(format),source:source,iso:tp.iso,timeStr:tp.t,dup:isDup,sync:"pending"};
-    records.unshift(rec); renderTable(); updateStats(); flash("ok"); successChime(); vibrate(45); toast("Captured: "+code,"ok"); persist(rec);
-  }
-  function persist(rec){ if(!sb||!currentUser){ rec.sync="error"; renderTable(); return; }
-    sb.from("scan_records").insert({ user_id:currentUser.id, code:rec.code, format:rec.format, source:rec.source, session_label:sessionEl.value.trim()||null, is_repeat:rec.dup })
-      .select("id").single().then(function(res){ if(res.error){ rec.sync="error"; toast("Save failed — kept locally","alert"); } else { rec.id=res.data.id; rec.sync="synced"; } renderTable(); }); }
-  function loadRecords(){ if(!sb) return;
-    sb.from("scan_records").select("*").order("created_at",{ascending:false}).limit(2000).then(function(res){
-      if(res.error){ toast("Could not load records: "+res.error.message,"alert"); return; }
-      records=(res.data||[]).map(function(d){ var tp=nowParts(d.created_at); return {id:d.id,code:d.code,format:prettyFormat(d.format),source:d.source||"manual",iso:tp.iso,timeStr:tp.t,dup:!!d.is_repeat,sync:"synced"}; });
-      seen=new Set(records.map(function(r){ return r.code; })); renderTable(); updateStats(); }); }
-
-  function renderTable(){
-    if(records.length===0){ tbody.innerHTML='<tr><td colspan="4"><div class="empty">No records yet.</div></td></tr>'; return; }
-    var srcIcon={camera:"cam",image:"img",manual:"key"}, html="";
-    for(var i=0;i<records.length;i++){ var r=records[i];
-      html+="<tr><td class=\"idx\">"+(records.length-i)+"</td><td class=\"time\">"+r.timeStr+"</td>"
-        +'<td class="code">'+escapeHtml(r.code)+(r.dup?' <span class="tag dup">DUP</span>':"")+'<span class="sync '+r.sync+'" title="'+r.sync+'"></span></td>'
-        +'<td><span class="tag fmt">'+escapeHtml(r.format)+'</span><span class="tag src">'+(srcIcon[r.source]||r.source)+"</span></td></tr>"; }
-    tbody.innerHTML=html;
-  }
-  function updateStats(){ statTotal.textContent=records.length; statUnique.textContent=seen.size; statDup.textContent=dupSkipped; countHd.textContent=records.length;
-    var has=records.length>0; exportBtn.disabled=!has; clearBtn.disabled=!has; }
-
-  // ---------- camera (fixed decoding) ----------
-  function onScan(txt,res){ var fmt=""; try{ fmt=res&&res.result&&res.result.format?res.result.format.formatName:""; }catch(e){} accept(txt,fmt,"camera"); }
-  function scanConfig(constraints){ return {
-    fps: 10,
-    disableFlip: false,
-    videoConstraints: constraints
-    // No qrbox: scan the WHOLE frame — most reliable for QR. No native BarcodeDetector (ZXing decodes QR reliably).
-  }; }
-  function ensureScanner(){ if(scanner) return true; if(typeof Html5Qrcode==="undefined") return false; try{ scanner=new Html5Qrcode("reader",{verbose:false}); return true; }catch(e){ scanner=null; return false; } }
-  function initScanner(){
-    if(ensureScanner()){ startBtn.disabled=false; return; }
-    startBtn.disabled=true;
-    var tries=0, t=setInterval(function(){ tries++;
-      if(ensureScanner()){ startBtn.disabled=false; clearInterval(t); }
-      else if(tries>30){ clearInterval(t); setVp("Scanner unavailable","Scanner library didn't load — check the network (cdnjs / jsdelivr). Manual entry still works."); }
-    }, 200);
-  }
-  function pickBack(list){ for(var i=0;i<list.length;i++){ if(/back|rear|environment/i.test(list[i].label||"")) return i; } return 0; }
-  function onStarted(){ clearWatch(); isScanning=true; setLive(true,"Live"); setCompact(true); startBtn.innerHTML=stopIcon(); startBtn.classList.remove("go"); }
-  function populateCameras(){ Html5Qrcode.getCameras().then(function(devs){ cameras=devs||[]; camSelect.innerHTML="";
-    cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
-    if(cameras[camIndex]) camSelect.value=cameras[camIndex].id;
-    switchBtn.disabled=cameras.length<2; camField.classList.toggle("hidden",cameras.length<2); }).catch(function(){}); }
-
-  var startWatch=null;
-  function clearWatch(){ if(startWatch){ clearTimeout(startWatch); startWatch=null; } }
-  function beginScan(){
-    if(!ensureScanner()) return; unlockAudio();
-    liveTxt.textContent="Starting…"; setVp("Starting…","Requesting camera permission — tap <strong>Allow</strong> if your browser asks.");
-    clearWatch();
-    startWatch=setTimeout(function(){ if(!isScanning){ setLive(false,"Idle");
-      setVp("Camera didn't start","No response from the camera. Tap the camera/permission icon in the address bar and set it to Allow, make sure no other app is using the camera, then press Start again.");
-      startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); } }, 12000);
-    // Enumerate first: this reliably triggers the permission prompt and lets us report errors.
-    Html5Qrcode.getCameras().then(function(devs){
-      cameras=devs||[];
-      if(!cameras.length){ clearWatch(); cameraError({name:"NotFoundError"}); return; }
-      camSelect.innerHTML="";
-      cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
-      switchBtn.disabled=cameras.length<2; camField.classList.toggle("hidden",cameras.length<2);
-      camIndex=pickBack(cameras); camSelect.value=cameras[camIndex].id;
-      startById(cameras[camIndex].id);
-    }).catch(function(err){ clearWatch(); cameraError(err); });
-  }
-  function startById(id){ var constraints={ deviceId:{ exact:id }, width:{ ideal:1280 }, height:{ ideal:720 } }; liveTxt.textContent="Starting…"; scanner.start(constraints, scanConfig(constraints), onScan, function(){}).then(onStarted).catch(function(e){ clearWatch(); cameraError(e); }); }
-  function stopCamera(){ if(!scanner||!isScanning) return Promise.resolve();
-    return scanner.stop().then(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); })
-      .catch(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); }); }
-  function cameraError(err){ var msg=(err&&err.name)?err.name:String(err||"error"); setLive(false,"Idle"); setCompact(false);
-    if(/NotAllowed|Permission/i.test(msg)){ toast("Camera permission denied","alert"); setVp("Camera blocked","Allow camera access for this site (address-bar icon), then press Start again."); }
-    else if(/NotFound|Devices/i.test(msg)){ toast("No camera found","alert"); setVp("No camera detected","No camera on this device — use Scan image or Manual entry."); }
-    else if(/NotReadable|TrackStart/i.test(msg)){ toast("Camera busy","alert"); setVp("Camera in use","Another app is using the camera. Close it, then press Start again."); }
-    else if(/Overconstrained/i.test(msg)){ toast("Camera constraint error","alert"); setVp("Camera error","Couldn't open that camera — try the Switch button."); }
-    else { toast("Camera error: "+msg,"alert"); setVp("Camera unavailable","Error: "+escapeHtml(msg)+". Open the https:// URL in a normal tab, or use image / manual."); }
-    startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); }
-  function startIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Start camera'; }
-  function stopIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg> Stop camera'; }
-
-  startBtn.addEventListener("click", function(){ unlockAudio();
-    if(isScanning){ stopCamera(); return; }
-    var pf=cameraPreflight(); if(pf){ setLive(false,"Idle"); setVp("Camera unavailable", pf); toast("Camera unavailable — see the viewfinder note","alert"); return; }
-    if(window.self!==window.top){ toast("Embedded preview may block the camera — open the deployed URL if it fails","alert"); }
-    if(!ensureScanner()){ setVp("Scanner unavailable","Scanner library didn't load yet — try again in a moment."); return; }
-    beginScan();
-  });
-  switchBtn.addEventListener("click", function(){ if(cameras.length<2) return; camIndex=(camIndex+1)%cameras.length; camSelect.value=cameras[camIndex].id; stopCamera().then(function(){ startById(cameras[camIndex].id); }); });
-  camSelect.addEventListener("change", function(){ var id=camSelect.value; for(var i=0;i<cameras.length;i++){ if(cameras[i].id===id){ camIndex=i; break; } } stopCamera().then(function(){ startById(id); }); });
-
-  fileInput.addEventListener("change", function(e){ var file=e.target.files&&e.target.files[0]; if(!file||!scanner) return; unlockAudio();
-    (isScanning?stopCamera():Promise.resolve()).then(function(){
-      var p=scanner.scanFileV2?scanner.scanFileV2(file,false):scanner.scanFile(file,false);
-      Promise.resolve(p).then(function(res){ if(typeof res==="string"){ accept(res,"","image"); } else { var fmt=""; try{ fmt=res.result&&res.result.format?res.result.format.formatName:""; }catch(_){} accept(res.decodedText,fmt,"image"); } })
-        .catch(function(){ toast("No code found in image","alert"); }); });
-    fileInput.value=""; });
-
-  manualBtn.addEventListener("click", submitManual);
-  manualCode.addEventListener("keydown", function(e){ if(e.key==="Enter") submitManual(); });
-  function submitManual(){ var v=manualCode.value.trim(); if(!v) return; unlockAudio(); accept(v,"MANUAL","manual"); manualCode.value=""; manualCode.focus(); }
-
-  exportBtn.addEventListener("click", function(){ if(records.length===0) return; var label=sessionEl.value.trim();
-    var head=["index","timestamp_iso","time","code","format","source","session_label","is_repeat"], rows=[head.join(",")], ordered=records.slice().reverse();
-    ordered.forEach(function(r,i){ rows.push([i+1,r.iso,r.timeStr,csv(r.code),csv(r.format),r.source,csv(label),r.dup?"yes":"no"].join(",")); });
-    var blob=new Blob([rows.join("\r\n")],{type:"text/csv;charset=utf-8;"}), url=URL.createObjectURL(blob), a=document.createElement("a");
-    a.href=url; a.download="scan-records-"+new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")+".csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1000);
-    toast("Exported "+records.length+" records","ok"); });
-  function csv(s){ s=(s==null?"":String(s)); return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
-
-  clearBtn.addEventListener("click", function(){ if(records.length===0||!currentUser) return;
-    if(!confirm("Delete all "+records.length+" records from the database? This cannot be undone.")) return;
-    sb.from("scan_records").delete().eq("user_id",currentUser.id).then(function(res){ if(res.error){ toast("Delete failed: "+res.error.message,"alert"); return; }
-      records=[]; seen=new Set(); dupSkipped=0; lastAccepted={code:"",ts:0}; renderTable(); updateStats(); toast("All records cleared","ok"); }); });
-
-  function copyField(inp){ try{ inp.select(); inp.setSelectionRange(0,99999); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(inp.value); } else { document.execCommand("copy"); } toast("Copied to clipboard","ok"); }catch(e){ toast("Copy failed — select manually","alert"); } }
-  copyJson.addEventListener("click", function(){ copyField(pbiJson); });
-  copyCsv.addEventListener("click", function(){ copyField(pbiCsv); });
-
-  // config + boot
-  function resolveConfig(){ var inlineReal=SUPABASE_URL.indexOf("YOUR-PROJECT")===-1&&SUPABASE_ANON_KEY.indexOf("YOUR-ANON")===-1;
-    if(inlineReal) return Promise.resolve({url:SUPABASE_URL,key:SUPABASE_ANON_KEY});
-    return fetch("/api/config",{cache:"no-store"}).then(function(r){ if(!r.ok) throw new Error("no config"); return r.json(); })
-      .then(function(c){ return {url:c.url,key:c.anonKey}; }).catch(function(){ return {url:SUPABASE_URL,key:SUPABASE_ANON_KEY}; }); }
-  function boot(){ setLive(false,"Idle"); updateStats(); initScanner();
-    resolveConfig().then(function(cfg){
-      var bad=!cfg||!cfg.url||cfg.url.indexOf("YOUR-PROJECT")!==-1||!cfg.key||cfg.key.indexOf("YOUR-ANON")!==-1;
-      if(bad){ authBtn.disabled=true; showAuthMsg("Not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY as Vercel environment variables (served by /api/config).","warn"); return; }
-      if(typeof window.supabase==="undefined"){ authBtn.disabled=true; showAuthMsg("Supabase library failed to load. Check your connection.","err"); return; }
-      sb=window.supabase.createClient(cfg.url,cfg.key);
-      sb.auth.getSession().then(function(res){ var s=res&&res.data?res.data.session:null; if(s&&s.user) enterApp(s.user); else showAuth(); });
-      sb.auth.onAuthStateChange(function(_e,session){ if(session&&session.user) enterApp(session.user); else showAuth(); });
-    }); }
-  boot();
-})();
-</script>
 </body>
 </html>
