@@ -204,7 +204,7 @@
       <div class="auth-head"><h2>Sign in</h2><p>Entry Control access.</p></div>
       <div class="auth-body">
         <div class="msg" id="authMsg"></div>
-        <div class="fld"><label>Email</label><input type="email" id="email" autocomplete="email" placeholder="you@company.com"></div>
+        <div class="fld"><label>Email</label><input type="email" id="email" autocomplete="email" placeholder="you@aes.local"></div>
         <div class="fld"><label>Password</label><input type="password" id="password" autocomplete="current-password" placeholder="••••••••"></div>
         <button class="btn block" id="authBtn">Sign in</button>
       </div>
@@ -287,7 +287,7 @@
         </div>
         <div class="fld" style="margin-top:14px"><label>Power BI — event log (Get Data → Web)</label><div class="inline"><input type="text" id="pbiEvents" class="mono" readonly><button class="btn sm" id="cpEvents">Copy</button></div></div>
         <div class="fld"><label>Power BI — current presence</label><div class="inline"><input type="text" id="pbiPresence" class="mono" readonly><button class="btn sm" id="cpPresence">Copy</button></div></div>
-        <p style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">Replace <b style="color:var(--signal)">YOUR_TOKEN</b> with your <b>PBI_TOKEN</b> (Vercel env var), then in Power BI: <b>Get Data → Web → Anonymous</b>, expand to a table, set a scheduled refresh. The feed returns all entry data — keep the URL private and rotate the token if it leaks.</p>
+        <p style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">Replace <b style="color:var(--signal)">YOUR_TOKEN</b> with your <b>PBI_TOKEN</b>.</p>
       </div></div>
     </div>
   </div>
@@ -494,10 +494,6 @@
     totalNum.textContent = total;
 
     // unconfigured processes with people inside
-    var known={}; processes.forEach(function(p){ known[p.process_code]=1; });
-    var extra=[]; Object.keys(countsIn).forEach(function(k){ if(!known[k]){ var c=countsIn[k]; extra.push(k+" ("+(c.INT+c.VEN)+")"); } });
-    if(extra.length){ unconf.classList.remove("hidden"); unconf.innerHTML="<b>Unconfigured processes with people inside:</b> "+esc(extra.join(", "))+" — add them in Setup to show on the board."; }
-    else unconf.classList.add("hidden");
   }
 
   // ---- setup ----
