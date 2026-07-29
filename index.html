@@ -102,6 +102,7 @@
   .btn.ghost{background:transparent}
   .btn.danger{color:var(--alert); border-color:#3a2a2c}
   .btn.danger:hover{background:#2a1e20}
+  .btn.sm{padding:8px 11px; font-size:12px}
   .btn[disabled]{opacity:.5; cursor:not-allowed}
   .btn svg{width:15px; height:15px}
 
@@ -114,6 +115,7 @@
   .inline{display:flex; gap:8px}
   .inline input{flex:1}
   .inline .btn{flex:0 0 auto}
+  input.mono{font-family:var(--mono); font-size:12px}
 
   .toggles{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px}
   .switch{display:flex; align-items:center; gap:9px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none}
@@ -146,6 +148,12 @@
   .sync.synced{background:var(--ok)} .sync.pending{background:var(--signal); animation:pulse 1s infinite} .sync.error{background:var(--alert)}
   .empty{padding:34px 16px; text-align:center; color:var(--muted); font-size:13px}
 
+  .pbi-row{margin-bottom:12px}
+  .pbi-row label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:5px}
+  .pbi-steps{font-size:12px; color:var(--muted); line-height:1.65; margin-top:6px}
+  .pbi-steps b{color:var(--ink); font-weight:600}
+  .pbi-steps code{font-family:var(--mono); color:var(--signal); background:var(--signal-soft); padding:1px 5px; border-radius:4px; font-size:11.5px}
+
   .foot{margin-top:16px; font-size:11.5px; color:var(--muted); line-height:1.6; text-align:center}
   .foot code{font-family:var(--mono); color:var(--signal); background:var(--signal-soft); padding:1px 5px; border-radius:4px}
 
@@ -177,98 +185,54 @@
     </div>
   </div>
 
-  <!-- ============ AUTH (sign in only) ============ -->
+  <!-- AUTH -->
   <div class="auth-wrap" id="authScreen">
     <div class="auth-card">
-      <div class="auth-head">
-        <h2>Sign in</h2>
-        <p>Access your saved scan records.</p>
-      </div>
+      <div class="auth-head"><h2>Sign in</h2><p>Access your saved scan records.</p></div>
       <div class="auth-body">
         <div class="auth-msg" id="authMsg"></div>
-        <div class="auth-field">
-          <label for="email">Email</label>
-          <input type="email" id="email" autocomplete="email" placeholder="you@company.com">
-        </div>
-        <div class="auth-field">
-          <label for="password">Password</label>
-          <input type="password" id="password" autocomplete="current-password" placeholder="••••••••">
-        </div>
+        <div class="auth-field"><label for="email">Email</label><input type="email" id="email" autocomplete="email" placeholder="you@company.com"></div>
+        <div class="auth-field"><label for="password">Password</label><input type="password" id="password" autocomplete="current-password" placeholder="••••••••"></div>
         <button class="btn primary" id="authBtn">Sign in</button>
         <div class="hint">Accounts are provisioned by your administrator.</div>
       </div>
     </div>
   </div>
 
-  <!-- ============ APP ============ -->
+  <!-- APP -->
   <div class="grid hidden" id="appMain">
-
     <div class="card">
       <div class="card-hd">Scanner <span class="n" id="fmtHint">multi-format</span></div>
       <div class="card-bd">
         <div class="viewport">
           <div id="reader"></div>
           <div class="reticle" id="reticle" hidden>
-            <div class="frame">
-              <span class="corner tl"></span><span class="corner tr"></span>
-              <span class="corner bl"></span><span class="corner br"></span>
-              <span class="scanline"></span>
-            </div>
+            <div class="frame"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><span class="scanline"></span></div>
           </div>
-          <div class="vp-overlay" id="vpOverlay">
-            <div><div class="big">Camera off</div>
-              Press <strong>Start camera</strong>, or use <strong>Scan image</strong> / <strong>manual entry</strong>.
-            </div>
-          </div>
+          <div class="vp-overlay" id="vpOverlay"><div><div class="big">Camera off</div>Press <strong>Start camera</strong>, or use <strong>Scan image</strong> / <strong>manual entry</strong>.</div></div>
           <div class="vp-hint hidden" id="vpHint">Point at a QR or barcode</div>
           <div class="flash" id="flash"></div>
         </div>
 
         <div class="row">
-          <button class="btn go" id="startBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-            Start camera
-          </button>
-          <button class="btn" id="switchBtn" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0114.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15"/></svg>
-            Switch
-          </button>
-          <label class="btn ghost" for="fileInput">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            Scan image
-            <input type="file" id="fileInput" accept="image/*" hidden>
-          </label>
+          <button class="btn go" id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Start camera</button>
+          <button class="btn" id="switchBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0114.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15"/></svg> Switch</button>
+          <label class="btn ghost" for="fileInput"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Scan image<input type="file" id="fileInput" accept="image/*" hidden></label>
         </div>
 
-        <div class="field hidden" id="camField">
-          <label for="camSelect">Camera source</label>
-          <select id="camSelect"></select>
-        </div>
+        <div class="field hidden" id="camField"><label for="camSelect">Camera source</label><select id="camSelect"></select></div>
 
-        <!-- Collapses while the camera is running -->
         <div id="compactZone">
-          <div class="field">
-            <label for="manualCode">Manual entry</label>
-            <div class="inline">
-              <input type="text" id="manualCode" placeholder="Type or paste a code, then Enter" autocomplete="off">
-              <button class="btn" id="manualBtn">Add</button>
-            </div>
+          <div class="field"><label for="manualCode">Manual entry</label>
+            <div class="inline"><input type="text" id="manualCode" placeholder="Type or paste a code, then Enter" autocomplete="off"><button class="btn" id="manualBtn">Add</button></div>
           </div>
-          <div class="field">
-            <label for="session">Session label (saved with each record)</label>
-            <input type="text" id="session" placeholder="e.g. SS-OPCERT-20260728" autocomplete="off">
-          </div>
+          <div class="field"><label for="session">Session label (saved with each record)</label>
+            <input type="text" id="session" placeholder="e.g. SS-OPCERT-20260728" autocomplete="off"></div>
         </div>
 
         <div class="toggles">
-          <label class="switch">
-            <input type="checkbox" id="dupToggle" checked>
-            <span class="track"></span> Ignore duplicates
-          </label>
-          <label class="switch">
-            <input type="checkbox" id="soundToggle" checked>
-            <span class="track"></span> Sound
-          </label>
+          <label class="switch"><input type="checkbox" id="dupToggle" checked><span class="track"></span> Ignore duplicates</label>
+          <label class="switch"><input type="checkbox" id="soundToggle" checked><span class="track"></span> Sound</label>
         </div>
       </div>
     </div>
@@ -282,14 +246,8 @@
           <div class="stat"><div class="k" id="statDup">0</div><div class="l">Dup skipped</div></div>
         </div>
         <div class="row" style="margin-top:0; margin-bottom:12px">
-          <button class="btn" id="exportBtn" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export CSV
-          </button>
-          <button class="btn danger" id="clearBtn" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-            Clear all
-          </button>
+          <button class="btn" id="exportBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export CSV</button>
+          <button class="btn danger" id="clearBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Clear all</button>
         </div>
         <div class="tablewrap">
           <table>
@@ -301,9 +259,31 @@
     </div>
   </div>
 
+  <!-- POWER BI FEED -->
+  <div class="card hidden" id="pbiCard" style="margin-top:16px">
+    <div class="card-hd">Power BI live feed <span class="n">JSON / CSV</span></div>
+    <div class="card-bd">
+      <div class="pbi-row">
+        <label>JSON endpoint (Power BI → Get Data → Web)</label>
+        <div class="inline"><input type="text" id="pbiJson" class="mono" readonly><button class="btn sm" id="copyJson">Copy</button></div>
+      </div>
+      <div class="pbi-row">
+        <label>CSV endpoint</label>
+        <div class="inline"><input type="text" id="pbiCsv" class="mono" readonly><button class="btn sm" id="copyCsv">Copy</button></div>
+      </div>
+      <div class="pbi-steps">
+        <b>How to connect (near-live, refreshable):</b><br>
+        1. Replace <code>YOUR_TOKEN</code> with the value you set for <code>PBI_TOKEN</code> in Vercel.<br>
+        2. Power BI Desktop → <b>Get Data → Web</b> → paste the JSON URL → <b>Anonymous</b> access.<br>
+        3. Expand the list to a table, set data types, <b>Close &amp; Apply</b>.<br>
+        4. Publish, then set a <b>Scheduled refresh</b> (e.g. every 30 min) for live updates.<br>
+        <span style="color:#ffd98a">The feed returns every user's records (service-role, server-side). Keep the token private and rotate it if leaked.</span>
+      </div>
+    </div>
+  </div>
+
   <div class="foot">
-    Records are stored in your Supabase project, protected by row-level security — each account sees only its own scans.
-    Camera and sound need the deployed HTTPS URL; embedded previews may block them.
+    Records are stored in your Supabase project, protected by row-level security. Camera and sound need the deployed HTTPS URL; embedded previews may block them.
   </div>
 </div>
 
@@ -313,14 +293,9 @@
 (function(){
   "use strict";
 
-  // =====================================================================
-  // Config is loaded at runtime from /api/config (Vercel env vars).
-  // These constants are only a fallback for local testing — keep them as
-  // placeholders in source so no key is ever committed to git.
-  // =====================================================================
+  // Config loaded at runtime from /api/config (Vercel env vars). Placeholders only.
   var SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
   var SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
-  // =====================================================================
 
   var $ = function(id){ return document.getElementById(id); };
 
@@ -329,249 +304,182 @@
   var lastAccepted = { code:"", ts:0 };
   var scanner = null, isScanning = false, cameras = [], camIndex = 0, audioCtx = null;
 
-  var authScreen = $("authScreen"), appMain = $("appMain");
-  var userChip = $("userChip"), userEmail = $("userEmail"), signoutBtn = $("signoutBtn");
-  var authBtn = $("authBtn"), authMsg = $("authMsg"), emailEl = $("email"), passEl = $("password");
-  var startBtn = $("startBtn"), switchBtn = $("switchBtn"), fileInput = $("fileInput");
-  var camField = $("camField"), camSelect = $("camSelect"), compactZone = $("compactZone");
-  var manualCode = $("manualCode"), manualBtn = $("manualBtn"), sessionEl = $("session");
-  var dupToggle = $("dupToggle"), soundToggle = $("soundToggle");
-  var exportBtn = $("exportBtn"), clearBtn = $("clearBtn"), tbody = $("tbody");
-  var led = $("led"), liveTxt = $("liveTxt"), reticle = $("reticle"), vpOverlay = $("vpOverlay"), vpHint = $("vpHint"), flashEl = $("flash");
-  var statTotal = $("statTotal"), statUnique = $("statUnique"), statDup = $("statDup"), countHd = $("countHd");
+  var authScreen=$("authScreen"), appMain=$("appMain"), pbiCard=$("pbiCard");
+  var userChip=$("userChip"), userEmail=$("userEmail"), signoutBtn=$("signoutBtn");
+  var authBtn=$("authBtn"), authMsg=$("authMsg"), emailEl=$("email"), passEl=$("password");
+  var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput");
+  var camField=$("camField"), camSelect=$("camSelect"), compactZone=$("compactZone");
+  var manualCode=$("manualCode"), manualBtn=$("manualBtn"), sessionEl=$("session");
+  var dupToggle=$("dupToggle"), soundToggle=$("soundToggle");
+  var exportBtn=$("exportBtn"), clearBtn=$("clearBtn"), tbody=$("tbody");
+  var led=$("led"), liveTxt=$("liveTxt"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpHint=$("vpHint"), flashEl=$("flash");
+  var statTotal=$("statTotal"), statUnique=$("statUnique"), statDup=$("statDup"), countHd=$("countHd");
+  var pbiJson=$("pbiJson"), pbiCsv=$("pbiCsv"), copyJson=$("copyJson"), copyCsv=$("copyCsv");
 
-  // ---------- helpers ----------
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){
-    return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]; }); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]; }); }
   function prettyFormat(f){ return !f ? "—" : String(f).replace(/_/g," ").replace(/\bCODE\b/,"Code"); }
   function nowParts(iso){ var d = iso ? new Date(iso) : new Date();
     return { iso:d.toISOString(), t:d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"}) }; }
 
-  // ---------- audio ----------
-  function unlockAudio(){ try{
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if(audioCtx.state === "suspended") audioCtx.resume();
-  }catch(e){} }
-  function tone(freq, start, dur, vol){
-    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = "sine"; o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, start);
-    g.gain.exponentialRampToValueAtTime(vol, start + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(start); o.stop(start + dur + 0.02);
-  }
-  function successChime(){ if(!soundToggle.checked) return; try{ unlockAudio(); if(!audioCtx) return;
-    var t = audioCtx.currentTime; tone(920, t, 0.10, 0.4); tone(1380, t + 0.10, 0.13, 0.4); }catch(e){} }
-  function dupSound(){ if(!soundToggle.checked) return; try{ unlockAudio(); if(!audioCtx) return;
-    var t = audioCtx.currentTime; tone(420, t, 0.16, 0.32); }catch(e){} }
+  // audio
+  function unlockAudio(){ try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){} }
+  function tone(freq, start, dur, vol){ var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type="sine"; o.frequency.value=freq; g.gain.setValueAtTime(0.0001,start);
+    g.gain.exponentialRampToValueAtTime(vol,start+0.012); g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+    o.connect(g); g.connect(audioCtx.destination); o.start(start); o.stop(start+dur+0.02); }
+  function successChime(){ if(!soundToggle.checked) return; try{ unlockAudio(); if(!audioCtx) return; var t=audioCtx.currentTime; tone(920,t,0.10,0.4); tone(1380,t+0.10,0.13,0.4); }catch(e){} }
+  function dupSound(){ if(!soundToggle.checked) return; try{ unlockAudio(); if(!audioCtx) return; var t=audioCtx.currentTime; tone(420,t,0.16,0.32); }catch(e){} }
   function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 
-  function flash(kind){ flashEl.className = "flash "+kind; void flashEl.offsetWidth;
-    flashEl.className = "flash "+kind; setTimeout(function(){ flashEl.className="flash"; }, 480); }
-  function toast(msg, kind){ var el = document.createElement("div"); el.className = "toast "+(kind||"ok");
-    el.innerHTML = '<span class="dot"></span>'+escapeHtml(msg); $("toasts").appendChild(el);
-    setTimeout(function(){ el.style.transition="opacity .3s"; el.style.opacity="0";
-      setTimeout(function(){ el.remove(); }, 300); }, 2200); }
-  function setLive(on, text){ led.classList.toggle("on", !!on); liveTxt.textContent = text;
-    reticle.hidden = !on; vpOverlay.style.display = on ? "none" : "flex"; vpHint.classList.toggle("hidden", !on); }
-  function setCompact(on){ compactZone.classList.toggle("hidden", on); }  // hide manual + session while scanning
+  function flash(kind){ flashEl.className="flash "+kind; void flashEl.offsetWidth; flashEl.className="flash "+kind; setTimeout(function(){ flashEl.className="flash"; },480); }
+  function toast(msg, kind){ var el=document.createElement("div"); el.className="toast "+(kind||"ok"); el.innerHTML='<span class="dot"></span>'+escapeHtml(msg); $("toasts").appendChild(el);
+    setTimeout(function(){ el.style.transition="opacity .3s"; el.style.opacity="0"; setTimeout(function(){ el.remove(); },300); },2200); }
+  function setLive(on, text){ led.classList.toggle("on",!!on); liveTxt.textContent=text; reticle.hidden=!on; vpOverlay.style.display=on?"none":"flex"; vpHint.classList.toggle("hidden",!on); }
+  function setCompact(on){ compactZone.classList.toggle("hidden", on); }
 
-  // ---------- auth ----------
-  function showAuthMsg(text, kind){ authMsg.className = "auth-msg "+kind; authMsg.textContent = text; }
-  function clearAuthMsg(){ authMsg.className = "auth-msg"; authMsg.textContent = ""; }
-
-  function submitAuth(){
-    if(!sb) return;
-    var email = emailEl.value.trim(), pass = passEl.value;
-    if(!email || !pass){ showAuthMsg("Enter your email and password.", "err"); return; }
-    authBtn.disabled = true; authBtn.textContent = "Signing in…"; clearAuthMsg();
-    sb.auth.signInWithPassword({ email:email, password:pass }).then(function(res){
-      if(res.error){ showAuthMsg(res.error.message, "err"); }
-    }).catch(function(e){ showAuthMsg(String(e && e.message || e), "err"); })
-      .finally(function(){ authBtn.disabled = false; authBtn.textContent = "Sign in"; });
-  }
+  // auth
+  function showAuthMsg(text, kind){ authMsg.className="auth-msg "+kind; authMsg.textContent=text; }
+  function clearAuthMsg(){ authMsg.className="auth-msg"; authMsg.textContent=""; }
+  function submitAuth(){ if(!sb) return; var email=emailEl.value.trim(), pass=passEl.value;
+    if(!email||!pass){ showAuthMsg("Enter your email and password.","err"); return; }
+    authBtn.disabled=true; authBtn.textContent="Signing in…"; clearAuthMsg();
+    sb.auth.signInWithPassword({email:email,password:pass}).then(function(res){ if(res.error){ showAuthMsg(res.error.message,"err"); } })
+      .catch(function(e){ showAuthMsg(String(e&&e.message||e),"err"); })
+      .finally(function(){ authBtn.disabled=false; authBtn.textContent="Sign in"; }); }
   authBtn.addEventListener("click", submitAuth);
   emailEl.addEventListener("keydown", function(e){ if(e.key==="Enter") passEl.focus(); });
   passEl.addEventListener("keydown", function(e){ if(e.key==="Enter") submitAuth(); });
   signoutBtn.addEventListener("click", function(){ stopCamera(); if(sb) sb.auth.signOut(); });
 
-  function enterApp(user){
-    currentUser = user; userEmail.textContent = user.email || user.id;
-    userChip.classList.remove("hidden"); authScreen.classList.add("hidden"); appMain.classList.remove("hidden");
-    loadRecords();
-  }
-  function showAuth(){
-    currentUser = null; userChip.classList.add("hidden"); appMain.classList.add("hidden"); authScreen.classList.remove("hidden");
-    records = []; seen = new Set(); dupSkipped = 0; renderTable(); updateStats(); passEl.value = "";
-  }
+  function enterApp(user){ currentUser=user; userEmail.textContent=user.email||user.id;
+    userChip.classList.remove("hidden"); authScreen.classList.add("hidden"); appMain.classList.remove("hidden"); pbiCard.classList.remove("hidden");
+    var origin = location.origin;
+    pbiJson.value = origin + "/api/export?token=YOUR_TOKEN&format=json";
+    pbiCsv.value  = origin + "/api/export?token=YOUR_TOKEN&format=csv";
+    loadRecords(); }
+  function showAuth(){ currentUser=null; userChip.classList.add("hidden"); appMain.classList.add("hidden"); pbiCard.classList.add("hidden"); authScreen.classList.remove("hidden");
+    records=[]; seen=new Set(); dupSkipped=0; renderTable(); updateStats(); passEl.value=""; }
 
-  // ---------- capture + persist ----------
+  // capture
   function accept(code, format, source){
-    code = (code==null ? "" : String(code)).trim();
-    if(!code || !currentUser) return;
-    var now = Date.now();
-    if(code === lastAccepted.code && (now - lastAccepted.ts) < 1800) return;
-    lastAccepted = { code:code, ts:now };
-
-    var isDup = seen.has(code);
-    if(isDup && dupToggle.checked){
-      dupSkipped++; updateStats(); flash("dup"); dupSound(); vibrate(20);
-      toast("Duplicate skipped: "+code, "dup"); return;
-    }
-    var tp = nowParts();
-    seen.add(code);
-    var rec = { id:null, code:code, format:prettyFormat(format), source:source, iso:tp.iso, timeStr:tp.t, dup:isDup, sync:"pending" };
-    records.unshift(rec); renderTable(); updateStats();
-    flash("ok"); successChime(); vibrate(45); toast("Captured: "+code, "ok");
-    persist(rec);
+    code=(code==null?"":String(code)).trim(); if(!code||!currentUser) return;
+    var now=Date.now(); if(code===lastAccepted.code&&(now-lastAccepted.ts)<1800) return; lastAccepted={code:code,ts:now};
+    var isDup=seen.has(code);
+    if(isDup&&dupToggle.checked){ dupSkipped++; updateStats(); flash("dup"); dupSound(); vibrate(20); toast("Duplicate skipped: "+code,"dup"); return; }
+    var tp=nowParts(); seen.add(code);
+    var rec={id:null,code:code,format:prettyFormat(format),source:source,iso:tp.iso,timeStr:tp.t,dup:isDup,sync:"pending"};
+    records.unshift(rec); renderTable(); updateStats(); flash("ok"); successChime(); vibrate(45); toast("Captured: "+code,"ok"); persist(rec);
   }
-  function persist(rec){
-    if(!sb || !currentUser){ rec.sync = "error"; renderTable(); return; }
-    sb.from("scan_records").insert({
-      user_id: currentUser.id, code: rec.code, format: rec.format, source: rec.source,
-      session_label: sessionEl.value.trim() || null, is_repeat: rec.dup
-    }).select("id").single().then(function(res){
-      if(res.error){ rec.sync = "error"; toast("Save failed — kept locally", "alert"); }
-      else { rec.id = res.data.id; rec.sync = "synced"; }
-      renderTable();
-    });
-  }
-  function loadRecords(){
-    if(!sb) return;
-    sb.from("scan_records").select("*").order("created_at", { ascending:false }).limit(2000).then(function(res){
-      if(res.error){ toast("Could not load records: "+res.error.message, "alert"); return; }
-      records = (res.data||[]).map(function(d){ var tp = nowParts(d.created_at);
-        return { id:d.id, code:d.code, format:prettyFormat(d.format), source:d.source||"manual", iso:tp.iso, timeStr:tp.t, dup:!!d.is_repeat, sync:"synced" }; });
-      seen = new Set(records.map(function(r){ return r.code; }));
-      renderTable(); updateStats();
-    });
-  }
+  function persist(rec){ if(!sb||!currentUser){ rec.sync="error"; renderTable(); return; }
+    sb.from("scan_records").insert({ user_id:currentUser.id, code:rec.code, format:rec.format, source:rec.source, session_label:sessionEl.value.trim()||null, is_repeat:rec.dup })
+      .select("id").single().then(function(res){ if(res.error){ rec.sync="error"; toast("Save failed — kept locally","alert"); } else { rec.id=res.data.id; rec.sync="synced"; } renderTable(); }); }
+  function loadRecords(){ if(!sb) return;
+    sb.from("scan_records").select("*").order("created_at",{ascending:false}).limit(2000).then(function(res){
+      if(res.error){ toast("Could not load records: "+res.error.message,"alert"); return; }
+      records=(res.data||[]).map(function(d){ var tp=nowParts(d.created_at); return {id:d.id,code:d.code,format:prettyFormat(d.format),source:d.source||"manual",iso:tp.iso,timeStr:tp.t,dup:!!d.is_repeat,sync:"synced"}; });
+      seen=new Set(records.map(function(r){ return r.code; })); renderTable(); updateStats(); }); }
 
   function renderTable(){
-    if(records.length === 0){ tbody.innerHTML = '<tr><td colspan="4"><div class="empty">No records yet.</div></td></tr>'; return; }
-    var srcIcon = { camera:"cam", image:"img", manual:"key" }, html = "";
-    for(var i=0;i<records.length;i++){ var r = records[i];
-      html += "<tr><td class=\"idx\">"+(records.length-i)+"</td><td class=\"time\">"+r.timeStr+"</td>"
-        + '<td class="code">'+escapeHtml(r.code)+(r.dup?' <span class="tag dup">DUP</span>':"")+'<span class="sync '+r.sync+'" title="'+r.sync+'"></span></td>'
-        + '<td><span class="tag fmt">'+escapeHtml(r.format)+'</span><span class="tag src">'+(srcIcon[r.source]||r.source)+"</span></td></tr>";
-    }
-    tbody.innerHTML = html;
+    if(records.length===0){ tbody.innerHTML='<tr><td colspan="4"><div class="empty">No records yet.</div></td></tr>'; return; }
+    var srcIcon={camera:"cam",image:"img",manual:"key"}, html="";
+    for(var i=0;i<records.length;i++){ var r=records[i];
+      html+="<tr><td class=\"idx\">"+(records.length-i)+"</td><td class=\"time\">"+r.timeStr+"</td>"
+        +'<td class="code">'+escapeHtml(r.code)+(r.dup?' <span class="tag dup">DUP</span>':"")+'<span class="sync '+r.sync+'" title="'+r.sync+'"></span></td>'
+        +'<td><span class="tag fmt">'+escapeHtml(r.format)+'</span><span class="tag src">'+(srcIcon[r.source]||r.source)+"</span></td></tr>"; }
+    tbody.innerHTML=html;
   }
-  function updateStats(){ statTotal.textContent = records.length; statUnique.textContent = seen.size; statDup.textContent = dupSkipped;
-    countHd.textContent = records.length; var has = records.length > 0; exportBtn.disabled = !has; clearBtn.disabled = !has; }
+  function updateStats(){ statTotal.textContent=records.length; statUnique.textContent=seen.size; statDup.textContent=dupSkipped; countHd.textContent=records.length;
+    var has=records.length>0; exportBtn.disabled=!has; clearBtn.disabled=!has; }
 
-  // ---------- camera ----------
-  function onScan(txt, res){ var fmt=""; try{ fmt = res&&res.result&&res.result.format ? res.result.format.formatName : ""; }catch(e){}
-    accept(txt, fmt, "camera"); }
+  // ---------- camera (fixed decoding) ----------
+  function onScan(txt,res){ var fmt=""; try{ fmt=res&&res.result&&res.result.format?res.result.format.formatName:""; }catch(e){} accept(txt,fmt,"camera"); }
   function scanConfig(){ return {
     fps: 10,
-    qrbox: function(vw, vh){ var m = Math.min(vw, vh); var size = Math.max(160, Math.floor(m * 0.72)); return { width:size, height:size }; },
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-    rememberLastUsedCamera: true
+    qrbox: function(vw, vh){ var size = Math.floor(Math.min(vw, vh) * 0.75); return { width:size, height:size }; }
+    // NOTE: no experimentalFeatures / aspectRatio — the ZXing engine decodes QR reliably.
   }; }
-  function initScanner(){ if(typeof Html5Qrcode !== "undefined"){ try{ scanner = new Html5Qrcode("reader", { verbose:false }); }catch(e){ scanner=null; } }
-    else { startBtn.disabled = true; switchBtn.disabled = true; } }
-  function startCamera(deviceId){
-    if(!scanner){ toast("Scanner unavailable here", "alert"); return; }
-    unlockAudio();
-    var target = deviceId ? { deviceId:{ exact:deviceId } } : { facingMode:"environment" };
-    setLive(true, "Starting…");
-    scanner.start(target, scanConfig(), onScan, function(){})
-      .then(function(){ isScanning=true; setLive(true,"Live"); setCompact(true); startBtn.innerHTML=stopIcon(); startBtn.classList.remove("go"); switchBtn.disabled=cameras.length<2; })
-      .catch(function(err){ isScanning=false; setLive(false,"Idle"); setCompact(false); cameraError(err); });
+  function initScanner(){ if(typeof Html5Qrcode!=="undefined"){ try{ scanner=new Html5Qrcode("reader",{verbose:false}); }catch(e){ scanner=null; } } else { startBtn.disabled=true; switchBtn.disabled=true; } }
+  function pickBack(list){ for(var i=0;i<list.length;i++){ if(/back|rear|environment/i.test(list[i].label||"")) return i; } return list.length-1; }
+  function onStarted(){ isScanning=true; setLive(true,"Live"); setCompact(true); startBtn.innerHTML=stopIcon(); startBtn.classList.remove("go"); populateCameras(); }
+  function populateCameras(){ Html5Qrcode.getCameras().then(function(devs){ cameras=devs||[]; camSelect.innerHTML="";
+    cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
+    if(cameras[camIndex]) camSelect.value=cameras[camIndex].id;
+    switchBtn.disabled=cameras.length<2; camField.classList.toggle("hidden",cameras.length<2); }).catch(function(){}); }
+
+  function beginScan(){
+    if(!scanner) return; unlockAudio(); setLive(true,"Starting…");
+    var cfg=scanConfig();
+    // Primary: back camera via facingMode (most reliable for decoding).
+    scanner.start({ facingMode:"environment" }, cfg, onScan, function(){})
+      .then(onStarted)
+      .catch(function(){
+        // Fallback: enumerate and start an explicit device.
+        Html5Qrcode.getCameras().then(function(devs){ cameras=devs||[];
+          if(!cameras.length){ cameraError({name:"NotFoundError"}); return; }
+          camIndex=pickBack(cameras);
+          scanner.start(cameras[camIndex].id, cfg, onScan, function(){}).then(onStarted).catch(function(err){ cameraError(err); });
+        }).catch(function(err){ cameraError(err); });
+      });
   }
-  function stopCamera(){
-    if(!scanner || !isScanning) return Promise.resolve();
+  function startById(id){ var cfg=scanConfig(); setLive(true,"Starting…"); scanner.start(id, cfg, onScan, function(){}).then(onStarted).catch(function(e){ cameraError(e); }); }
+  function stopCamera(){ if(!scanner||!isScanning) return Promise.resolve();
     return scanner.stop().then(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); })
-      .catch(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); });
-  }
-  function cameraError(err){ var msg = (err&&err.name) ? err.name : String(err||"error");
+      .catch(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); }); }
+  function cameraError(err){ var msg=(err&&err.name)?err.name:String(err||"error"); setLive(false,"Idle"); setCompact(false);
     if(/NotAllowed|Permission/i.test(msg)){ toast("Camera permission denied","alert"); vpOverlay.querySelector(".big").textContent="Camera blocked"; }
     else if(/NotFound|Devices/i.test(msg)){ toast("No camera found","alert"); vpOverlay.querySelector(".big").textContent="No camera detected"; }
+    else if(/NotReadable|TrackStart/i.test(msg)){ toast("Camera busy — close other apps using it","alert"); vpOverlay.querySelector(".big").textContent="Camera in use"; }
     else { toast("Camera error — use image / manual","alert"); vpOverlay.querySelector(".big").textContent="Camera unavailable"; }
-    startBtn.innerHTML = startIcon(); startBtn.classList.add("go"); }
+    startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); }
   function startIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Start camera'; }
   function stopIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg> Stop camera'; }
 
-  startBtn.addEventListener("click", function(){
-    if(!scanner) return; unlockAudio();
-    if(isScanning){ stopCamera(); return; }
-    Html5Qrcode.getCameras().then(function(devices){
-      cameras = devices || [];
-      if(cameras.length === 0){ cameraError({name:"NotFoundError"}); return; }
-      camSelect.innerHTML = "";
-      cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
-      camIndex = 0; for(var i=0;i<cameras.length;i++){ if(/back|rear|environment/i.test(cameras[i].label||"")){ camIndex=i; break; } }
-      camSelect.value = cameras[camIndex].id;
-      startCamera(cameras[camIndex].id);
-    }).catch(function(err){ cameraError(err); });
-  });
-  switchBtn.addEventListener("click", function(){ if(cameras.length<2) return; camIndex=(camIndex+1)%cameras.length; camSelect.value=cameras[camIndex].id;
-    camField.classList.remove("hidden"); stopCamera().then(function(){ startCamera(cameras[camIndex].id); }); });
-  camSelect.addEventListener("change", function(){ var id=camSelect.value; for(var i=0;i<cameras.length;i++){ if(cameras[i].id===id){ camIndex=i; break; } }
-    if(isScanning){ stopCamera().then(function(){ startCamera(id); }); } else { startCamera(id); } });
-  fileInput.addEventListener("change", function(e){
-    var file = e.target.files && e.target.files[0]; if(!file || !scanner) return; unlockAudio();
-    (isScanning ? stopCamera() : Promise.resolve()).then(function(){
-      var p = scanner.scanFileV2 ? scanner.scanFileV2(file,false) : scanner.scanFile(file,false);
-      Promise.resolve(p).then(function(res){
-        if(typeof res === "string"){ accept(res,"","image"); }
-        else { var fmt=""; try{ fmt=res.result&&res.result.format?res.result.format.formatName:""; }catch(_){} accept(res.decodedText,fmt,"image"); }
-      }).catch(function(){ toast("No code found in image","alert"); });
-    });
-    fileInput.value = "";
-  });
+  startBtn.addEventListener("click", function(){ if(!scanner) return; unlockAudio(); if(isScanning){ stopCamera(); } else { beginScan(); } });
+  switchBtn.addEventListener("click", function(){ if(cameras.length<2) return; camIndex=(camIndex+1)%cameras.length; camSelect.value=cameras[camIndex].id; stopCamera().then(function(){ startById(cameras[camIndex].id); }); });
+  camSelect.addEventListener("change", function(){ var id=camSelect.value; for(var i=0;i<cameras.length;i++){ if(cameras[i].id===id){ camIndex=i; break; } } stopCamera().then(function(){ startById(id); }); });
+
+  fileInput.addEventListener("change", function(e){ var file=e.target.files&&e.target.files[0]; if(!file||!scanner) return; unlockAudio();
+    (isScanning?stopCamera():Promise.resolve()).then(function(){
+      var p=scanner.scanFileV2?scanner.scanFileV2(file,false):scanner.scanFile(file,false);
+      Promise.resolve(p).then(function(res){ if(typeof res==="string"){ accept(res,"","image"); } else { var fmt=""; try{ fmt=res.result&&res.result.format?res.result.format.formatName:""; }catch(_){} accept(res.decodedText,fmt,"image"); } })
+        .catch(function(){ toast("No code found in image","alert"); }); });
+    fileInput.value=""; });
 
   manualBtn.addEventListener("click", submitManual);
   manualCode.addEventListener("keydown", function(e){ if(e.key==="Enter") submitManual(); });
   function submitManual(){ var v=manualCode.value.trim(); if(!v) return; unlockAudio(); accept(v,"MANUAL","manual"); manualCode.value=""; manualCode.focus(); }
 
-  exportBtn.addEventListener("click", function(){
-    if(records.length===0) return; var label = sessionEl.value.trim();
-    var head = ["index","timestamp_iso","time","code","format","source","session_label","is_repeat"];
-    var rows = [head.join(",")], ordered = records.slice().reverse();
-    ordered.forEach(function(r,i){ rows.push([ i+1, r.iso, r.timeStr, csv(r.code), csv(r.format), r.source, csv(label), r.dup?"yes":"no" ].join(",")); });
-    var blob = new Blob([rows.join("\r\n")], { type:"text/csv;charset=utf-8;" });
-    var url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = "scan-records-"+new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")+".csv";
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1000);
-    toast("Exported "+records.length+" records","ok");
-  });
-  function csv(s){ s=(s==null?"":String(s)); return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+  exportBtn.addEventListener("click", function(){ if(records.length===0) return; var label=sessionEl.value.trim();
+    var head=["index","timestamp_iso","time","code","format","source","session_label","is_repeat"], rows=[head.join(",")], ordered=records.slice().reverse();
+    ordered.forEach(function(r,i){ rows.push([i+1,r.iso,r.timeStr,csv(r.code),csv(r.format),r.source,csv(label),r.dup?"yes":"no"].join(",")); });
+    var blob=new Blob([rows.join("\r\n")],{type:"text/csv;charset=utf-8;"}), url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download="scan-records-"+new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")+".csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    toast("Exported "+records.length+" records","ok"); });
+  function csv(s){ s=(s==null?"":String(s)); return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
 
-  clearBtn.addEventListener("click", function(){
-    if(records.length===0 || !currentUser) return;
+  clearBtn.addEventListener("click", function(){ if(records.length===0||!currentUser) return;
     if(!confirm("Delete all "+records.length+" records from the database? This cannot be undone.")) return;
-    sb.from("scan_records").delete().eq("user_id", currentUser.id).then(function(res){
-      if(res.error){ toast("Delete failed: "+res.error.message,"alert"); return; }
-      records=[]; seen=new Set(); dupSkipped=0; lastAccepted={code:"",ts:0}; renderTable(); updateStats(); toast("All records cleared","ok");
-    });
-  });
+    sb.from("scan_records").delete().eq("user_id",currentUser.id).then(function(res){ if(res.error){ toast("Delete failed: "+res.error.message,"alert"); return; }
+      records=[]; seen=new Set(); dupSkipped=0; lastAccepted={code:"",ts:0}; renderTable(); updateStats(); toast("All records cleared","ok"); }); });
 
-  // ---------- config + boot ----------
-  function resolveConfig(){
-    var inlineReal = SUPABASE_URL.indexOf("YOUR-PROJECT") === -1 && SUPABASE_ANON_KEY.indexOf("YOUR-ANON") === -1;
-    if(inlineReal) return Promise.resolve({ url:SUPABASE_URL, key:SUPABASE_ANON_KEY });
-    return fetch("/api/config", { cache:"no-store" })
-      .then(function(r){ if(!r.ok) throw new Error("no config"); return r.json(); })
-      .then(function(c){ return { url:c.url, key:c.anonKey }; })
-      .catch(function(){ return { url:SUPABASE_URL, key:SUPABASE_ANON_KEY }; });
-  }
-  function boot(){
-    setLive(false, "Idle"); updateStats(); initScanner();
+  function copyField(inp){ try{ inp.select(); inp.setSelectionRange(0,99999); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(inp.value); } else { document.execCommand("copy"); } toast("Copied to clipboard","ok"); }catch(e){ toast("Copy failed — select manually","alert"); } }
+  copyJson.addEventListener("click", function(){ copyField(pbiJson); });
+  copyCsv.addEventListener("click", function(){ copyField(pbiCsv); });
+
+  // config + boot
+  function resolveConfig(){ var inlineReal=SUPABASE_URL.indexOf("YOUR-PROJECT")===-1&&SUPABASE_ANON_KEY.indexOf("YOUR-ANON")===-1;
+    if(inlineReal) return Promise.resolve({url:SUPABASE_URL,key:SUPABASE_ANON_KEY});
+    return fetch("/api/config",{cache:"no-store"}).then(function(r){ if(!r.ok) throw new Error("no config"); return r.json(); })
+      .then(function(c){ return {url:c.url,key:c.anonKey}; }).catch(function(){ return {url:SUPABASE_URL,key:SUPABASE_ANON_KEY}; }); }
+  function boot(){ setLive(false,"Idle"); updateStats(); initScanner();
     resolveConfig().then(function(cfg){
-      var bad = !cfg || !cfg.url || cfg.url.indexOf("YOUR-PROJECT")!==-1 || !cfg.key || cfg.key.indexOf("YOUR-ANON")!==-1;
-      if(bad){ authBtn.disabled = true;
-        showAuthMsg("Not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY as Vercel environment variables (served by /api/config).", "warn"); return; }
-      if(typeof window.supabase === "undefined"){ authBtn.disabled = true;
-        showAuthMsg("Supabase library failed to load. Check your connection.", "err"); return; }
-      sb = window.supabase.createClient(cfg.url, cfg.key);
-      sb.auth.getSession().then(function(res){ var s = res && res.data ? res.data.session : null;
-        if(s && s.user) enterApp(s.user); else showAuth(); });
-      sb.auth.onAuthStateChange(function(_e, session){ if(session && session.user) enterApp(session.user); else showAuth(); });
-    });
-  }
+      var bad=!cfg||!cfg.url||cfg.url.indexOf("YOUR-PROJECT")!==-1||!cfg.key||cfg.key.indexOf("YOUR-ANON")!==-1;
+      if(bad){ authBtn.disabled=true; showAuthMsg("Not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY as Vercel environment variables (served by /api/config).","warn"); return; }
+      if(typeof window.supabase==="undefined"){ authBtn.disabled=true; showAuthMsg("Supabase library failed to load. Check your connection.","err"); return; }
+      sb=window.supabase.createClient(cfg.url,cfg.key);
+      sb.auth.getSession().then(function(res){ var s=res&&res.data?res.data.session:null; if(s&&s.user) enterApp(s.user); else showAuth(); });
+      sb.auth.onAuthStateChange(function(_e,session){ if(session&&session.user) enterApp(session.user); else showAuth(); });
+    }); }
   boot();
 })();
 </script>
