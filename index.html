@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>if(typeof Html5Qrcode==="undefined"){var _hq=document.createElement("script");_hq.src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js";document.head.appendChild(_hq);}</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
@@ -209,7 +210,7 @@
           <div class="reticle" id="reticle" hidden>
             <div class="frame"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><span class="scanline"></span></div>
           </div>
-          <div class="vp-overlay" id="vpOverlay"><div><div class="big">Camera off</div>Press <strong>Start camera</strong>, or use <strong>Scan image</strong> / <strong>manual entry</strong>.</div></div>
+          <div class="vp-overlay" id="vpOverlay"><div><div class="big" id="vpBig">Camera off</div><div id="vpMsg">Press <strong>Start camera</strong>, or use <strong>Scan image</strong> / <strong>manual entry</strong>.</div></div></div>
           <div class="vp-hint hidden" id="vpHint">Point at a QR or barcode</div>
           <div class="flash" id="flash"></div>
         </div>
@@ -312,7 +313,7 @@
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), sessionEl=$("session");
   var dupToggle=$("dupToggle"), soundToggle=$("soundToggle");
   var exportBtn=$("exportBtn"), clearBtn=$("clearBtn"), tbody=$("tbody");
-  var led=$("led"), liveTxt=$("liveTxt"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpHint=$("vpHint"), flashEl=$("flash");
+  var led=$("led"), liveTxt=$("liveTxt"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg"), vpHint=$("vpHint"), flashEl=$("flash");
   var statTotal=$("statTotal"), statUnique=$("statUnique"), statDup=$("statDup"), countHd=$("countHd");
   var pbiJson=$("pbiJson"), pbiCsv=$("pbiCsv"), copyJson=$("copyJson"), copyCsv=$("copyCsv");
 
@@ -336,6 +337,13 @@
     setTimeout(function(){ el.style.transition="opacity .3s"; el.style.opacity="0"; setTimeout(function(){ el.remove(); },300); },2200); }
   function setLive(on, text){ led.classList.toggle("on",!!on); liveTxt.textContent=text; reticle.hidden=!on; vpOverlay.style.display=on?"none":"flex"; vpHint.classList.toggle("hidden",!on); }
   function setCompact(on){ compactZone.classList.toggle("hidden", on); }
+  function setVp(big, msg){ if(vpBig) vpBig.textContent=big; if(vpMsg) vpMsg.innerHTML=msg; }
+  function cameraPreflight(){
+    if(typeof Html5Qrcode==="undefined") return "Scanner library didn't load (network or CDN blocked). Manual entry still works.";
+    if(!window.isSecureContext) return "Camera needs HTTPS. Open the deployed https:// URL — the camera can't run from a file or an embedded preview.";
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return "This browser/context can't reach the camera. Open the https:// URL in Chrome or Safari.";
+    return null;
+  }
 
   // auth
   function showAuthMsg(text, kind){ authMsg.className="auth-msg "+kind; authMsg.textContent=text; }
@@ -398,43 +406,63 @@
     qrbox: function(vw, vh){ var size = Math.floor(Math.min(vw, vh) * 0.75); return { width:size, height:size }; }
     // NOTE: no experimentalFeatures / aspectRatio — the ZXing engine decodes QR reliably.
   }; }
-  function initScanner(){ if(typeof Html5Qrcode!=="undefined"){ try{ scanner=new Html5Qrcode("reader",{verbose:false}); }catch(e){ scanner=null; } } else { startBtn.disabled=true; switchBtn.disabled=true; } }
+  function ensureScanner(){ if(scanner) return true; if(typeof Html5Qrcode==="undefined") return false; try{ scanner=new Html5Qrcode("reader",{verbose:false}); return true; }catch(e){ scanner=null; return false; } }
+  function initScanner(){
+    if(ensureScanner()){ startBtn.disabled=false; return; }
+    startBtn.disabled=true;
+    var tries=0, t=setInterval(function(){ tries++;
+      if(ensureScanner()){ startBtn.disabled=false; clearInterval(t); }
+      else if(tries>30){ clearInterval(t); setVp("Scanner unavailable","Scanner library didn't load — check the network (cdnjs / jsdelivr). Manual entry still works."); }
+    }, 200);
+  }
   function pickBack(list){ for(var i=0;i<list.length;i++){ if(/back|rear|environment/i.test(list[i].label||"")) return i; } return list.length-1; }
-  function onStarted(){ isScanning=true; setLive(true,"Live"); setCompact(true); startBtn.innerHTML=stopIcon(); startBtn.classList.remove("go"); populateCameras(); }
+  function onStarted(){ clearWatch(); isScanning=true; setLive(true,"Live"); setCompact(true); startBtn.innerHTML=stopIcon(); startBtn.classList.remove("go"); }
   function populateCameras(){ Html5Qrcode.getCameras().then(function(devs){ cameras=devs||[]; camSelect.innerHTML="";
     cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
     if(cameras[camIndex]) camSelect.value=cameras[camIndex].id;
     switchBtn.disabled=cameras.length<2; camField.classList.toggle("hidden",cameras.length<2); }).catch(function(){}); }
 
+  var startWatch=null;
+  function clearWatch(){ if(startWatch){ clearTimeout(startWatch); startWatch=null; } }
   function beginScan(){
-    if(!scanner) return; unlockAudio(); setLive(true,"Starting…");
-    var cfg=scanConfig();
-    // Primary: back camera via facingMode (most reliable for decoding).
-    scanner.start({ facingMode:"environment" }, cfg, onScan, function(){})
-      .then(onStarted)
-      .catch(function(){
-        // Fallback: enumerate and start an explicit device.
-        Html5Qrcode.getCameras().then(function(devs){ cameras=devs||[];
-          if(!cameras.length){ cameraError({name:"NotFoundError"}); return; }
-          camIndex=pickBack(cameras);
-          scanner.start(cameras[camIndex].id, cfg, onScan, function(){}).then(onStarted).catch(function(err){ cameraError(err); });
-        }).catch(function(err){ cameraError(err); });
-      });
+    if(!ensureScanner()) return; unlockAudio();
+    liveTxt.textContent="Starting…"; setVp("Starting…","Requesting camera permission — tap <strong>Allow</strong> if your browser asks.");
+    clearWatch();
+    startWatch=setTimeout(function(){ if(!isScanning){ setLive(false,"Idle");
+      setVp("Camera didn't start","No response from the camera. Tap the camera/permission icon in the address bar and set it to Allow, make sure no other app is using the camera, then press Start again.");
+      startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); } }, 12000);
+    // Enumerate first: this reliably triggers the permission prompt and lets us report errors.
+    Html5Qrcode.getCameras().then(function(devs){
+      cameras=devs||[];
+      if(!cameras.length){ clearWatch(); cameraError({name:"NotFoundError"}); return; }
+      camSelect.innerHTML="";
+      cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
+      switchBtn.disabled=cameras.length<2; camField.classList.toggle("hidden",cameras.length<2);
+      camIndex=pickBack(cameras); camSelect.value=cameras[camIndex].id;
+      startById(cameras[camIndex].id);
+    }).catch(function(err){ clearWatch(); cameraError(err); });
   }
-  function startById(id){ var cfg=scanConfig(); setLive(true,"Starting…"); scanner.start(id, cfg, onScan, function(){}).then(onStarted).catch(function(e){ cameraError(e); }); }
+  function startById(id){ var cfg=scanConfig(); liveTxt.textContent="Starting…"; scanner.start(id, cfg, onScan, function(){}).then(onStarted).catch(function(e){ clearWatch(); cameraError(e); }); }
   function stopCamera(){ if(!scanner||!isScanning) return Promise.resolve();
     return scanner.stop().then(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); })
       .catch(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); }); }
   function cameraError(err){ var msg=(err&&err.name)?err.name:String(err||"error"); setLive(false,"Idle"); setCompact(false);
-    if(/NotAllowed|Permission/i.test(msg)){ toast("Camera permission denied","alert"); vpOverlay.querySelector(".big").textContent="Camera blocked"; }
-    else if(/NotFound|Devices/i.test(msg)){ toast("No camera found","alert"); vpOverlay.querySelector(".big").textContent="No camera detected"; }
-    else if(/NotReadable|TrackStart/i.test(msg)){ toast("Camera busy — close other apps using it","alert"); vpOverlay.querySelector(".big").textContent="Camera in use"; }
-    else { toast("Camera error — use image / manual","alert"); vpOverlay.querySelector(".big").textContent="Camera unavailable"; }
+    if(/NotAllowed|Permission/i.test(msg)){ toast("Camera permission denied","alert"); setVp("Camera blocked","Allow camera access for this site (address-bar icon), then press Start again."); }
+    else if(/NotFound|Devices/i.test(msg)){ toast("No camera found","alert"); setVp("No camera detected","No camera on this device — use Scan image or Manual entry."); }
+    else if(/NotReadable|TrackStart/i.test(msg)){ toast("Camera busy","alert"); setVp("Camera in use","Another app is using the camera. Close it, then press Start again."); }
+    else if(/Overconstrained/i.test(msg)){ toast("Camera constraint error","alert"); setVp("Camera error","Couldn't open that camera — try the Switch button."); }
+    else { toast("Camera error: "+msg,"alert"); setVp("Camera unavailable","Error: "+escapeHtml(msg)+". Open the https:// URL in a normal tab, or use image / manual."); }
     startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); }
   function startIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Start camera'; }
   function stopIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg> Stop camera'; }
 
-  startBtn.addEventListener("click", function(){ if(!scanner) return; unlockAudio(); if(isScanning){ stopCamera(); } else { beginScan(); } });
+  startBtn.addEventListener("click", function(){ unlockAudio();
+    if(isScanning){ stopCamera(); return; }
+    var pf=cameraPreflight(); if(pf){ setLive(false,"Idle"); setVp("Camera unavailable", pf); toast("Camera unavailable — see the viewfinder note","alert"); return; }
+    if(window.self!==window.top){ toast("Embedded preview may block the camera — open the deployed URL if it fails","alert"); }
+    if(!ensureScanner()){ setVp("Scanner unavailable","Scanner library didn't load yet — try again in a moment."); return; }
+    beginScan();
+  });
   switchBtn.addEventListener("click", function(){ if(cameras.length<2) return; camIndex=(camIndex+1)%cameras.length; camSelect.value=cameras[camIndex].id; stopCamera().then(function(){ startById(cameras[camIndex].id); }); });
   camSelect.addEventListener("change", function(){ var id=camSelect.value; for(var i=0;i<cameras.length;i++){ if(cameras[i].id===id){ camIndex=i; break; } } stopCamera().then(function(){ startById(id); }); });
 
