@@ -279,6 +279,16 @@
         </table>
       </div></div>
       <p style="font-size:12px;color:var(--muted);margin-top:10px">Codes must match the middle part of a card. <b>VEN-BK-6</b> → code <b>BK</b>. <b>INT-RUB/JR-64</b> → code <b>RUB/JR</b>.</p>
+
+      <div class="card" style="margin-top:16px"><div class="card-hd">Reporting — download &amp; Power BI feed</div><div class="card-bd">
+        <div class="row" style="margin-top:0">
+          <button class="btn" id="dlEvents">Download events CSV</button>
+          <button class="btn" id="dlPresence">Download presence CSV</button>
+        </div>
+        <div class="fld" style="margin-top:14px"><label>Power BI — event log (Get Data → Web)</label><div class="inline"><input type="text" id="pbiEvents" class="mono" readonly><button class="btn sm" id="cpEvents">Copy</button></div></div>
+        <div class="fld"><label>Power BI — current presence</label><div class="inline"><input type="text" id="pbiPresence" class="mono" readonly><button class="btn sm" id="cpPresence">Copy</button></div></div>
+        <p style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">Replace <b style="color:var(--signal)">YOUR_TOKEN</b> with your <b>PBI_TOKEN</b> (Vercel env var), then in Power BI: <b>Get Data → Web → Anonymous</b>, expand to a table, set a scheduled refresh. The feed returns all entry data — keep the URL private and rotate the token if it leaks.</p>
+      </div></div>
     </div>
   </div>
 
@@ -318,6 +328,7 @@
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg");
   var resultEl=$("result"), resDir=$("resDir"), resCode=$("resCode"), resMeta=$("resMeta"), evtBody=$("evtBody");
   var setupBody=$("setupBody"), tvBtn=$("tvBtn"), tvExit=$("tvExit"), roleBadge=$("roleBadge"), usersBody=$("usersBody");
+  var dlEvents=$("dlEvents"), dlPresence=$("dlPresence"), pbiEvents=$("pbiEvents"), pbiPresence=$("pbiPresence"), cpEvents=$("cpEvents"), cpPresence=$("cpPresence");
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];});}
   function nowT(iso){var d=iso?new Date(iso):new Date();return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});}
@@ -337,6 +348,7 @@
     Array.prototype.forEach.call($("nav").children, function(b){ b.classList.toggle("active", b.getAttribute("data-view")===name); });
     if(name!=="scan"){ stopCamera(); }
     if(name==="users"){ loadUsers(); }
+    if(name==="setup"){ setReportingUrls(); }
   }
   Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){ showView(b.getAttribute("data-view")); }); });
 
@@ -518,6 +530,24 @@
     var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", spec_internal:parseInt($("npSi").value,10)||0, spec_vendor:parseInt($("npSv").value,10)||0, sort_order:processes.length+1 };
     sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npSi").value="0";$("npSv").value="0"; fetchState(); });
   });
+
+  // ---- reporting: CSV download + Power BI URLs ----
+  function stamp(){ return new Date().toISOString().slice(0,19).replace(/[:T]/g,"-"); }
+  function toCSV(rows, cols){ var out=[cols.join(",")]; rows.forEach(function(r){ out.push(cols.map(function(c){ var s=(r[c]==null?"":String(r[c])); return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(",")); }); return out.join("\r\n"); }
+  function downloadCSV(name, text){ var b=new Blob([text],{type:"text/csv;charset=utf-8;"}), u=URL.createObjectURL(b), a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },1000); }
+  function setReportingUrls(){ var o=location.origin;
+    if(pbiEvents) pbiEvents.value=o+"/api/entry-export?token=YOUR_TOKEN&dataset=events&format=json";
+    if(pbiPresence) pbiPresence.value=o+"/api/entry-export?token=YOUR_TOKEN&dataset=presence&format=json";
+  }
+  function copyField(inp){ try{ inp.select(); inp.setSelectionRange(0,99999); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value); else document.execCommand("copy"); toast("Copied","ok"); }catch(e){ toast("Copy failed — select manually","alert"); } }
+  if(dlEvents) dlEvents.addEventListener("click", function(){ if(!sb) return;
+    sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction").order("created_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
+      downloadCSV("entry-events-"+stamp()+".csv", toCSV(r.data||[], ["created_at","card_code","person_type","process_code","card_no","direction"])); toast("Exported "+((r.data||[]).length)+" events","ok"); }); });
+  if(dlPresence) dlPresence.addEventListener("click", function(){ if(!sb) return;
+    sb.from("ec_presence").select("card_code,person_type,process_code,card_no,status,updated_at").order("updated_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
+      downloadCSV("entry-presence-"+stamp()+".csv", toCSV(r.data||[], ["card_code","person_type","process_code","card_no","status","updated_at"])); toast("Exported "+((r.data||[]).length)+" rows","ok"); }); });
+  if(cpEvents) cpEvents.addEventListener("click", function(){ copyField(pbiEvents); });
+  if(cpPresence) cpPresence.addEventListener("click", function(){ copyField(pbiPresence); });
 
   // ---- users & roles (admin) ----
   function authHeaders(){ return { Authorization:"Bearer "+(accessToken||"") }; }
