@@ -211,7 +211,7 @@
             <div class="frame"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><span class="scanline"></span></div>
           </div>
           <div class="vp-overlay" id="vpOverlay"><div><div class="big" id="vpBig">Camera off</div><div id="vpMsg">Press <strong>Start camera</strong>, or use <strong>Scan image</strong> / <strong>manual entry</strong>.</div></div></div>
-          <div class="vp-hint hidden" id="vpHint">Point at a QR or barcode</div>
+          <div class="vp-hint hidden" id="vpHint">Center the QR, hold steady, fill about half the frame</div>
           <div class="flash" id="flash"></div>
         </div>
 
@@ -401,10 +401,11 @@
 
   // ---------- camera (fixed decoding) ----------
   function onScan(txt,res){ var fmt=""; try{ fmt=res&&res.result&&res.result.format?res.result.format.formatName:""; }catch(e){} accept(txt,fmt,"camera"); }
-  function scanConfig(){ return {
+  function scanConfig(constraints){ return {
     fps: 10,
-    qrbox: function(vw, vh){ var size = Math.floor(Math.min(vw, vh) * 0.75); return { width:size, height:size }; }
-    // NOTE: no experimentalFeatures / aspectRatio — the ZXing engine decodes QR reliably.
+    disableFlip: false,
+    videoConstraints: constraints
+    // No qrbox: scan the WHOLE frame — most reliable for QR. No native BarcodeDetector (ZXing decodes QR reliably).
   }; }
   function ensureScanner(){ if(scanner) return true; if(typeof Html5Qrcode==="undefined") return false; try{ scanner=new Html5Qrcode("reader",{verbose:false}); return true; }catch(e){ scanner=null; return false; } }
   function initScanner(){
@@ -415,7 +416,7 @@
       else if(tries>30){ clearInterval(t); setVp("Scanner unavailable","Scanner library didn't load — check the network (cdnjs / jsdelivr). Manual entry still works."); }
     }, 200);
   }
-  function pickBack(list){ for(var i=0;i<list.length;i++){ if(/back|rear|environment/i.test(list[i].label||"")) return i; } return list.length-1; }
+  function pickBack(list){ for(var i=0;i<list.length;i++){ if(/back|rear|environment/i.test(list[i].label||"")) return i; } return 0; }
   function onStarted(){ clearWatch(); isScanning=true; setLive(true,"Live"); setCompact(true); startBtn.innerHTML=stopIcon(); startBtn.classList.remove("go"); }
   function populateCameras(){ Html5Qrcode.getCameras().then(function(devs){ cameras=devs||[]; camSelect.innerHTML="";
     cameras.forEach(function(c,i){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.label||("Camera "+(i+1)); camSelect.appendChild(o); });
@@ -442,7 +443,7 @@
       startById(cameras[camIndex].id);
     }).catch(function(err){ clearWatch(); cameraError(err); });
   }
-  function startById(id){ var cfg=scanConfig(); liveTxt.textContent="Starting…"; scanner.start(id, cfg, onScan, function(){}).then(onStarted).catch(function(e){ clearWatch(); cameraError(e); }); }
+  function startById(id){ var constraints={ deviceId:{ exact:id }, width:{ ideal:1280 }, height:{ ideal:720 } }; liveTxt.textContent="Starting…"; scanner.start(constraints, scanConfig(constraints), onScan, function(){}).then(onStarted).catch(function(e){ clearWatch(); cameraError(e); }); }
   function stopCamera(){ if(!scanner||!isScanning) return Promise.resolve();
     return scanner.stop().then(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); })
       .catch(function(){ isScanning=false; setLive(false,"Idle"); setCompact(false); startBtn.innerHTML=startIcon(); startBtn.classList.add("go"); }); }
