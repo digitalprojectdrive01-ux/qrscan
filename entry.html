@@ -151,9 +151,25 @@
   @media (max-width:820px){ .scan-grid{grid-template-columns:1fr} }
   .card{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden}
   .card-hd{display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line); background:var(--panel-2); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:600}
-  .logbar{display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto auto; gap:8px; align-items:end; border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--panel)}
+  .logbar{display:grid; grid-template-columns:repeat(5,1fr) auto auto; gap:8px; align-items:end; border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--panel)}
   .logbar .fld{margin:0}
   @media (max-width:820px){ .logbar{grid-template-columns:1fr 1fr} }
+  .wsdd{position:relative}
+  .wsbtn{font-family:var(--sans); font-weight:600; font-size:13px; cursor:pointer; width:100%; text-align:left; border:1px solid var(--line); background:var(--panel-2); color:var(--ink); padding:9px 11px; border-radius:9px}
+  .wsbtn:hover{border-color:var(--hover-border)}
+  .wsbtn::after{content:"\25be"; float:right; color:var(--muted)}
+  .wsmenu{position:absolute; z-index:30; top:calc(100% + 4px); left:0; min-width:100%; max-height:280px; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px; box-shadow:0 12px 30px var(--shadow)}
+  .wsopt{display:flex; align-items:center; gap:8px; padding:7px 9px; font-size:13px; border-radius:7px; cursor:pointer; white-space:nowrap}
+  .wsopt:hover{background:var(--hover-bg)}
+  .wsopt input{width:16px; height:16px; accent-color:var(--signal)}
+  .wsgroup-hd{grid-column:1/-1; display:flex; align-items:baseline; gap:10px; margin:6px 0 -2px; padding-bottom:6px; border-bottom:1px solid var(--line); font-weight:700; font-size:16px}
+  .wsgroup-hd .wssub{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--signal); font-weight:600}
+  body.tv .wsgroup-hd{font-size:26px} body.tv .wsgroup-hd .wssub{font-size:18px}
+  .logstats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px}
+  .logstats .stat{padding:9px 12px}
+  .logstats .stat .k{font-size:20px}
+  .uws{width:100%; min-width:120px}
+  .wsnote{font-size:10.5px; color:var(--muted); margin-top:3px}
   .card-bd{padding:14px}
   .viewport{position:relative; width:100%; aspect-ratio:4/3; background:var(--cam-bg); border-radius:10px; overflow:hidden; border:1px solid var(--line)}
   #reader{width:100%;height:100%}
@@ -262,7 +278,9 @@
         <div class="ws-label">Workshop</div>
         <h2 id="wsName">—</h2>
       </div>
-      <div class="fld tvhide" style="margin:0; min-width:190px"><label>Select workshop</label><select id="wsSelect"></select></div>
+      <div class="fld tvhide" style="margin:0; min-width:190px"><label>Workshops</label>
+        <div class="wsdd"><button type="button" class="wsbtn" id="wsBtn">All workshops</button><div class="wsmenu hidden" id="wsMenu"></div></div>
+      </div>
       <div class="total">
         <div class="num" id="totalNum">0</div>
         <div class="lbl">people inside &middot; <span class="asof" id="asof">—</span></div>
@@ -310,12 +328,13 @@
     <div class="logbar">
       <div class="fld"><label>From</label><input type="date" id="logFrom"></div>
       <div class="fld"><label>To</label><input type="date" id="logTo"></div>
+      <div class="fld"><label>Workshop</label><select id="logWs"><option value="all">All</option></select></div>
       <div class="fld"><label>Direction</label><select id="logDir"><option value="all">All</option><option value="in">Check-in</option><option value="out">Check-out</option></select></div>
       <div class="fld"><label>Type</label><select id="logType"><option value="all">All</option><option value="INT">Internal</option><option value="VEN">Vendor</option></select></div>
       <button class="btn go" id="logApply">Apply</button>
       <button class="btn" id="logDownload">CSV</button>
     </div>
-    <div class="stats" style="margin-top:14px">
+    <div class="logstats">
       <div class="stat accent"><div class="k" id="logTotal">0</div><div class="l">Events in range</div></div>
       <div class="stat"><div class="k" id="logIn">0</div><div class="l">Check-in</div></div>
       <div class="stat"><div class="k" id="logOut">0</div><div class="l">Check-out</div></div>
@@ -368,7 +387,7 @@
     <div class="setup">
       <div class="card"><div class="card-bd" style="padding:4px 0">
         <table class="ptable">
-          <thead><tr><th>Email</th><th style="width:150px">Role</th><th style="width:90px"></th></tr></thead>
+          <thead><tr><th>Email</th><th style="width:130px">Role</th><th>Workshops</th><th style="width:80px"></th></tr></thead>
           <tbody id="usersBody"></tbody>
         </table>
       </div></div>
@@ -386,7 +405,7 @@
   var $=function(id){return document.getElementById(id);};
 
   var sb=null, currentUser=null, scanner=null, isScanning=false, cameras=[], camIndex=0, audioCtx=null, startWatch=null, rtChannel=null, pollTimer=null;
-  var processes=[], countsIn={}, workshops=[], currentWs=null, lastToggle={};
+  var processes=[], countsIn={}, allWorkshops=[], myAllowedWs=[], selectedWs=[], selectedWsInit=false, lastToggle={}, myWorkshops=null;
   var accessToken=null, myRole="view";
 
   // elements
@@ -394,14 +413,14 @@
   var userChip=$("userChip"), userEmail=$("userEmail"), signout=$("signout");
   var led=$("led"), liveTxt=$("liveTxt");
   var views={dash:$("viewDash"), scan:$("viewScan"), log:$("viewLog"), setup:$("viewSetup"), users:$("viewUsers")};
-  var wsSelect=$("wsSelect"), wsName=$("wsName"), totalNum=$("totalNum"), asof=$("asof"), pgrid=$("pgrid"), alertBar=$("alertBar"), tvAlert=$("tvAlert");
+  var wsBtn=$("wsBtn"), wsMenu=$("wsMenu"), wsName=$("wsName"), totalNum=$("totalNum"), asof=$("asof"), pgrid=$("pgrid"), alertBar=$("alertBar"), tvAlert=$("tvAlert");
   var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput"), camField=$("camField"), camSelect=$("camSelect");
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg");
   var resultEl=$("result"), resDir=$("resDir"), resCode=$("resCode"), resMeta=$("resMeta"), evtBody=$("evtBody");
   var setupBody=$("setupBody"), tvBtn=$("tvBtn"), tvExit=$("tvExit"), roleBadge=$("roleBadge"), usersBody=$("usersBody");
   var dlEvents=$("dlEvents"), dlPresence=$("dlPresence"), pbiEvents=$("pbiEvents"), pbiPresence=$("pbiPresence"), cpEvents=$("cpEvents"), cpPresence=$("cpPresence");
   var backupBtn=$("backupBtn"), backupStop=$("backupStop"), backupStatus=$("backupStatus");
-  var logFrom=$("logFrom"), logTo=$("logTo"), logDir=$("logDir"), logType=$("logType"), logApply=$("logApply"), logDownload=$("logDownload"), logTotal=$("logTotal"), logIn=$("logIn"), logOut=$("logOut"), logBody=$("logBody"), logNote=$("logNote"), viewAllBtn=$("viewAllBtn");
+  var logFrom=$("logFrom"), logTo=$("logTo"), logWs=$("logWs"), logDir=$("logDir"), logType=$("logType"), logApply=$("logApply"), logDownload=$("logDownload"), logTotal=$("logTotal"), logIn=$("logIn"), logOut=$("logOut"), logBody=$("logBody"), logNote=$("logNote"), viewAllBtn=$("viewAllBtn");
   var logRows=[];
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];});}
@@ -424,7 +443,7 @@
     if(name!=="scan"){ stopCamera(); }
     if(name==="users"){ loadUsers(); }
     if(name==="setup"){ setReportingUrls(); }
-    if(name==="log"){ loadLog(); }
+    if(name==="log"){ setLogWorkshops(); loadLog(); }
   }
   Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){ showView(b.getAttribute("data-view")); }); });
 
@@ -441,18 +460,12 @@
   function enterApp(u){ currentUser=u; userEmail.textContent=u.email||u.id; userChip.classList.remove("hidden");
     $("nav").classList.remove("hidden"); tvBtn.classList.remove("hidden");
     authScreen.classList.add("hidden"); showView("dash"); led.classList.add("on"); liveTxt.textContent="Live";
-    sb.from("user_roles").select("role").eq("user_id",u.id).maybeSingle()
-      .then(function(r){ myRole=(r.data&&r.data.role)||"view"; applyRole(); })
-      .catch(function(){ myRole="view"; applyRole(); });
-    fetchState(); subscribeRealtime(); startPolling(); startAutoReload(); }
-  // Full page reload as a freshness safety net — only while sitting on the Dashboard
-  // and NOT in TV/fullscreen (so the wall display and interactive tabs aren't disrupted).
-  var reloadTimer=null;
-  function startAutoReload(){ if(reloadTimer) return; reloadTimer=setInterval(function(){
-    if(document.body.classList.contains("tv")||document.fullscreenElement) return;
-    if(!views.dash || views.dash.classList.contains("hidden")) return;
-    location.reload();
-  }, 5*60*1000); }
+    sb.from("user_roles").select("role,workshops").eq("user_id",u.id).maybeSingle()
+      .then(function(r){ myRole=(r.data&&r.data.role)||"view"; myWorkshops=(r.data&&r.data.workshops)||null; applyRole(); fetchState(); })
+      .catch(function(){ myRole="view"; myWorkshops=null; applyRole(); fetchState(); });
+    subscribeRealtime(); startPolling(); }
+  // Data stays fresh via Supabase Realtime + the 5s poll (no full page reload, so a
+  // selected workshop is never reset out from under the user).
 
   function isAdmin(){ return myRole==="admin"; }
   function canScan(){ return myRole==="scan"||myRole==="admin"; }
@@ -516,6 +529,10 @@
   function setResult(cls, dir, code, meta){ resultEl.className="result "+cls; resDir.textContent=dir; resCode.textContent=code; resMeta.textContent=meta||""; }
 
   // ---- data ----
+  function allowedWorkshops(all){ if(isAdmin()) return all.slice(); if(!myWorkshops||!myWorkshops.length) return all.slice(); return all.filter(function(w){ return myWorkshops.indexOf(w)!==-1; }); }
+  function restoreSelectedWs(){ try{ var s=JSON.parse(localStorage.getItem("entry_ws")||"null"); if(Array.isArray(s)) selectedWs=s; }catch(e){} }
+  function saveSelectedWs(){ try{ localStorage.setItem("entry_ws", JSON.stringify(selectedWs)); }catch(e){} }
+
   function fetchState(){
     if(!sb) return;
     Promise.all([
@@ -527,9 +544,13 @@
       var pres = (r[1].data)||[];
       countsIn={};
       pres.forEach(function(row){ var k=row.process_code||"?"; countsIn[k]=countsIn[k]||{INT:0,VEN:0}; if(row.person_type==="VEN")countsIn[k].VEN++; else countsIn[k].INT++; });
-      workshops=[]; processes.forEach(function(p){ if(workshops.indexOf(p.workshop)===-1) workshops.push(p.workshop); });
-      if(!currentWs || workshops.indexOf(currentWs)===-1) currentWs = workshops[0]||null;
-      renderWsSelect(); renderDashboard(); if(!views.setup.classList.contains("hidden")) renderSetup();
+      allWorkshops=[]; processes.forEach(function(p){ if(allWorkshops.indexOf(p.workshop)===-1) allWorkshops.push(p.workshop); });
+      myAllowedWs = allowedWorkshops(allWorkshops);
+      if(!selectedWsInit){ restoreSelectedWs(); selectedWsInit=true; }
+      selectedWs = selectedWs.filter(function(w){ return myAllowedWs.indexOf(w)!==-1; });
+      if(selectedWs.length===0) selectedWs = myAllowedWs.slice();   // default = All (allowed)
+      renderWorkshopPicker(); renderDashboard();
+      if(!views.setup.classList.contains("hidden")) renderSetup();
       asof.textContent = nowT();
     });
   }
@@ -545,11 +566,23 @@
     });
   }
 
-  function renderWsSelect(){
-    wsSelect.innerHTML=""; workshops.forEach(function(w){ var o=document.createElement("option"); o.value=w; o.textContent=w; wsSelect.appendChild(o); });
-    if(currentWs) wsSelect.value=currentWs;
+  // ---- workshop multi-select (All / multiple) ----
+  function updateWsLabel(){ var n=selectedWs.length, tot=myAllowedWs.length;
+    wsBtn.textContent = (tot===0)?"No workshop" : (n===0)?"Select workshop" : (n>=tot?"All workshops":(n===1?selectedWs[0]:n+" workshops")); }
+  function renderWorkshopPicker(){
+    var allChecked = myAllowedWs.length>0 && selectedWs.length>=myAllowedWs.length;
+    var html='<label class="wsopt"><input type="checkbox" value="__ALL__"'+(allChecked?" checked":"")+'> All workshops</label>';
+    html += myAllowedWs.map(function(w){ return '<label class="wsopt"><input type="checkbox" value="'+esc(w)+'"'+(selectedWs.indexOf(w)!==-1?" checked":"")+'> '+esc(w)+'</label>'; }).join("");
+    wsMenu.innerHTML=html; updateWsLabel();
   }
-  wsSelect.addEventListener("change", function(){ currentWs=wsSelect.value; renderDashboard(); });
+  wsMenu.addEventListener("change", function(e){
+    var v=e.target.value;
+    if(v==="__ALL__"){ selectedWs = e.target.checked ? myAllowedWs.slice() : []; }
+    else { if(e.target.checked){ if(selectedWs.indexOf(v)===-1) selectedWs.push(v); } else { selectedWs=selectedWs.filter(function(x){return x!==v;}); } }
+    saveSelectedWs(); renderWorkshopPicker(); renderDashboard();
+  });
+  wsBtn.addEventListener("click", function(e){ e.stopPropagation(); wsMenu.classList.toggle("hidden"); });
+  document.addEventListener("click", function(e){ if(wsMenu && !wsMenu.contains(e.target) && e.target!==wsBtn) wsMenu.classList.add("hidden"); });
 
   function stateOf(spec, actual){
     if(spec<=0) return actual>0?"over":"none";
@@ -563,29 +596,37 @@
     return '<div class="cell spec"><span class="cap">'+cap+' spec</span><span class="v">'+spec+'</span></div>'
          + '<div class="cell actual"><span class="cap">actual</span><span class="v '+st+'">'+actual+'</span>'+badge+'</div>';
   }
+  function pcardHtml(p, overOut){
+    var c=countsIn[p.process_code]||{INT:0,VEN:0};
+    var overInt=(p.spec_internal>0 && c.INT>p.spec_internal)||(c.INT>0&&p.spec_internal<=0);
+    var overVen=(p.spec_vendor>0 && c.VEN>p.spec_vendor)||(c.VEN>0&&p.spec_vendor<=0);
+    var over=overInt||overVen;
+    if(over){ var parts=[]; if(overInt)parts.push("INT "+c.INT+"/"+p.spec_internal); if(overVen)parts.push("VEN "+c.VEN+"/"+p.spec_vendor);
+      overOut.push({ process:(p.process_name||p.process_code), ws:p.workshop, detail:parts.join(" \u00b7 ") }); }
+    return { count:c.INT+c.VEN, html:'<div class="pcard'+(over?' hasover':'')+'">'
+      + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3><span class="pcode">'+esc(p.process_code)+'</span></div>'
+      + '<div class="prow"><div class="who">Internal<span class="sub">INT</span></div>'+cell("i","INT",p.spec_internal,c.INT)+'</div>'
+      + '<div class="prow"><div class="who">Vendor<span class="sub">VEN</span></div>'+cell("v","VEN",p.spec_vendor,c.VEN)+'</div>'
+      + '</div>' };
+  }
   function renderDashboard(){
-    var list = processes.filter(function(p){ return p.workshop===currentWs; });
-    wsName.textContent = currentWs || "No workshop configured";
-    var total=0, overList=[];
-    var html = list.map(function(p){
-      var c = countsIn[p.process_code]||{INT:0,VEN:0};
-      total += c.INT + c.VEN;
-      var overInt = (p.spec_internal>0 && c.INT>p.spec_internal) || (c.INT>0 && p.spec_internal<=0);
-      var overVen = (p.spec_vendor>0 && c.VEN>p.spec_vendor) || (c.VEN>0 && p.spec_vendor<=0);
-      var over = overInt || overVen;
-      if(over){
-        var parts=[]; if(overInt) parts.push("INT "+c.INT+"/"+p.spec_internal); if(overVen) parts.push("VEN "+c.VEN+"/"+p.spec_vendor);
-        overList.push({ name:(p.process_name||p.process_code), detail:parts.join(" · ") });
-      }
-      return '<div class="pcard'+(over?' hasover':'')+'">'
-        + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3><span class="pcode">'+esc(p.process_code)+'</span></div>'
-        + '<div class="prow"><div class="who">Internal<span class="sub">INT</span></div>'+cell("i","INT",p.spec_internal,c.INT)+'</div>'
-        + '<div class="prow"><div class="who">Vendor<span class="sub">VEN</span></div>'+cell("v","VEN",p.spec_vendor,c.VEN)+'</div>'
-        + '</div>';
-    }).join("");
-    pgrid.innerHTML = html || '<div style="color:var(--muted);padding:30px">No processes for this workshop. Add them in Setup.</div>';
+    var sel = selectedWs.length?selectedWs:myAllowedWs;
+    var tot=myAllowedWs.length, n=sel.length;
+    wsName.textContent = (tot===0)?"No workshop configured":(n>=tot?"All workshops":(n===1?sel[0]:n+" workshops"));
+    var total=0, overList=[], html="", multi=sel.length>1;
+    sel.forEach(function(ws){
+      var list=processes.filter(function(p){ return p.workshop===ws; });
+      if(!list.length) return;
+      var wsTotal=0, cards="";
+      list.forEach(function(p){ var r=pcardHtml(p, overList); wsTotal+=r.count; cards+=r.html; });
+      total+=wsTotal;
+      if(multi) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
+      html+=cards;
+    });
+    pgrid.innerHTML = html || '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>';
     totalNum.textContent = total;
-    renderAlerts(overList);
+    var alerts = overList.map(function(o){ return { name:(multi?(o.ws+" \u00b7 "+o.process):o.process), detail:o.detail }; });
+    renderAlerts(alerts);
   }
   function renderAlerts(overList){
     if(!overList.length){ alertBar.classList.add("hidden"); alertBar.innerHTML=""; tvAlert.classList.remove("show"); tvAlert.innerHTML=""; return; }
@@ -651,6 +692,9 @@
   function ensureLogDates(){
     if(!logFrom.value || !logTo.value){ var to=new Date(); var from=new Date(); from.setDate(from.getDate()-6); logFrom.value=toDateInput(from); logTo.value=toDateInput(to); }
   }
+  function setLogWorkshops(){ if(!logWs) return; var cur=logWs.value||"all";
+    logWs.innerHTML='<option value="all">All</option>'+myAllowedWs.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join("");
+    if(cur==="all"||myAllowedWs.indexOf(cur)!==-1) logWs.value=cur; }
   function loadLog(){
     if(!sb || !canScan()) return;
     ensureLogDates();
@@ -662,6 +706,11 @@
       .gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false}).limit(5000);
     if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
     if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
+    if(logWs && logWs.value && logWs.value!=="all"){
+      var codes=processes.filter(function(p){ return p.workshop===logWs.value; }).map(function(p){ return p.process_code; });
+      if(!codes.length){ logRows=[]; renderLog(); return; }
+      q=q.in("process_code", codes);
+    }
     q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="5" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
       logRows=r.data||[]; renderLog(); });
   }
@@ -675,7 +724,7 @@
     logNote.textContent = logRows.length>=5000 ? "Showing the first 5000 records — narrow the range for the rest." : ("Showing "+logRows.length+" records.");
   }
   if(logApply) logApply.addEventListener("click", loadLog);
-  [logDir,logType].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
+  [logDir,logType,logWs].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
   [logFrom,logTo].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
   if(logDownload) logDownload.addEventListener("click", function(){ if(!logRows.length){ toast("Nothing to export","alert"); return; }
     downloadCSV("entry-log-"+stamp()+".csv", toCSV(logRows,["created_at","card_code","person_type","process_code","card_no","direction"])); toast("Exported "+logRows.length+" records","ok"); });
@@ -723,24 +772,32 @@
   function authHeaders(){ return { Authorization:"Bearer "+(accessToken||"") }; }
   function loadUsers(){
     if(!isAdmin()) return;
-    usersBody.innerHTML='<tr><td colspan="3" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    usersBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">Loading…</td></tr>';
     fetch("/api/roles",{ headers:authHeaders(), cache:"no-store" })
       .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
       .then(function(list){
-        if(!list.length){ usersBody.innerHTML='<tr><td colspan="3" style="color:var(--muted);padding:16px">No users.</td></tr>'; return; }
+        if(!list.length){ usersBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">No users.</td></tr>'; return; }
         usersBody.innerHTML=list.map(function(u){
           var opts=["view","scan","admin"].map(function(rr){ return '<option value="'+rr+'"'+(u.role===rr?" selected":"")+'>'+rr+'</option>'; }).join("");
-          return '<tr data-id="'+esc(u.id)+'"><td class="mono">'+esc(u.email||u.id)+'</td><td><select class="urole">'+opts+'</select></td><td><button class="btn sm usave">Save</button></td></tr>';
+          var uws=Array.isArray(u.workshops)?u.workshops:null;
+          var wopts=allWorkshops.map(function(w){ var seld=uws&&uws.indexOf(w)!==-1; return '<option value="'+esc(w)+'"'+(seld?" selected":"")+'>'+esc(w)+'</option>'; }).join("");
+          var wsCell = allWorkshops.length
+            ? '<select class="uws" multiple size="'+Math.min(4,Math.max(2,allWorkshops.length))+'">'+wopts+'</select><div class="wsnote">'+((!uws||!uws.length)?"All workshops":(uws.length+" selected"))+' &middot; empty = All</div>'
+            : '<span class="wsnote">Add workshops in Setup first</span>';
+          return '<tr data-id="'+esc(u.id)+'"><td class="mono">'+esc(u.email||u.id)+'</td><td><select class="urole">'+opts+'</select></td><td>'+wsCell+'</td><td><button class="btn sm usave">Save</button></td></tr>';
         }).join("");
         Array.prototype.forEach.call(usersBody.querySelectorAll(".usave"), function(b){ b.addEventListener("click", function(){ saveUserRole(b.closest("tr")); }); });
       })
-      .catch(function(e){ usersBody.innerHTML='<tr><td colspan="3" style="color:var(--alert);padding:16px">Could not load users ('+esc(String(e.message||e))+'). Check SUPABASE_SERVICE_KEY, or assign roles via SQL.</td></tr>'; });
+      .catch(function(e){ usersBody.innerHTML='<tr><td colspan="4" style="color:var(--alert);padding:16px">Could not load users ('+esc(String(e.message||e))+'). Check SUPABASE_SERVICE_KEY, or assign roles via SQL.</td></tr>'; });
   }
   function saveUserRole(tr){
     var id=tr.getAttribute("data-id"), role=tr.querySelector(".urole").value;
-    fetch("/api/roles",{ method:"POST", headers:Object.assign({ "Content-Type":"application/json" }, authHeaders()), body:JSON.stringify({ user_id:id, role:role }) })
+    var sel=tr.querySelector(".uws"), ws=[];
+    if(sel){ Array.prototype.forEach.call(sel.selectedOptions, function(o){ ws.push(o.value); }); }
+    var workshops = ws.length ? ws : null;   // null = all workshops
+    fetch("/api/roles",{ method:"POST", headers:Object.assign({ "Content-Type":"application/json" }, authHeaders()), body:JSON.stringify({ user_id:id, role:role, workshops:workshops }) })
       .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
-      .then(function(){ toast("Role updated","ok"); if(id===currentUser.id){ myRole=role; applyRole(); } })
+      .then(function(){ toast("Saved","ok"); if(id===currentUser.id){ myRole=role; myWorkshops=workshops; applyRole(); selectedWsInit=false; fetchState(); } })
       .catch(function(e){ toast("Update failed: "+String(e.message||e),"alert"); });
   }
 
