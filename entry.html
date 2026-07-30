@@ -80,7 +80,7 @@
   .btn[disabled]{opacity:.5; cursor:not-allowed}
   .btn svg{width:15px;height:15px}
 
-  select,input[type=text],input[type=email],input[type=password],input[type=number]{font-family:var(--sans); font-size:13px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px; width:100%}
+  select,input[type=text],input[type=email],input[type=password],input[type=number],input[type=date]{font-family:var(--sans); font-size:13px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px; width:100%}
   select:focus,input:focus{outline:2px solid var(--signal); outline-offset:1px; border-color:transparent}
 
   /* auth */
@@ -150,7 +150,10 @@
   .scan-grid{display:grid; grid-template-columns:minmax(0,420px) 1fr; gap:16px; margin-top:16px}
   @media (max-width:820px){ .scan-grid{grid-template-columns:1fr} }
   .card{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden}
-  .card-hd{padding:11px 14px; border-bottom:1px solid var(--line); background:var(--panel-2); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .card-hd{display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line); background:var(--panel-2); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .logbar{display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto auto; gap:8px; align-items:end; border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--panel)}
+  .logbar .fld{margin:0}
+  @media (max-width:820px){ .logbar{grid-template-columns:1fr 1fr} }
   .card-bd{padding:14px}
   .viewport{position:relative; width:100%; aspect-ratio:4/3; background:var(--cam-bg); border-radius:10px; overflow:hidden; border:1px solid var(--line)}
   #reader{width:100%;height:100%}
@@ -227,6 +230,7 @@
     <div class="nav hidden" id="nav">
       <button data-view="dash" class="active">Dashboard</button>
       <button data-view="scan">Scan</button>
+      <button data-view="log">Data log</button>
       <button data-view="setup">Setup</button>
       <button data-view="users">Users</button>
     </div>
@@ -290,7 +294,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-hd">Result &amp; recent activity</div>
+        <div class="card-hd">Result &amp; recent activity <button class="btn sm" id="viewAllBtn" style="margin-left:auto">View all &rarr;</button></div>
         <div class="card-bd">
           <div class="result out" id="result"><div class="dir" id="resDir">Ready</div><div class="cardcode" id="resCode">Scan a card to check in / out</div><div class="meta" id="resMeta"></div></div>
           <div class="evt">
@@ -299,6 +303,29 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- DATA LOG (scan + admin) -->
+  <div id="viewLog" class="hidden">
+    <div class="logbar">
+      <div class="fld"><label>From</label><input type="date" id="logFrom"></div>
+      <div class="fld"><label>To</label><input type="date" id="logTo"></div>
+      <div class="fld"><label>Direction</label><select id="logDir"><option value="all">All</option><option value="in">Check-in</option><option value="out">Check-out</option></select></div>
+      <div class="fld"><label>Type</label><select id="logType"><option value="all">All</option><option value="INT">Internal</option><option value="VEN">Vendor</option></select></div>
+      <button class="btn go" id="logApply">Apply</button>
+      <button class="btn" id="logDownload">CSV</button>
+    </div>
+    <div class="stats" style="margin-top:14px">
+      <div class="stat accent"><div class="k" id="logTotal">0</div><div class="l">Events in range</div></div>
+      <div class="stat"><div class="k" id="logIn">0</div><div class="l">Check-in</div></div>
+      <div class="stat"><div class="k" id="logOut">0</div><div class="l">Check-out</div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-bd" style="padding:0">
+      <div class="evt" style="max-height:520px; margin-top:0">
+        <table><thead><tr><th style="width:158px">Time</th><th>Card</th><th style="width:88px">Type</th><th>Process</th><th style="width:58px">Dir</th></tr></thead><tbody id="logBody"><tr><td colspan="5" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody></table>
+      </div>
+    </div></div>
+    <p id="logNote" style="font-size:11.5px;color:var(--muted);margin-top:8px"></p>
   </div>
 
   <!-- SETUP -->
@@ -366,7 +393,7 @@
   var authScreen=$("authScreen"), authMsg=$("authMsg"), authBtn=$("authBtn"), emailEl=$("email"), passEl=$("password");
   var userChip=$("userChip"), userEmail=$("userEmail"), signout=$("signout");
   var led=$("led"), liveTxt=$("liveTxt");
-  var views={dash:$("viewDash"), scan:$("viewScan"), setup:$("viewSetup"), users:$("viewUsers")};
+  var views={dash:$("viewDash"), scan:$("viewScan"), log:$("viewLog"), setup:$("viewSetup"), users:$("viewUsers")};
   var wsSelect=$("wsSelect"), wsName=$("wsName"), totalNum=$("totalNum"), asof=$("asof"), pgrid=$("pgrid"), alertBar=$("alertBar"), tvAlert=$("tvAlert");
   var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput"), camField=$("camField"), camSelect=$("camSelect");
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg");
@@ -374,6 +401,8 @@
   var setupBody=$("setupBody"), tvBtn=$("tvBtn"), tvExit=$("tvExit"), roleBadge=$("roleBadge"), usersBody=$("usersBody");
   var dlEvents=$("dlEvents"), dlPresence=$("dlPresence"), pbiEvents=$("pbiEvents"), pbiPresence=$("pbiPresence"), cpEvents=$("cpEvents"), cpPresence=$("cpPresence");
   var backupBtn=$("backupBtn"), backupStop=$("backupStop"), backupStatus=$("backupStatus");
+  var logFrom=$("logFrom"), logTo=$("logTo"), logDir=$("logDir"), logType=$("logType"), logApply=$("logApply"), logDownload=$("logDownload"), logTotal=$("logTotal"), logIn=$("logIn"), logOut=$("logOut"), logBody=$("logBody"), logNote=$("logNote"), viewAllBtn=$("viewAllBtn");
+  var logRows=[];
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];});}
   function nowT(iso){var d=iso?new Date(iso):new Date();return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});}
@@ -395,6 +424,7 @@
     if(name!=="scan"){ stopCamera(); }
     if(name==="users"){ loadUsers(); }
     if(name==="setup"){ setReportingUrls(); }
+    if(name==="log"){ loadLog(); }
   }
   Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){ showView(b.getAttribute("data-view")); }); });
 
@@ -430,13 +460,14 @@
   function applyRole(){
     roleBadge.textContent=myRole; roleBadge.className="rolebadge "+myRole;
     navBtn("scan").style.display  = canScan()?"":"none";
+    navBtn("log").style.display   = canScan()?"":"none";
     navBtn("setup").style.display = isAdmin()?"":"none";
     navBtn("users").style.display = isAdmin()?"":"none";
     var dis=!canScan();
     [startBtn,switchBtn,manualBtn].forEach(function(b){ if(b) b.disabled=dis; });
     if(manualCode) manualCode.disabled=dis;
     var cur=document.querySelector('.nav button.active'); var v=cur?cur.getAttribute("data-view"):"dash";
-    if((v==="scan"&&!canScan())||((v==="setup"||v==="users")&&!isAdmin())) showView("dash");
+    if(((v==="scan"||v==="log")&&!canScan())||((v==="setup"||v==="users")&&!isAdmin())) showView("dash");
   }
   function showAuth(){ currentUser=null; userChip.classList.add("hidden"); $("nav").classList.add("hidden"); tvBtn.classList.add("hidden");
     Object.keys(views).forEach(function(k){views[k].classList.add("hidden");}); authScreen.classList.remove("hidden");
@@ -613,6 +644,42 @@
       downloadCSV("entry-presence-"+stamp()+".csv", toCSV(r.data||[], ["card_code","person_type","process_code","card_no","status","updated_at"])); toast("Exported "+((r.data||[]).length)+" rows","ok"); }); });
   if(cpEvents) cpEvents.addEventListener("click", function(){ copyField(pbiEvents); });
   if(cpPresence) cpPresence.addEventListener("click", function(){ copyField(pbiPresence); });
+
+  // ---- data log (scan + admin): date-range filter + totals ----
+  function pad2(n){ return (n<10?"0":"")+n; }
+  function toDateInput(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+  function ensureLogDates(){
+    if(!logFrom.value || !logTo.value){ var to=new Date(); var from=new Date(); from.setDate(from.getDate()-6); logFrom.value=toDateInput(from); logTo.value=toDateInput(to); }
+  }
+  function loadLog(){
+    if(!sb || !canScan()) return;
+    ensureLogDates();
+    var fromISO, toISO;
+    try{ fromISO=new Date(logFrom.value+"T00:00:00").toISOString(); toISO=new Date(logTo.value+"T23:59:59.999").toISOString(); }
+    catch(e){ toast("Invalid date range","alert"); return; }
+    logBody.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction")
+      .gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false}).limit(5000);
+    if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
+    if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
+    q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="5" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
+      logRows=r.data||[]; renderLog(); });
+  }
+  function renderLog(){
+    var inC=0,outC=0; logRows.forEach(function(e){ if(e.direction==="in")inC++; else if(e.direction==="out")outC++; });
+    logTotal.textContent=logRows.length; logIn.textContent=inC; logOut.textContent=outC;
+    if(!logRows.length){ logBody.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
+    logBody.innerHTML=logRows.map(function(e){ var nm=procName(e.process_code)||e.process_code||""; var d=new Date(e.created_at);
+      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(e.card_code)+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+    }).join("");
+    logNote.textContent = logRows.length>=5000 ? "Showing the first 5000 records — narrow the range for the rest." : ("Showing "+logRows.length+" records.");
+  }
+  if(logApply) logApply.addEventListener("click", loadLog);
+  [logDir,logType].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
+  [logFrom,logTo].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
+  if(logDownload) logDownload.addEventListener("click", function(){ if(!logRows.length){ toast("Nothing to export","alert"); return; }
+    downloadCSV("entry-log-"+stamp()+".csv", toCSV(logRows,["created_at","card_code","person_type","process_code","card_no","direction"])); toast("Exported "+logRows.length+" records","ok"); });
+  if(viewAllBtn) viewAllBtn.addEventListener("click", function(){ showView("log"); });
 
   // ---- auto-backup to a local folder (File System Access API) ----
   var backupDir=null, backupTimer=null, lastBackup=null;
