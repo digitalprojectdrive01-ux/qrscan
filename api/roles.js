@@ -44,14 +44,20 @@ export default async function handler(req, res) {
     body = body || {};
     const userId = body.user_id;
     const role = body.role;
+    let workshops = body.workshops;
     if (!userId || ["view", "scan", "admin"].indexOf(role) === -1) { res.status(400).json({ error: "bad request" }); return; }
+    if (workshops !== null && workshops !== undefined) {
+      if (!Array.isArray(workshops)) { res.status(400).json({ error: "workshops must be an array or null" }); return; }
+      workshops = workshops.filter((w) => typeof w === "string" && w.length);
+      if (!workshops.length) workshops = null;
+    } else { workshops = null; }
     const r = await fetch(base + "/rest/v1/user_roles", {
       method: "POST",
       headers: {
         apikey: serviceKey, Authorization: "Bearer " + serviceKey,
         "Content-Type": "application/json", Prefer: "resolution=merge-duplicates"
       },
-      body: JSON.stringify({ user_id: userId, role: role, updated_at: new Date().toISOString() })
+      body: JSON.stringify({ user_id: userId, role: role, workshops: workshops, updated_at: new Date().toISOString() })
     });
     if (!r.ok) { res.status(502).json({ error: await r.text() }); return; }
     res.status(200).json({ ok: true });
@@ -72,12 +78,12 @@ export default async function handler(req, res) {
     page++;
   }
   let roles = [];
-  const rr = await fetch(base + "/rest/v1/user_roles?select=user_id,role",
+  const rr = await fetch(base + "/rest/v1/user_roles?select=user_id,role,workshops",
     { headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey } });
   if (rr.ok) roles = await rr.json();
   const roleMap = {};
-  roles.forEach((x) => { roleMap[x.user_id] = x.role; });
-  const out = users.map((u) => ({ id: u.id, email: u.email, role: roleMap[u.id] || "view" }));
+  roles.forEach((x) => { roleMap[x.user_id] = { role: x.role, workshops: x.workshops || null }; });
+  const out = users.map((u) => { const rm = roleMap[u.id] || {}; return { id: u.id, email: u.email, role: rm.role || "view", workshops: rm.workshops || null }; });
   out.sort((a, b) => (a.email || "").localeCompare(b.email || ""));
   res.status(200).json(out);
 }
