@@ -139,10 +139,10 @@
   .alertbar .apill b{color:var(--alert)}
 
   .tvalert{display:none}
-  body.tv .tvalert.show{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; gap:16px; flex-wrap:wrap; align-items:center;
-    padding:16px 28px; background:var(--alert); color:#fff; box-shadow:0 -10px 34px var(--over-glow); animation:tvpulse 1.35s infinite}
-  body.tv .tvalert.show .ahead{font-weight:700; font-size:24px; letter-spacing:.06em}
-  body.tv .tvalert.show .apill{font-family:var(--mono); font-size:22px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.4); padding:4px 14px; border-radius:9px; color:#fff}
+  body.tv .tvalert.show{display:flex; flex:0 0 auto; margin-top:12px; gap:16px; flex-wrap:wrap; align-items:center; justify-content:center;
+    padding:12px 24px; border-radius:12px; background:var(--alert); color:#fff; box-shadow:0 -6px 24px var(--over-glow); animation:tvpulse 1.35s infinite; max-height:22vh; overflow:auto}
+  body.tv .tvalert.show .ahead{font-weight:700; font-size:22px; letter-spacing:.06em}
+  body.tv .tvalert.show .apill{font-family:var(--mono); font-size:19px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.4); padding:3px 12px; border-radius:9px; color:#fff}
   body.tv .tvalert.show .apill b{color:#fff}
   @keyframes tvpulse{50%{opacity:.82}}
 
@@ -213,17 +213,28 @@
   .ptable .num{width:70px}
 
   /* TV mode */
-  body.tv{padding:0}
-  body.tv .topbar, body.tv #viewScan, body.tv #viewSetup, body.tv #viewUsers, body.tv #alertBar, body.tv .btn.tvhide{display:none !important}
-  body.tv .wrap{max-width:none}
-  body.tv #viewDash{padding:20px 26px 104px}
-  body.tv .dash-title h2{font-size:46px}
-  body.tv .total .num{font-size:84px}
-  body.tv .pgrid{grid-template-columns:repeat(auto-fill, minmax(360px,1fr)); gap:18px}
-  body.tv .pcard-hd h3{font-size:22px}
-  body.tv .cell .v{font-size:34px}
-  body.tv .prow{padding:16px 20px}
-  body.tv .tvexit{position:fixed; top:12px; right:12px; display:inline-flex !important; z-index:20; opacity:.5}
+  body.tv{padding:0; overflow:hidden}
+  body.tv .topbar, body.tv #viewScan, body.tv #viewSetup, body.tv #viewUsers, body.tv #viewLog, body.tv #alertBar, body.tv .btn.tvhide{display:none !important}
+  body.tv .wrap{max-width:none; height:100vh; overflow:hidden}
+  body.tv #viewDash{padding:18px 24px; height:100vh; overflow:hidden; display:flex; flex-direction:column}
+  body.tv .dash-head{flex:0 0 auto; margin:0 0 12px; align-items:center}
+  body.tv .dash-title h2{font-size:38px}
+  body.tv .total .num{font-size:60px}
+  /* the grid fills the remaining height; JS sets columns/rows + --tvcell */
+  body.tv #pgrid{flex:1 1 auto; min-height:0; overflow:hidden; gap:12px; align-content:stretch; grid-auto-rows:1fr}
+  body.tv .pcard{height:100%; min-height:0; display:flex; flex-direction:column; overflow:hidden; --tvc:var(--tvcell,140px)}
+  body.tv .pcard-hd{padding:calc(var(--tvcell,140px)*.05) calc(var(--tvcell,140px)*.08) calc(var(--tvcell,140px)*.03); gap:6px}
+  body.tv .pcard-hd h3{font-size:calc(var(--tvcell,140px)*.135); line-height:1.05}
+  body.tv .pcard-hd .pcode{font-size:calc(var(--tvcell,140px)*.06)}
+  body.tv .prow{flex:1 1 0; min-height:0; padding:calc(var(--tvcell,140px)*.03) calc(var(--tvcell,140px)*.08); grid-template-columns:1fr auto auto; gap:calc(var(--tvcell,140px)*.05)}
+  body.tv .prow .who{font-size:calc(var(--tvcell,140px)*.085)}
+  body.tv .prow .who .sub{font-size:calc(var(--tvcell,140px)*.05)}
+  body.tv .cell .cap{font-size:calc(var(--tvcell,140px)*.052)}
+  body.tv .cell .v{font-size:calc(var(--tvcell,140px)*.20); line-height:1}
+  body.tv .badge{font-size:calc(var(--tvcell,140px)*.05)}
+  body.tv .wstag{display:inline-block; font-family:var(--mono); font-size:calc(var(--tvcell,140px)*.055); color:var(--signal); border:1px solid var(--signal); background:var(--signal-soft); padding:1px 6px; border-radius:5px; margin-right:auto}
+  .wstag{display:none}
+  body.tv .tvexit{position:fixed; top:12px; right:12px; display:inline-flex !important; z-index:50; opacity:.5}
   body.tv .tvexit:hover{opacity:1}
   .tvexit{display:none}
 
@@ -288,8 +299,8 @@
     </div>
     <div class="pgrid" id="pgrid"></div>
     <div class="alertbar hidden" id="alertBar"></div>
+    <div class="tvalert" id="tvAlert"></div>
   </div>
-  <div class="tvalert" id="tvAlert"></div>
 
   <!-- SCAN -->
   <div id="viewScan" class="hidden">
@@ -596,20 +607,22 @@
     return '<div class="cell spec"><span class="cap">'+cap+' spec</span><span class="v">'+spec+'</span></div>'
          + '<div class="cell actual"><span class="cap">actual</span><span class="v '+st+'">'+actual+'</span>'+badge+'</div>';
   }
-  function pcardHtml(p, overOut){
+  function pcardHtml(p, overOut, wsTag){
     var c=countsIn[p.process_code]||{INT:0,VEN:0};
     var overInt=(p.spec_internal>0 && c.INT>p.spec_internal)||(c.INT>0&&p.spec_internal<=0);
     var overVen=(p.spec_vendor>0 && c.VEN>p.spec_vendor)||(c.VEN>0&&p.spec_vendor<=0);
     var over=overInt||overVen;
     if(over){ var parts=[]; if(overInt)parts.push("INT "+c.INT+"/"+p.spec_internal); if(overVen)parts.push("VEN "+c.VEN+"/"+p.spec_vendor);
       overOut.push({ process:(p.process_name||p.process_code), ws:p.workshop, detail:parts.join(" \u00b7 ") }); }
+    var tag = wsTag ? '<span class="wstag">'+esc(wsTag)+'</span>' : '';
     return { count:c.INT+c.VEN, html:'<div class="pcard'+(over?' hasover':'')+'">'
-      + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3><span class="pcode">'+esc(p.process_code)+'</span></div>'
+      + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="pcode">'+esc(p.process_code)+'</span></div>'
       + '<div class="prow"><div class="who">Internal<span class="sub">INT</span></div>'+cell("i","INT",p.spec_internal,c.INT)+'</div>'
       + '<div class="prow"><div class="who">Vendor<span class="sub">VEN</span></div>'+cell("v","VEN",p.spec_vendor,c.VEN)+'</div>'
       + '</div>' };
   }
   function renderDashboard(){
+    var tv=document.body.classList.contains("tv");
     var sel = selectedWs.length?selectedWs:myAllowedWs;
     var tot=myAllowedWs.length, n=sel.length;
     wsName.textContent = (tot===0)?"No workshop configured":(n>=tot?"All workshops":(n===1?sel[0]:n+" workshops"));
@@ -618,15 +631,16 @@
       var list=processes.filter(function(p){ return p.workshop===ws; });
       if(!list.length) return;
       var wsTotal=0, cards="";
-      list.forEach(function(p){ var r=pcardHtml(p, overList); wsTotal+=r.count; cards+=r.html; });
+      list.forEach(function(p){ var r=pcardHtml(p, overList, (multi&&tv)?ws:null); wsTotal+=r.count; cards+=r.html; });
       total+=wsTotal;
-      if(multi) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
+      if(multi && !tv) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
       html+=cards;
     });
     pgrid.innerHTML = html || '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>';
     totalNum.textContent = total;
     var alerts = overList.map(function(o){ return { name:(multi?(o.ws+" \u00b7 "+o.process):o.process), detail:o.detail }; });
     renderAlerts(alerts);
+    if(tv) fitTvLayout();
   }
   function renderAlerts(overList){
     if(!overList.length){ alertBar.classList.add("hidden"); alertBar.innerHTML=""; tvAlert.classList.remove("show"); tvAlert.innerHTML=""; return; }
@@ -858,11 +872,32 @@
   manualCode.addEventListener("keydown", function(e){ if(e.key==="Enter"){ manualBtn.click(); } });
 
   // ---- TV mode ----
-  function enterTV(){ showView("dash"); document.body.classList.add("tv"); if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function(){}); }
-  function exitTV(){ document.body.classList.remove("tv"); if(document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen().catch(function(){}); }
+  function fitTvLayout(){
+    if(!document.body.classList.contains("tv")){ pgrid.style.gridTemplateColumns=""; pgrid.style.gridTemplateRows=""; pgrid.style.removeProperty("--tvcell"); return; }
+    var count=pgrid.querySelectorAll(".pcard").length; if(!count) return;
+    var availH=pgrid.clientHeight, availW=pgrid.clientWidth; if(availH<40||availW<40) return;
+    var gap=12, target=1.7, best=null;
+    for(var cols=1; cols<=count; cols++){
+      var rows=Math.ceil(count/cols);
+      var cw=(availW-(cols-1)*gap)/cols, ch=(availH-(rows-1)*gap)/rows;
+      if(cw<=0||ch<=0) continue;
+      var score=Math.abs(Math.log((cw/ch)/target))+0.05*(cols*rows-count);
+      if(!best||score<best.score) best={cols:cols,rows:rows,ch:ch,score:score};
+    }
+    if(!best) return;
+    pgrid.style.gridTemplateColumns="repeat("+best.cols+",1fr)";
+    pgrid.style.gridTemplateRows="repeat("+best.rows+",1fr)";
+    pgrid.style.setProperty("--tvcell", Math.max(60,Math.floor(best.ch))+"px");
+  }
+  var fitPending=null;
+  function scheduleFit(){ if(fitPending) cancelAnimationFrame(fitPending); fitPending=requestAnimationFrame(function(){ fitTvLayout(); }); }
+  window.addEventListener("resize", function(){ if(document.body.classList.contains("tv")) scheduleFit(); });
+
+  function enterTV(){ showView("dash"); document.body.classList.add("tv"); if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function(){}); renderDashboard(); setTimeout(function(){ scheduleFit(); }, 120); }
+  function exitTV(){ document.body.classList.remove("tv"); if(document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen().catch(function(){}); fitTvLayout(); renderDashboard(); }
   tvBtn.addEventListener("click", enterTV);
   tvExit.addEventListener("click", exitTV);
-  document.addEventListener("fullscreenchange", function(){ if(!document.fullscreenElement) document.body.classList.remove("tv"); });
+  document.addEventListener("fullscreenchange", function(){ if(!document.fullscreenElement){ document.body.classList.remove("tv"); fitTvLayout(); renderDashboard(); } else { scheduleFit(); } });
 
   // ---- boot ----
   function resolveConfig(){
