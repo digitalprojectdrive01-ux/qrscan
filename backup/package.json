@@ -1,0 +1,9 @@
+{
+  "name": "scan-tools-backup",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local auto-backup (CSV + SQLite) to a OneDrive folder for Scan Tools",
+  "optionalDependencies": {
+    "better-sqlite3": "^11.8.0"
+  }
+}
