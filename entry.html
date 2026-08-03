@@ -167,6 +167,8 @@
   body.tv .wsgroup-hd{font-size:14px} body.tv .wsgroup-hd .wssub{font-size:18px}
   .logstats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px}
   .logstats .stat{padding:9px 12px}
+  .pcard.overall{border-color:var(--signal); box-shadow:0 0 0 1px var(--signal-soft)}
+  .pcard.overall .pcard-hd h3{color:var(--signal)}
   .logstats .stat .k{font-size:20px}
   .uws{width:100%; min-width:120px}
   .wsnote{font-size:10.5px; color:var(--muted); margin-top:3px}
@@ -352,7 +354,7 @@
     </div>
     <div class="card" style="margin-top:14px"><div class="card-bd" style="padding:0">
       <div class="evt" style="max-height:520px; margin-top:0">
-        <table><thead><tr><th style="width:158px">Time</th><th>Card</th><th style="width:88px">Type</th><th>Process</th><th style="width:58px">Dir</th></tr></thead><tbody id="logBody"><tr><td colspan="5" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody></table>
+        <table><thead><tr><th style="width:158px">Time</th><th>Card</th><th style="width:88px">Type</th><th>Process</th><th style="width:70px">Dept</th><th style="width:58px">Dir</th></tr></thead><tbody id="logBody"><tr><td colspan="6" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody></table>
       </div>
     </div></div>
     <p id="logNote" style="font-size:11.5px;color:var(--muted);margin-top:8px"></p>
@@ -375,7 +377,26 @@
           <tbody id="setupBody"></tbody>
         </table>
       </div></div>
-      <p style="font-size:12px;color:var(--muted);margin-top:10px">Codes must match the middle part of a card. <b>VEN-BK-6</b> → code <b>BK</b>. <b>INT-RUB/JR-64</b> → code <b>RUB/JR</b>.</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px">Codes must match the middle part of a card. <b>VEN-BK-6</b> → code <b>BK</b>. <b>INT-RUB/JR-64</b> → code <b>RUB/JR</b>. Processes map a card to its <b>workshop</b>.</p>
+
+      <div class="card" style="margin-top:16px"><div class="card-hd">Standards — workshop &amp; department spec</div><div class="card-bd">
+        <div class="addbar">
+          <div class="fld"><label>Workshop</label><input type="text" id="spWs" placeholder="2F ASSEMBLY"></div>
+          <div class="fld"><label>Department code</label><input type="text" id="spDept" placeholder="PRD (blank = General)"></div>
+          <div class="fld"><label>Dept name</label><input type="text" id="spName" placeholder="Production"></div>
+          <div class="fld"><label>Spec INT</label><input type="number" id="spSi" min="0" value="0"></div>
+          <div class="fld"><label>Spec VEN</label><input type="number" id="spSv" min="0" value="0"></div>
+          <div class="fld"><label>Order</label><input type="number" id="spSort" value="0"></div>
+          <button class="btn go" id="spAdd">Add / update</button>
+        </div>
+        <div class="card"><div class="card-bd" style="padding:4px 0">
+          <table class="ptable">
+            <thead><tr><th>Workshop</th><th>Dept</th><th>Name</th><th>Spec INT</th><th>Spec VEN</th><th>Order</th><th></th></tr></thead>
+            <tbody id="specBody"></tbody>
+          </table>
+        </div></div>
+        <p style="font-size:12px;color:var(--muted);margin-top:10px">Leave <b>Department code</b> blank to set the <b>workshop general spec</b> (whole workshop, shown as ★ General). Department code = the last segment of a card, e.g. <b>INT-BK-1-Baking-PRD</b> → <b>PRD</b>. Spec 0 = no limit.</p>
+      </div></div>
 
       <div class="card" style="margin-top:16px"><div class="card-hd">Reporting — download &amp; Power BI feed</div><div class="card-bd">
         <div class="row" style="margin-top:0">
@@ -384,7 +405,7 @@
         </div>
         <div class="fld" style="margin-top:14px"><label>Power BI — event log (Get Data → Web)</label><div class="inline"><input type="text" id="pbiEvents" class="mono" readonly><button class="btn sm" id="cpEvents">Copy</button></div></div>
         <div class="fld"><label>Power BI — current presence</label><div class="inline"><input type="text" id="pbiPresence" class="mono" readonly><button class="btn sm" id="cpPresence">Copy</button></div></div>
-        <p style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">Replace <b style="color:var(--signal)">YOUR_TOKEN</b> with your <b>PBI_TOKEN</b>.</p>
+        <p style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">Replace <b style="color:var(--signal)">YOUR_TOKEN</b> with your <b>PBI_TOKEN</b> (Vercel env var), then in Power BI: <b>Get Data → Web → Anonymous</b>, expand to a table, set a scheduled refresh. The feed returns all entry data — keep the URL private and rotate the token if it leaks.</p>
         <div class="fld" style="margin-top:16px"><label>Auto-backup to a local folder (every 5 min)</label>
           <div class="inline"><button class="btn" id="backupBtn">Choose folder &amp; start</button><button class="btn danger" id="backupStop" style="display:none">Stop</button></div>
           <p id="backupStatus" style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6"></p>
@@ -417,6 +438,7 @@
 
   var sb=null, currentUser=null, scanner=null, isScanning=false, cameras=[], camIndex=0, audioCtx=null, startWatch=null, rtChannel=null, pollTimer=null;
   var processes=[], countsIn={}, allWorkshops=[], myAllowedWs=[], selectedWs=[], selectedWsInit=false, lastToggle={}, myWorkshops=null;
+  var specMap={}, countsWs={}, countsWsDept={}, knownDepts=[], deptNames={};
   var accessToken=null, myRole="view";
 
   // elements
@@ -508,8 +530,14 @@
     var proc=parts[1];              // process code = 2nd segment (BK, RUB/JR ...)
     var cardNo=parts[2];            // card sequence number = 3rd segment
     if(!proc||!cardNo) return null;
+    var dept=null;                  // department code = LAST segment (e.g. INT-BK-1-Baking-PRD -> PRD)
+    if(parts.length>=4){
+      var last=parts[parts.length-1];
+      if(knownDepts.indexOf(last)!==-1) dept=last;      // matches a configured department
+      else if(parts.length>=5) dept=last;               // a name sits in the middle, so the tail is the dept
+    }
     var canonical=type+"-"+proc+"-"+cardNo;   // stable identity; ignore any trailing name
-    return { code:canonical, type:type, processCode:proc, cardNo:cardNo };
+    return { code:canonical, type:type, processCode:proc, cardNo:cardNo, dept:dept };
   }
   function procName(pc){ for(var i=0;i<processes.length;i++){ if(processes[i].process_code===pc) return processes[i].process_name||pc; } return null; }
 
@@ -525,12 +553,13 @@
     sb.from("ec_presence").select("status").eq("card_code",p.code).maybeSingle().then(function(res){
       var cur = (res.data && res.data.status) ? res.data.status : "out";
       var next = cur==="in" ? "out" : "in";
-      sb.from("ec_presence").upsert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, status:next, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
+      sb.from("ec_presence").upsert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, status:next, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
         if(up.error){ toast(up.error.message,"alert"); return; }
-        sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, direction:next, created_by:currentUser.id }).then(function(){});
+        sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, direction:next, created_by:currentUser.id }).then(function(){});
         var nm = procName(p.processCode);
         var known = nm!==null;
-        setResult(next, next==="in"?"CHECK IN":"CHECK OUT", p.code, (p.type==="VEN"?"Vendor":"Internal")+" · "+(known?nm:(p.processCode+" — not configured"))+" · card "+p.cardNo);
+        var deptTxt = p.dept ? (" · "+ (deptNames[p.dept]||p.dept)) : "";
+        setResult(next, next==="in"?"CHECK IN":"CHECK OUT", p.code, (p.type==="VEN"?"Vendor":"Internal")+" · "+(known?nm:(p.processCode+" — not configured"))+deptTxt+" · card "+p.cardNo);
         if(next==="in"){ sIn(); } else { sOut(); } vibrate(45);
         if(!known) toast("Process "+p.processCode+" not in Setup","alert");
         fetchState(); loadEvents();
@@ -548,18 +577,36 @@
     if(!sb) return;
     Promise.all([
       sb.from("ec_process").select("*").order("workshop",{ascending:true}).order("sort_order",{ascending:true}),
-      sb.from("ec_presence").select("process_code,person_type,status").eq("status","in")
+      sb.from("ec_presence").select("process_code,person_type,status,dept").eq("status","in"),
+      sb.from("ec_spec").select("*").order("workshop",{ascending:true}).order("sort_order",{ascending:true})
     ]).then(function(r){
       if(r[0].error){ toast("Load processes: "+r[0].error.message,"alert"); return; }
       processes = r[0].data||[];
       var pres = (r[1].data)||[];
-      countsIn={};
-      pres.forEach(function(row){ var k=row.process_code||"?"; countsIn[k]=countsIn[k]||{INT:0,VEN:0}; if(row.person_type==="VEN")countsIn[k].VEN++; else countsIn[k].INT++; });
+      var specs = (r[2] && r[2].data) || [];
+      // process -> workshop map
+      var procWs={}; processes.forEach(function(p){ procWs[p.process_code]=p.workshop; });
+      // specs
+      specMap={}; knownDepts=[]; deptNames={};
+      specs.forEach(function(s){ specMap[s.workshop]=specMap[s.workshop]||{}; specMap[s.workshop][s.dept]={INT:s.spec_internal||0,VEN:s.spec_vendor||0,name:s.dept_name||"",sort:s.sort_order||0};
+        if(s.dept!=="*"){ if(knownDepts.indexOf(s.dept)===-1) knownDepts.push(s.dept); if(s.dept_name) deptNames[s.dept]=s.dept_name; } });
+      // counts (legacy per-process + new per-workshop and per-workshop/dept)
+      countsIn={}; countsWs={}; countsWsDept={};
+      pres.forEach(function(row){
+        var k=row.process_code||"?"; countsIn[k]=countsIn[k]||{INT:0,VEN:0};
+        var isVen=row.person_type==="VEN"; if(isVen)countsIn[k].VEN++; else countsIn[k].INT++;
+        var ws=procWs[row.process_code]; if(!ws) return;
+        var dept=row.dept||"(none)";
+        countsWs[ws]=countsWs[ws]||{INT:0,VEN:0}; if(isVen)countsWs[ws].VEN++; else countsWs[ws].INT++;
+        countsWsDept[ws]=countsWsDept[ws]||{}; countsWsDept[ws][dept]=countsWsDept[ws][dept]||{INT:0,VEN:0}; if(isVen)countsWsDept[ws][dept].VEN++; else countsWsDept[ws][dept].INT++;
+      });
+      // workshops = union of process workshops and spec workshops
       allWorkshops=[]; processes.forEach(function(p){ if(allWorkshops.indexOf(p.workshop)===-1) allWorkshops.push(p.workshop); });
+      Object.keys(specMap).forEach(function(w){ if(allWorkshops.indexOf(w)===-1) allWorkshops.push(w); });
       myAllowedWs = allowedWorkshops(allWorkshops);
       if(!selectedWsInit){ restoreSelectedWs(); selectedWsInit=true; }
       selectedWs = selectedWs.filter(function(w){ return myAllowedWs.indexOf(w)!==-1; });
-      if(selectedWs.length===0) selectedWs = myAllowedWs.slice();   // default = All (allowed)
+      if(selectedWs.length===0) selectedWs = myAllowedWs.slice();
       renderWorkshopPicker(); renderDashboard();
       if(!views.setup.classList.contains("hidden")) renderSetup();
       asof.textContent = nowT();
@@ -572,7 +619,7 @@
       if(!rows.length){ evtBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">No activity yet.</td></tr>'; return; }
       evtBody.innerHTML = rows.map(function(e){
         var nm=procName(e.process_code)||e.process_code||"";
-        return "<tr><td class=\"mono\">"+nowT(e.created_at)+"</td><td class=\"mono\">"+esc(e.card_code)+"</td><td>"+esc(nm)+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+        return "<tr><td class=\"mono\">"+nowT(e.created_at)+"</td><td class=\"mono\">"+esc(e.card_code)+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
       }).join("");
     });
   }
@@ -596,7 +643,7 @@
   document.addEventListener("click", function(e){ if(wsMenu && !wsMenu.contains(e.target) && e.target!==wsBtn) wsMenu.classList.add("hidden"); });
 
   function stateOf(spec, actual){
-    if(spec<=0) return actual>0?"over":"none";
+    if(spec<=0) return actual>0?"ok":"none";   // no spec set = not limited
     if(actual>spec) return "over";
     if(actual===spec) return "full";
     return actual>0?"ok":"none";
@@ -607,18 +654,16 @@
     return '<div class="cell spec"><span class="cap">'+cap+' spec</span><span class="v">'+spec+'</span></div>'
          + '<div class="cell actual"><span class="cap">actual</span><span class="v '+st+'">'+actual+'</span>'+badge+'</div>';
   }
-  function pcardHtml(p, overOut, wsTag){
-    var c=countsIn[p.process_code]||{INT:0,VEN:0};
-    var overInt=(p.spec_internal>0 && c.INT>p.spec_internal)||(c.INT>0&&p.spec_internal<=0);
-    var overVen=(p.spec_vendor>0 && c.VEN>p.spec_vendor)||(c.VEN>0&&p.spec_vendor<=0);
+  function specCard(title, code, counts, spec, overOut, overName, overallCls){
+    var c=counts||{INT:0,VEN:0}, sp=spec||{INT:0,VEN:0};
+    var overInt = sp.INT>0 && c.INT>sp.INT;
+    var overVen = sp.VEN>0 && c.VEN>sp.VEN;
     var over=overInt||overVen;
-    if(over){ var parts=[]; if(overInt)parts.push("INT "+c.INT+"/"+p.spec_internal); if(overVen)parts.push("VEN "+c.VEN+"/"+p.spec_vendor);
-      overOut.push({ process:(p.process_name||p.process_code), ws:p.workshop, detail:parts.join(" \u00b7 ") }); }
-    var tag = wsTag ? '<span class="wstag">'+esc(wsTag)+'</span>' : '';
-    return { count:c.INT+c.VEN, html:'<div class="pcard'+(over?' hasover':'')+'">'
-      + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="pcode">'+esc(p.process_code)+'</span></div>'
-      + '<div class="prow"><div class="who">Internal<span class="sub">INT</span></div>'+cell("i","INT",p.spec_internal,c.INT)+'</div>'
-      + '<div class="prow"><div class="who">Vendor<span class="sub">VEN</span></div>'+cell("v","VEN",p.spec_vendor,c.VEN)+'</div>'
+    if(over&&overOut){ var pp=[]; if(overInt)pp.push("INT "+c.INT+"/"+sp.INT); if(overVen)pp.push("VEN "+c.VEN+"/"+sp.VEN); overOut.push({ name:overName, detail:pp.join(" \u00b7 ") }); }
+    return { count:c.INT+c.VEN, html:'<div class="pcard'+(over?' hasover':'')+(overallCls?' overall':'')+'">'
+      + '<div class="pcard-hd"><h3>'+esc(title)+'</h3>'+(code?'<span class="pcode">'+esc(code)+'</span>':'')+'</div>'
+      + '<div class="prow"><div class="who">Internal<span class="sub">INT</span></div>'+cell("i","INT",sp.INT,c.INT)+'</div>'
+      + '<div class="prow"><div class="who">Vendor<span class="sub">VEN</span></div>'+cell("v","VEN",sp.VEN,c.VEN)+'</div>'
       + '</div>' };
   }
   function renderDashboard(){
@@ -628,18 +673,24 @@
     wsName.textContent = (tot===0)?"No workshop configured":(n>=tot?"All workshops":(n===1?sel[0]:n+" workshops"));
     var total=0, overList=[], html="", multi=sel.length>1;
     sel.forEach(function(ws){
-      var list=processes.filter(function(p){ return p.workshop===ws; });
-      if(!list.length) return;
-      var wsTotal=0, cards="";
-      list.forEach(function(p){ var r=pcardHtml(p, overList, (multi&&tv)?ws:null); wsTotal+=r.count; cards+=r.html; });
-      total+=wsTotal;
-      if(multi && !tv) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
-      html+=cards;
+      var wsSpec=(specMap[ws]&&specMap[ws]["*"])||{INT:0,VEN:0};
+      var wsCounts=countsWs[ws]||{INT:0,VEN:0};
+      var deptsCfg=Object.keys(specMap[ws]||{}).filter(function(d){return d!=="*";});
+      var deptsObs=Object.keys(countsWsDept[ws]||{});
+      var depts=[]; deptsCfg.concat(deptsObs).forEach(function(d){ if(depts.indexOf(d)===-1) depts.push(d); });
+      depts.sort(function(a,b){ var sa=(specMap[ws]&&specMap[ws][a]&&specMap[ws][a].sort)||0, sb2=(specMap[ws]&&specMap[ws][b]&&specMap[ws][b].sort)||0; return (sa-sb2)|| (a<b?-1:1); });
+      total += wsCounts.INT+wsCounts.VEN;
+      if(multi && !tv) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+(wsCounts.INT+wsCounts.VEN)+' inside</span></div>';
+      html += specCard((multi?ws+" — ":"")+"Overall", "ALL", wsCounts, wsSpec, overList, (multi?ws+" \u00b7 ":"")+"Overall", true).html;
+      depts.forEach(function(d){
+        var title = d==="(none)" ? "No department" : (deptNames[d]||d);
+        var sp=(specMap[ws]&&specMap[ws][d])||{INT:0,VEN:0};
+        html += specCard(title, d==="(none)"?"":d, countsWsDept[ws][d]||{INT:0,VEN:0}, sp, overList, (multi?ws+" \u00b7 ":"")+title, false).html;
+      });
     });
-    pgrid.innerHTML = html || '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>';
+    pgrid.innerHTML = html || '<div style="color:var(--muted);padding:30px">No workshop/department standards yet. Add them in Setup → Standards.</div>';
     totalNum.textContent = total;
-    var alerts = overList.map(function(o){ return { name:(multi?(o.ws+" \u00b7 "+o.process):o.process), detail:o.detail }; });
-    renderAlerts(alerts);
+    renderAlerts(overList);
     if(tv) fitTvLayout();
   }
   function renderAlerts(overList){
@@ -652,7 +703,7 @@
 
   // ---- setup ----
   function renderSetup(){
-    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; return; }
+    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); return; }
     setupBody.innerHTML = processes.map(function(p){
       return '<tr data-code="'+esc(p.process_code)+'">'
         + '<td class="mono">'+esc(p.process_code)+'</td>'
@@ -665,6 +716,7 @@
     }).join("");
     Array.prototype.forEach.call(setupBody.querySelectorAll(".psave"), function(b){ b.addEventListener("click", function(){ saveProc(b.closest("tr")); }); });
     Array.prototype.forEach.call(setupBody.querySelectorAll(".pdel"), function(b){ b.addEventListener("click", function(){ delProc(b.closest("tr")); }); });
+    renderSpecs();
   }
   function saveProc(tr){
     var code=tr.getAttribute("data-code"); var patch={updated_at:new Date().toISOString()};
@@ -679,6 +731,42 @@
     var code=$("npCode").value.trim().toUpperCase(); if(!code){ toast("Enter a process code","alert"); return; }
     var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", spec_internal:parseInt($("npSi").value,10)||0, spec_vendor:parseInt($("npSv").value,10)||0, sort_order:processes.length+1 };
     sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npSi").value="0";$("npSv").value="0"; fetchState(); });
+  });
+
+  // ---- standards (workshop/department spec) ----
+  function renderSpecs(){
+    var body=$("specBody"); if(!body) return;
+    var rows=[];
+    Object.keys(specMap).forEach(function(ws){ Object.keys(specMap[ws]).forEach(function(d){ var s=specMap[ws][d]; rows.push({ws:ws,dept:d,name:s.name||"",INT:s.INT,VEN:s.VEN,sort:s.sort||0}); }); });
+    rows.sort(function(a,b){ if(a.ws!==b.ws) return a.ws<b.ws?-1:1; if(a.dept==="*") return -1; if(b.dept==="*") return 1; return (a.sort-b.sort)||(a.dept<b.dept?-1:1); });
+    body.innerHTML = rows.length ? rows.map(function(r){ var isG=r.dept==="*";
+      return '<tr data-ws="'+esc(r.ws)+'" data-dept="'+esc(r.dept)+'">'
+        + '<td class="mono">'+esc(r.ws)+'</td>'
+        + '<td class="mono">'+(isG?'<b style="color:var(--signal)">\u2605 General</b>':esc(r.dept))+'</td>'
+        + '<td><input type="text" data-f="dept_name" value="'+esc(r.name)+'"'+(isG?' disabled':'')+'></td>'
+        + '<td><input type="number" class="num" data-f="spec_internal" min="0" value="'+r.INT+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_vendor" min="0" value="'+r.VEN+'"></td>'
+        + '<td><input type="number" class="num" data-f="sort_order" value="'+r.sort+'"></td>'
+        + '<td style="white-space:nowrap"><button class="btn sm ssave">Save</button> <button class="btn sm danger sdel">Del</button></td></tr>';
+    }).join("") : '<tr><td colspan="7" style="color:var(--muted);padding:16px">No standards yet. Add a workshop General spec, then per-department specs.</td></tr>';
+    Array.prototype.forEach.call(body.querySelectorAll(".ssave"), function(b){ b.addEventListener("click", function(){ saveSpec(b.closest("tr")); }); });
+    Array.prototype.forEach.call(body.querySelectorAll(".sdel"), function(b){ b.addEventListener("click", function(){ delSpec(b.closest("tr")); }); });
+  }
+  function saveSpec(tr){
+    var ws=tr.getAttribute("data-ws"), dept=tr.getAttribute("data-dept"), patch={updated_at:new Date().toISOString()};
+    Array.prototype.forEach.call(tr.querySelectorAll("[data-f]"), function(inp){ if(inp.disabled) return; var f=inp.getAttribute("data-f"); patch[f]=(inp.type==="number")?(parseInt(inp.value,10)||0):inp.value.trim(); });
+    sb.from("ec_spec").update(patch).eq("workshop",ws).eq("dept",dept).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved","ok"); fetchState(); });
+  }
+  function delSpec(tr){
+    var ws=tr.getAttribute("data-ws"), dept=tr.getAttribute("data-dept");
+    if(!confirm("Delete "+ws+" / "+(dept==="*"?"General":dept)+"?")) return;
+    sb.from("ec_spec").delete().eq("workshop",ws).eq("dept",dept).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Deleted","ok"); fetchState(); });
+  }
+  if($("spAdd")) $("spAdd").addEventListener("click", function(){
+    var ws=$("spWs").value.trim(); if(!ws){ toast("Enter a workshop","alert"); return; }
+    var dept=($("spDept").value.trim().toUpperCase())||"*";
+    var row={ workshop:ws, dept:dept, dept_name:(dept==="*"?null:$("spName").value.trim()), spec_internal:parseInt($("spSi").value,10)||0, spec_vendor:parseInt($("spSv").value,10)||0, sort_order:parseInt($("spSort").value,10)||0, updated_at:new Date().toISOString() };
+    sb.from("ec_spec").upsert(row,{onConflict:"workshop,dept"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved "+ws+" / "+(dept==="*"?"General":dept),"ok"); $("spDept").value="";$("spName").value="";$("spSi").value="0";$("spSv").value="0"; fetchState(); });
   });
 
   // ---- reporting: CSV download + Power BI URLs ----
@@ -715,8 +803,8 @@
     var fromISO, toISO;
     try{ fromISO=new Date(logFrom.value+"T00:00:00").toISOString(); toISO=new Date(logTo.value+"T23:59:59.999").toISOString(); }
     catch(e){ toast("Invalid date range","alert"); return; }
-    logBody.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:16px">Loading…</td></tr>';
-    var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction")
+    logBody.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept")
       .gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false}).limit(5000);
     if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
     if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
@@ -725,15 +813,15 @@
       if(!codes.length){ logRows=[]; renderLog(); return; }
       q=q.in("process_code", codes);
     }
-    q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="5" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
+    q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="6" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
       logRows=r.data||[]; renderLog(); });
   }
   function renderLog(){
     var inC=0,outC=0; logRows.forEach(function(e){ if(e.direction==="in")inC++; else if(e.direction==="out")outC++; });
     logTotal.textContent=logRows.length; logIn.textContent=inC; logOut.textContent=outC;
-    if(!logRows.length){ logBody.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
+    if(!logRows.length){ logBody.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
     logBody.innerHTML=logRows.map(function(e){ var nm=procName(e.process_code)||e.process_code||""; var d=new Date(e.created_at);
-      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(e.card_code)+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(e.card_code)+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
     }).join("");
     logNote.textContent = logRows.length>=5000 ? "Showing the first 5000 records — narrow the range for the rest." : ("Showing "+logRows.length+" records.");
   }
@@ -741,21 +829,27 @@
   [logDir,logType,logWs].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
   [logFrom,logTo].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
   if(logDownload) logDownload.addEventListener("click", function(){ if(!logRows.length){ toast("Nothing to export","alert"); return; }
-    downloadCSV("entry-log-"+stamp()+".csv", toCSV(logRows,["created_at","card_code","person_type","process_code","card_no","direction"])); toast("Exported "+logRows.length+" records","ok"); });
+    downloadCSV("entry-log-"+stamp()+".csv", toCSV(logRows,["created_at","card_code","person_type","process_code","card_no","dept","direction"])); toast("Exported "+logRows.length+" records","ok"); });
   if(viewAllBtn) viewAllBtn.addEventListener("click", function(){ showView("log"); });
 
-  // ---- auto-backup to a local folder (File System Access API) ----
-  var backupDir=null, backupTimer=null, lastBackup=null;
+  // ---- auto-backup to a local folder (File System Access API), remembered across reloads ----
+  var backupDir=null, backupTimer=null, lastBackup=null, pendingHandle=null, backupRestored=false;
   function backupSupported(){ return typeof window.showDirectoryPicker==="function"; }
+  // tiny IndexedDB store to remember the chosen directory handle
+  function idbOpen(){ return new Promise(function(res,rej){ var o=indexedDB.open("scan_tools_backup",1);
+    o.onupgradeneeded=function(){ o.result.createObjectStore("kv"); }; o.onsuccess=function(){ res(o.result); }; o.onerror=function(){ rej(o.error); }; }); }
+  function idbGet(){ return idbOpen().then(function(db){ return new Promise(function(res){ var t=db.transaction("kv","readonly").objectStore("kv").get("dir"); t.onsuccess=function(){ res(t.result||null); }; t.onerror=function(){ res(null); }; }); }).catch(function(){ return null; }); }
+  function idbSet(val){ return idbOpen().then(function(db){ return new Promise(function(res){ var st=db.transaction("kv","readwrite").objectStore("kv"); var rq=(val===null?st.delete("dir"):st.put(val,"dir")); rq.onsuccess=function(){ res(); }; rq.onerror=function(){ res(); }; }); }).catch(function(){}); }
+
   function updateBackupUI(){
     var running=!!backupTimer;
-    if(backupBtn) backupBtn.style.display=running?"none":"";
     if(backupStop) backupStop.style.display=running?"":"none";
-    if(!backupStatus) return;
-    if(!backupSupported()){ if(backupBtn) backupBtn.disabled=true; backupStatus.innerHTML="Folder backup needs <b>Chrome</b> or <b>Edge</b>. On other browsers use the standalone backup script (in the deploy package: <code>backup/</code>)."; return; }
-    backupStatus.innerHTML = running
-      ? ("Backing up every 5 min &middot; last: <b>"+(lastBackup?lastBackup.toLocaleTimeString():"—")+"</b>. Keep this tab open.")
-      : "Not running. Chrome/Edge only; keep this tab open. Writes events + presence CSV every 5 minutes.";
+    if(!backupBtn||!backupStatus) return;
+    if(!backupSupported()){ backupBtn.disabled=true; backupBtn.style.display=""; backupStatus.innerHTML="Folder backup needs <b>Chrome</b> or <b>Edge</b>. On other browsers use the standalone backup script (<code>backup/</code>)."; return; }
+    if(running){ backupBtn.style.display="none"; backupStatus.innerHTML="Backing up every 5 min to <b>"+esc((backupDir&&backupDir.name)||"folder")+"</b> &middot; last: <b>"+(lastBackup?lastBackup.toLocaleTimeString():"—")+"</b>. Keep this tab open."; return; }
+    backupBtn.style.display="";
+    if(pendingHandle){ backupBtn.textContent="Resume backup \u2192 "+((pendingHandle.name)||"folder"); backupStatus.innerHTML="Folder <b>"+esc(pendingHandle.name||"")+"</b> remembered. Click once to re-allow and resume (the browser asks a quick permission)."; return; }
+    backupBtn.textContent="Choose folder & start"; backupStatus.innerHTML="Not running. Chrome/Edge only; keep this tab open. Writes events + presence CSV every 5 minutes.";
   }
   function writeBackupFile(name, text){ return backupDir.getFileHandle(name,{create:true}).then(function(fh){ return fh.createWritable(); }).then(function(w){ return Promise.resolve(w.write(text)).then(function(){ return w.close(); }); }); }
   function runBackup(){
@@ -769,16 +863,34 @@
       if(!r[0].error){ var ec=toCSV(r[0].data||[],["created_at","card_code","person_type","process_code","card_no","direction"]); tasks.push(writeBackupFile("entry-events-"+s+".csv",ec)); tasks.push(writeBackupFile("entry-events-latest.csv",ec)); }
       if(!r[1].error){ var pc=toCSV(r[1].data||[],["card_code","person_type","process_code","card_no","status","updated_at"]); tasks.push(writeBackupFile("entry-presence-"+s+".csv",pc)); tasks.push(writeBackupFile("entry-presence-latest.csv",pc)); }
       return Promise.all(tasks);
-    }).then(function(){ lastBackup=new Date(); updateBackupUI(); toast("Backup saved","ok"); })
-      .catch(function(e){ toast("Backup failed: "+String(e&&e.message||e),"alert"); updateBackupUI(); });
+    }).then(function(){ lastBackup=new Date(); updateBackupUI(); })
+      .catch(function(e){ var m=String(e&&e.message||e); toast("Backup failed: "+m,"alert");
+        if(/denied|not allowed|permission|NotAllowed/i.test(m)){ if(backupTimer){ clearInterval(backupTimer); backupTimer=null; } pendingHandle=backupDir; backupDir=null; }
+        updateBackupUI(); });
   }
+  function startTimer(){ if(backupTimer) clearInterval(backupTimer); backupTimer=setInterval(runBackup, 5*60*1000); }
+  function resumeWith(handle){ backupDir=handle; pendingHandle=null; startTimer(); updateBackupUI(); runBackup(); }
+  function pickNewFolder(){ window.showDirectoryPicker({ mode:"readwrite" }).then(function(dir){ idbSet(dir); resumeWith(dir); }).catch(function(){ /* cancelled */ }); }
   function chooseBackup(){
     if(!backupSupported()){ toast("Use Chrome/Edge, or the backup script","alert"); return; }
-    window.showDirectoryPicker({ mode:"readwrite" }).then(function(dir){
-      backupDir=dir; if(backupTimer) clearInterval(backupTimer); backupTimer=setInterval(runBackup, 5*60*1000); updateBackupUI(); runBackup();
-    }).catch(function(){ /* user cancelled */ });
+    if(pendingHandle){ // this click is the gesture needed to re-grant permission on the remembered folder
+      pendingHandle.requestPermission({ mode:"readwrite" }).then(function(p){ if(p==="granted"){ idbSet(pendingHandle); resumeWith(pendingHandle); } else { pickNewFolder(); } }).catch(function(){ pickNewFolder(); });
+      return;
+    }
+    pickNewFolder();
   }
-  function stopBackup(){ if(backupTimer){ clearInterval(backupTimer); backupTimer=null; } backupDir=null; lastBackup=null; updateBackupUI(); toast("Auto-backup stopped","ok"); }
+  function stopBackup(){ if(backupTimer){ clearInterval(backupTimer); backupTimer=null; } backupDir=null; pendingHandle=null; lastBackup=null; idbSet(null); updateBackupUI(); toast("Auto-backup stopped","ok"); }
+  function restoreBackup(){
+    if(backupRestored) return; backupRestored=true;
+    if(!backupSupported()){ updateBackupUI(); return; }
+    idbGet().then(function(handle){
+      if(!handle){ updateBackupUI(); return; }
+      Promise.resolve(handle.queryPermission({ mode:"readwrite" })).then(function(p){
+        if(p==="granted"){ resumeWith(handle); }         // silent auto-resume, no click needed
+        else { pendingHandle=handle; updateBackupUI(); }  // needs one click to re-allow
+      }).catch(function(){ pendingHandle=handle; updateBackupUI(); });
+    });
+  }
   if(backupBtn) backupBtn.addEventListener("click", chooseBackup);
   if(backupStop) backupStop.addEventListener("click", stopBackup);
 
@@ -822,6 +934,7 @@
       rtChannel = sb.channel("ec_live")
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_presence" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_process" }, function(){ fetchState(); })
+        .on("postgres_changes", { event:"*", schema:"public", table:"ec_spec" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_event" }, function(){ if(!views.scan.classList.contains("hidden")) loadEvents(); })
         .subscribe(function(status){ if(status==="SUBSCRIBED"){ liveTxt.textContent="Live"; led.classList.add("on"); } });
     }catch(e){}
