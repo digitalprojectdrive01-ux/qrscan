@@ -126,7 +126,8 @@
   .badge{font-family:var(--mono); font-size:9px; padding:1px 5px; border-radius:4px; margin-top:3px}
   .badge.over{background:var(--over-bg); color:var(--alert); border:1px solid var(--over-border)}
   .badge.full{background:var(--warn-bg); color:var(--at); border:1px solid var(--warn-border)}
-  .pcard.hasover{background:var(--over-bg); border-color:var(--over-border); box-shadow:0 0 0 1px var(--over-border), 0 0 24px var(--over-glow)}
+  .pcard.hasover{border:2px solid transparent; background:linear-gradient(var(--over-bg),var(--over-bg)) padding-box, linear-gradient(120deg, var(--alert), #ff9d3d, #ff3d57, var(--alert), #ff9d3d, var(--alert)) border-box; background-size:auto, 300% 300%; box-shadow:0 0 22px var(--over-glow); animation:gborder 3s linear infinite}
+  @keyframes gborder{0%{background-position:0 0, 0% 50%} 100%{background-position:0 0, 300% 50%}}
   .pcard.hasover .pcard-hd{background:linear-gradient(180deg, var(--over-glow), transparent)}
   .pcard.hasover .prow{border-top-color:var(--over-border)}
   .pcard.hasover h3{color:var(--alert)}
@@ -177,7 +178,9 @@
   .dv.over{color:var(--alert)} .dv.full{color:var(--at)} .dv.ok{color:var(--ink)} .dv.none{color:var(--muted)}
   .lim{font-family:var(--mono); font-size:12px; color:var(--muted)}
   .dbadge{display:inline-block; margin-left:3px; font-family:var(--mono); font-size:10px; padding:0 4px; border-radius:4px; vertical-align:middle}
-  .dbadge.over{background:var(--over-bg); color:var(--alert); border:1px solid var(--over-border)} .dbadge.full{background:var(--warn-bg); color:var(--at); border:1px solid var(--warn-border)}
+  .dbadge.over{background:var(--over-bg); color:var(--alert); border:1px solid var(--over-border); animation:flash .9s infinite} .dbadge.full{background:var(--warn-bg); color:var(--at); border:1px solid var(--warn-border)}
+  .dv.over{animation:flash .9s infinite}
+  @keyframes flash{0%,45%{opacity:1} 55%,100%{opacity:.2}}
   body.tv .pcard .drow{padding:min(calc(var(--tvcell,140px)*.028),12px) min(calc(var(--tvcell,140px)*.07),18px)}
   body.tv .dwho{font-size:min(calc(var(--tvcell,140px)*.075),17px)} body.tv .dwho .sub{font-size:min(calc(var(--tvcell,140px)*.045),11px)}
   body.tv .dgrp{font-size:min(calc(var(--tvcell,140px)*.05),11px)}
@@ -592,7 +595,7 @@
     Promise.all([
       sb.from("ec_process").select("*").order("workshop",{ascending:true}).order("sort_order",{ascending:true}),
       sb.from("ec_presence").select("process_code,person_type,status,dept").eq("status","in"),
-      sb.from("ec_spec").select("*").order("workshop",{ascending:true}).order("sort_order",{ascending:true})
+      sb.from("ec_spec").select("*").order("process_code",{ascending:true}).order("sort_order",{ascending:true})
     ]).then(function(r){
       if(r[0].error){ toast("Load processes: "+r[0].error.message,"alert"); return; }
       processes = r[0].data||[];
