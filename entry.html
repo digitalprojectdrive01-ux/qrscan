@@ -164,11 +164,25 @@
   .wsopt input{width:16px; height:16px; accent-color:var(--signal)}
   .wsgroup-hd{grid-column:1/-1; display:flex; align-items:baseline; gap:10px; margin:6px 0 -2px; padding-bottom:6px; border-bottom:1px solid var(--line); font-weight:700; font-size:16px}
   .wsgroup-hd .wssub{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--signal); font-weight:600}
-  body.tv .wsgroup-hd{font-size:14px} body.tv .wsgroup-hd .wssub{font-size:18px}
+  body.tv .wsgroup-hd{font-size:26px} body.tv .wsgroup-hd .wssub{font-size:18px}
   .logstats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px}
   .logstats .stat{padding:9px 12px}
-  .pcard.overall{border-color:var(--signal); box-shadow:0 0 0 1px var(--signal-soft)}
-  .pcard.overall .pcard-hd h3{color:var(--signal)}
+  .pcard .drow{display:grid; grid-template-columns:1.3fr .85fr .85fr; gap:8px; align-items:center; padding:9px 14px; border-top:1px solid var(--line)}
+  .pcard .drow.dhd{border-top:none; padding:8px 14px 0}
+  .pcard .drow.overall{background:var(--signal-soft)}
+  .pcard.hasover .drow.overall{background:transparent}
+  .dwho{font-weight:600; font-size:13px} .dwho .sub{display:block; font-size:10px; color:var(--muted); font-family:var(--mono)}
+  .dgrp{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; text-align:right}
+  .dcol{text-align:right; white-space:nowrap} .dv{font-family:var(--mono); font-size:20px; font-weight:600}
+  .dv.over{color:var(--alert)} .dv.full{color:var(--at)} .dv.ok{color:var(--ink)} .dv.none{color:var(--muted)}
+  .lim{font-family:var(--mono); font-size:12px; color:var(--muted)}
+  .dbadge{display:inline-block; margin-left:3px; font-family:var(--mono); font-size:10px; padding:0 4px; border-radius:4px; vertical-align:middle}
+  .dbadge.over{background:var(--over-bg); color:var(--alert); border:1px solid var(--over-border)} .dbadge.full{background:var(--warn-bg); color:var(--at); border:1px solid var(--warn-border)}
+  body.tv .pcard .drow{padding:min(calc(var(--tvcell,140px)*.028),12px) min(calc(var(--tvcell,140px)*.07),18px)}
+  body.tv .dwho{font-size:min(calc(var(--tvcell,140px)*.075),17px)} body.tv .dwho .sub{font-size:min(calc(var(--tvcell,140px)*.045),11px)}
+  body.tv .dgrp{font-size:min(calc(var(--tvcell,140px)*.05),11px)}
+  body.tv .dv{font-size:min(calc(var(--tvcell,140px)*.13),40px)} body.tv .lim{font-size:min(calc(var(--tvcell,140px)*.06),14px)}
+  body.tv .dbadge{font-size:min(calc(var(--tvcell,140px)*.045),11px)}
   .logstats .stat .k{font-size:20px}
   .uws{width:100%; min-width:120px}
   .wsnote{font-size:10.5px; color:var(--muted); margin-top:3px}
@@ -226,7 +240,7 @@
   body.tv #pgrid{flex:1 1 auto; min-height:0; overflow:hidden; gap:12px; align-content:stretch; grid-auto-rows:1fr}
   body.tv .pcard{height:100%; min-height:0; display:flex; flex-direction:column; overflow:hidden}
   body.tv .pcard-hd{align-items:flex-start; gap:6px; padding:min(calc(var(--tvcell,140px)*.05),14px) min(calc(var(--tvcell,140px)*.07),18px) min(calc(var(--tvcell,140px)*.02),8px)}
-  body.tv .pcard-hd h3{flex:1 1 auto; min-width:0; font-size:min(calc(var(--tvcell,140px)*.12),14px); line-height:1.08; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word}
+  body.tv .pcard-hd h3{flex:1 1 auto; min-width:0; font-size:min(calc(var(--tvcell,140px)*.12),26px); line-height:1.08; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word}
   body.tv .pcard-hd .pcode{flex:0 0 auto; font-size:min(calc(var(--tvcell,140px)*.05),13px)}
   body.tv .prow{flex:1 1 0; min-height:0; align-items:center; padding:min(calc(var(--tvcell,140px)*.03),12px) min(calc(var(--tvcell,140px)*.07),18px); grid-template-columns:1fr auto auto; gap:min(calc(var(--tvcell,140px)*.05),14px)}
   body.tv .prow .who{font-size:min(calc(var(--tvcell,140px)*.075),17px)}
@@ -367,12 +381,13 @@
         <div class="fld"><label>Process code</label><input type="text" id="npCode" placeholder="BK or RUB/JR"></div>
         <div class="fld"><label>Process name</label><input type="text" id="npName" placeholder="Banking"></div>
         <div class="fld"><label>Workshop</label><input type="text" id="npWs" placeholder="Workshop A"></div>
-        <div class="fld"><label>Spec overall</label><input type="number" id="npSo" min="0" value="0"></div>
+        <div class="fld"><label>Overall INT</label><input type="number" id="npSi" min="0" value="0"></div>
+        <div class="fld"><label>Overall VEN</label><input type="number" id="npSv" min="0" value="0"></div>
         <button class="btn go" id="npAdd">Add</button>
       </div>
       <div class="card"><div class="card-bd" style="padding:4px 0">
         <table class="ptable">
-          <thead><tr><th>Code</th><th>Name</th><th>Workshop</th><th>Spec overall</th><th>Order</th><th></th></tr></thead>
+          <thead><tr><th>Code</th><th>Name</th><th>Workshop</th><th>Overall INT</th><th>Overall VEN</th><th>Order</th><th></th></tr></thead>
           <tbody id="setupBody"></tbody>
         </table>
       </div></div>
@@ -383,13 +398,14 @@
           <div class="fld"><label>Process</label><select id="spProc"></select></div>
           <div class="fld"><label>Department code</label><input type="text" id="spDept" placeholder="PRD"></div>
           <div class="fld"><label>Dept name</label><input type="text" id="spName" placeholder="Production"></div>
-          <div class="fld"><label>Spec (headcount)</label><input type="number" id="spSpec" min="0" value="0"></div>
+          <div class="fld"><label>Spec INT</label><input type="number" id="spSi" min="0" value="0"></div>
+          <div class="fld"><label>Spec VEN</label><input type="number" id="spSv" min="0" value="0"></div>
           <div class="fld"><label>Order</label><input type="number" id="spSort" value="0"></div>
           <button class="btn go" id="spAdd">Add / update</button>
         </div>
         <div class="card"><div class="card-bd" style="padding:4px 0">
           <table class="ptable">
-            <thead><tr><th>Process</th><th>Dept</th><th>Name</th><th>Spec</th><th>Order</th><th></th></tr></thead>
+            <thead><tr><th>Process</th><th>Dept</th><th>Name</th><th>Spec INT</th><th>Spec VEN</th><th>Order</th><th></th></tr></thead>
             <tbody id="specBody"></tbody>
           </table>
         </div></div>
@@ -582,20 +598,19 @@
       processes = r[0].data||[];
       var pres = (r[1].data)||[];
       var specs = (r[2] && r[2].data) || [];
-      // specs by process
+      // specs by process (per-department INT/VEN caps)
       specByProc={}; knownDepts=[]; deptNames={};
       specs.forEach(function(s){ specByProc[s.process_code]=specByProc[s.process_code]||{};
-        specByProc[s.process_code][s.dept]={ spec:s.spec||0, name:s.dept_name||"", sort:s.sort_order||0 };
+        specByProc[s.process_code][s.dept]={ INT:s.spec_internal||0, VEN:s.spec_vendor||0, name:s.dept_name||"", sort:s.sort_order||0 };
         if(knownDepts.indexOf(s.dept)===-1) knownDepts.push(s.dept);
         if(s.dept_name) deptNames[s.dept]=s.dept_name; });
-      // counts: legacy per-process (INT/VEN), plus per-process total and per-process/dept total
-      countsIn={}; countsProc={}; countsProcDept={};
+      // counts: per-process INT/VEN (countsIn) and per-process/dept INT/VEN (countsProcDept)
+      countsIn={}; countsProcDept={};
       pres.forEach(function(row){
-        var k=row.process_code||"?";
-        countsIn[k]=countsIn[k]||{INT:0,VEN:0}; if(row.person_type==="VEN")countsIn[k].VEN++; else countsIn[k].INT++;
-        countsProc[k]=(countsProc[k]||0)+1;
+        var k=row.process_code||"?", isVen=row.person_type==="VEN";
+        countsIn[k]=countsIn[k]||{INT:0,VEN:0}; if(isVen)countsIn[k].VEN++; else countsIn[k].INT++;
         var dept=row.dept||"(none)";
-        countsProcDept[k]=countsProcDept[k]||{}; countsProcDept[k][dept]=(countsProcDept[k][dept]||0)+1;
+        countsProcDept[k]=countsProcDept[k]||{}; countsProcDept[k][dept]=countsProcDept[k][dept]||{INT:0,VEN:0}; if(isVen)countsProcDept[k][dept].VEN++; else countsProcDept[k][dept].INT++;
       });
       allWorkshops=[]; processes.forEach(function(p){ if(allWorkshops.indexOf(p.workshop)===-1) allWorkshops.push(p.workshop); });
       myAllowedWs = allowedWorkshops(allWorkshops);
@@ -649,31 +664,35 @@
     return '<div class="cell spec"><span class="cap">'+cap+' spec</span><span class="v">'+spec+'</span></div>'
          + '<div class="cell actual"><span class="cap">actual</span><span class="v '+st+'">'+actual+'</span>'+badge+'</div>';
   }
-  function specRow(label, sub, spec, actual){
+  function dcell(spec, actual){
     var st=stateOf(spec, actual);
-    var over = spec>0 && actual>spec;
-    var badge = st==="over"?'<span class="badge over">OVER</span>':(st==="full"?'<span class="badge full">FULL</span>':'');
-    return { over:over, html:'<div class="prow"><div class="who">'+esc(label)+(sub?'<span class="sub">'+esc(sub)+'</span>':'')+'</div>'
-      + '<div class="cell spec"><span class="cap">spec</span><span class="v">'+(spec>0?spec:'\u2014')+'</span></div>'
-      + '<div class="cell actual"><span class="cap">actual</span><span class="v '+st+'">'+actual+'</span>'+badge+'</div></div>' };
+    var lim = spec>0 ? ('<span class="lim">/'+spec+'</span>') : '<span class="lim">/–</span>';
+    var badge = st==="over"?'<span class="dbadge over">!</span>':(st==="full"?'<span class="dbadge full">=</span>':'');
+    return '<div class="dcol"><span class="dv '+st+'">'+actual+'</span>'+lim+badge+'</div>';
+  }
+  function drow(label, sub, iSpec, iAct, vSpec, vAct, cls){
+    return '<div class="drow'+(cls?' '+cls:'')+'"><div class="dwho">'+esc(label)+(sub?'<span class="sub">'+esc(sub)+'</span>':'')+'</div>'+dcell(iSpec,iAct)+dcell(vSpec,vAct)+'</div>';
   }
   function procCard(p, overList, wsTag){
-    var total=countsProc[p.process_code]||0;
+    var co=countsIn[p.process_code]||{INT:0,VEN:0};
     var depSpecs=specByProc[p.process_code]||{}, deptCounts=countsProcDept[p.process_code]||{};
     var depts=[]; Object.keys(depSpecs).forEach(function(d){ depts.push(d); });
     Object.keys(deptCounts).forEach(function(d){ if(depts.indexOf(d)===-1) depts.push(d); });
     depts.sort(function(a,b){ var sa=(depSpecs[a]&&depSpecs[a].sort)||0, sb2=(depSpecs[b]&&depSpecs[b].sort)||0; return (sa-sb2)||(a<b?-1:1); });
-    var overallSpec=p.spec_overall||0;
-    var r=specRow("Overall","total",overallSpec,total); var body=r.html; var over=r.over;
-    if(r.over) overList.push({ name:(p.process_name||p.process_code)+" — overall", detail:total+"/"+overallSpec });
+    var over=false;
+    var oInt=(p.spec_internal>0&&co.INT>p.spec_internal), oVen=(p.spec_vendor>0&&co.VEN>p.spec_vendor);
+    if(oInt||oVen){ over=true; var pp=[]; if(oInt)pp.push("INT "+co.INT+"/"+p.spec_internal); if(oVen)pp.push("VEN "+co.VEN+"/"+p.spec_vendor); overList.push({ name:(p.process_name||p.process_code)+" — overall", detail:pp.join(" \u00b7 ") }); }
+    var body = '<div class="drow dhd"><div class="dwho"></div><div class="dgrp">Internal</div><div class="dgrp">Vendor</div></div>'
+             + drow("Overall","total", p.spec_internal, co.INT, p.spec_vendor, co.VEN, "overall");
     depts.forEach(function(d){
-      var nm = d==="(none)" ? "No dept" : ((depSpecs[d]&&depSpecs[d].name)||d);
-      var sp = (depSpecs[d]&&depSpecs[d].spec)||0, ct=deptCounts[d]||0;
-      var rr=specRow(nm, d==="(none)"?"":d, sp, ct); body+=rr.html;
-      if(rr.over){ over=true; overList.push({ name:(p.process_name||p.process_code)+" \u00b7 "+nm, detail:ct+"/"+sp }); }
+      var nm=d==="(none)"?"No dept":((depSpecs[d]&&depSpecs[d].name)||d);
+      var sp=(depSpecs[d]||{INT:0,VEN:0}), c=(deptCounts[d]||{INT:0,VEN:0});
+      var di=(sp.INT>0&&c.INT>sp.INT), dv=(sp.VEN>0&&c.VEN>sp.VEN);
+      if(di||dv){ over=true; var pp2=[]; if(di)pp2.push("INT "+c.INT+"/"+sp.INT); if(dv)pp2.push("VEN "+c.VEN+"/"+sp.VEN); overList.push({ name:(p.process_name||p.process_code)+" \u00b7 "+nm, detail:pp2.join(" \u00b7 ") }); }
+      body += drow(nm, d==="(none)"?"":d, sp.INT, c.INT, sp.VEN, c.VEN, "");
     });
-    var tag = wsTag ? '<span class="wstag">'+esc(wsTag)+'</span>' : '';
-    return { count:total, html:'<div class="pcard'+(over?' hasover':'')+'">'
+    var tag=wsTag?'<span class="wstag">'+esc(wsTag)+'</span>':'';
+    return { count:co.INT+co.VEN, html:'<div class="pcard'+(over?' hasover':'')+'">'
       + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="pcode">'+esc(p.process_code)+'</span></div>'
       + body + '</div>' };
   }
@@ -707,13 +726,14 @@
 
   // ---- setup ----
   function renderSetup(){
-    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); return; }
+    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); return; }
     setupBody.innerHTML = processes.map(function(p){
       return '<tr data-code="'+esc(p.process_code)+'">'
         + '<td class="mono">'+esc(p.process_code)+'</td>'
         + '<td><input type="text" data-f="process_name" value="'+esc(p.process_name||"")+'"></td>'
         + '<td><input type="text" data-f="workshop" value="'+esc(p.workshop||"")+'"></td>'
-        + '<td><input type="number" class="num" data-f="spec_overall" min="0" value="'+(p.spec_overall||0)+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_internal" min="0" value="'+(p.spec_internal||0)+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_vendor" min="0" value="'+(p.spec_vendor||0)+'"></td>'
         + '<td><input type="number" class="num" data-f="sort_order" value="'+(p.sort_order||0)+'"></td>'
         + '<td style="white-space:nowrap"><button class="btn sm psave">Save</button> <button class="btn sm danger pdel">Del</button></td></tr>';
     }).join("");
@@ -732,8 +752,8 @@
   }
   $("npAdd").addEventListener("click", function(){
     var code=$("npCode").value.trim().toUpperCase(); if(!code){ toast("Enter a process code","alert"); return; }
-    var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", spec_overall:parseInt($("npSo").value,10)||0, sort_order:processes.length+1 };
-    sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npSo").value="0"; fetchState(); });
+    var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", spec_internal:parseInt($("npSi").value,10)||0, spec_vendor:parseInt($("npSv").value,10)||0, sort_order:processes.length+1 };
+    sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npSi").value="0";$("npSv").value="0"; fetchState(); });
   });
 
   // ---- department standards (per process) ----
@@ -741,17 +761,18 @@
     var body=$("specBody"); var sel=$("spProc"); if(!body) return;
     if(sel){ var cur=sel.value; sel.innerHTML=processes.map(function(p){ return '<option value="'+esc(p.process_code)+'">'+esc(p.process_code)+(p.process_name?(" — "+esc(p.process_name)):"")+'</option>'; }).join(""); if(cur) sel.value=cur; }
     var rows=[];
-    Object.keys(specByProc).forEach(function(pc){ Object.keys(specByProc[pc]).forEach(function(d){ var s=specByProc[pc][d]; rows.push({pc:pc,dept:d,name:s.name||"",spec:s.spec,sort:s.sort||0}); }); });
+    Object.keys(specByProc).forEach(function(pc){ Object.keys(specByProc[pc]).forEach(function(d){ var s=specByProc[pc][d]; rows.push({pc:pc,dept:d,name:s.name||"",INT:s.INT,VEN:s.VEN,sort:s.sort||0}); }); });
     rows.sort(function(a,b){ if(a.pc!==b.pc) return a.pc<b.pc?-1:1; return (a.sort-b.sort)||(a.dept<b.dept?-1:1); });
     body.innerHTML = rows.length ? rows.map(function(r){
       return '<tr data-pc="'+esc(r.pc)+'" data-dept="'+esc(r.dept)+'">'
         + '<td class="mono">'+esc(r.pc)+'</td>'
         + '<td class="mono">'+esc(r.dept)+'</td>'
         + '<td><input type="text" data-f="dept_name" value="'+esc(r.name)+'"></td>'
-        + '<td><input type="number" class="num" data-f="spec" min="0" value="'+r.spec+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_internal" min="0" value="'+r.INT+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_vendor" min="0" value="'+r.VEN+'"></td>'
         + '<td><input type="number" class="num" data-f="sort_order" value="'+r.sort+'"></td>'
         + '<td style="white-space:nowrap"><button class="btn sm ssave">Save</button> <button class="btn sm danger sdel">Del</button></td></tr>';
-    }).join("") : '<tr><td colspan="6" style="color:var(--muted);padding:16px">No department caps yet. Pick a process and add PRD, QA, ...</td></tr>';
+    }).join("") : '<tr><td colspan="7" style="color:var(--muted);padding:16px">No department caps yet. Pick a process and add PRD, QA, ...</td></tr>';
     Array.prototype.forEach.call(body.querySelectorAll(".ssave"), function(b){ b.addEventListener("click", function(){ saveSpec(b.closest("tr")); }); });
     Array.prototype.forEach.call(body.querySelectorAll(".sdel"), function(b){ b.addEventListener("click", function(){ delSpec(b.closest("tr")); }); });
   }
@@ -768,8 +789,8 @@
   if($("spAdd")) $("spAdd").addEventListener("click", function(){
     var pc=$("spProc").value; if(!pc){ toast("Add a process first","alert"); return; }
     var dept=$("spDept").value.trim().toUpperCase(); if(!dept){ toast("Enter a department code","alert"); return; }
-    var row={ process_code:pc, dept:dept, dept_name:$("spName").value.trim(), spec:parseInt($("spSpec").value,10)||0, sort_order:parseInt($("spSort").value,10)||0, updated_at:new Date().toISOString() };
-    sb.from("ec_spec").upsert(row,{onConflict:"process_code,dept"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved "+pc+" / "+dept,"ok"); $("spDept").value="";$("spName").value="";$("spSpec").value="0"; fetchState(); });
+    var row={ process_code:pc, dept:dept, dept_name:$("spName").value.trim(), spec_internal:parseInt($("spSi").value,10)||0, spec_vendor:parseInt($("spSv").value,10)||0, sort_order:parseInt($("spSort").value,10)||0, updated_at:new Date().toISOString() };
+    sb.from("ec_spec").upsert(row,{onConflict:"process_code,dept"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved "+pc+" / "+dept,"ok"); $("spDept").value="";$("spName").value="";$("spSi").value="0";$("spSv").value="0"; fetchState(); });
   });
 
   // ---- reporting: CSV download + Power BI URLs ----
