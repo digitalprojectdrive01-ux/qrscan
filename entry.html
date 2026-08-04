@@ -106,11 +106,34 @@
   .total .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-top:4px}
   .asof{font-family:var(--mono); font-size:11px; color:var(--muted)}
 
-  .pgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px}
+  .pgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(360px,1fr)); gap:14px}
   .pcard{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden}
   .pcard-hd{display:flex; align-items:baseline; gap:8px; padding:13px 15px 9px}
-  .pcard-hd h3{margin:0; font-size:16px; font-weight:600; line-height:1.2}
+  .pcard-hd h3{margin:0; font-size:16px; font-weight:600; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word}
   .pcard-hd .pcode{font-family:var(--mono); font-size:11px; color:var(--muted); margin-left:auto; border:1px solid var(--line); padding:1px 6px; border-radius:5px}
+  /* overall box (Internal | Vendor) */
+  .obox{margin:12px 14px; border:1px solid var(--line); border-radius:12px; display:grid; grid-template-columns:1fr 1fr; background:var(--panel-2,transparent)}
+  .ocol{padding:15px 16px; text-align:center} .ocol+.ocol{border-left:1px solid var(--line)}
+  .olabel{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:7px}
+  .oval{display:flex; align-items:baseline; justify-content:center; gap:3px}
+  .onum{font-family:var(--mono); font-size:34px; font-weight:800; line-height:1; color:var(--ink)}
+  .onum.over{color:var(--alert); animation:flash .9s infinite} .onum.full{color:var(--at)} .onum.none{color:var(--muted)}
+  .olim{font-family:var(--mono); font-size:18px; color:var(--muted)}
+  .obadge{margin-left:6px; align-self:center; background:var(--over-bg); color:var(--alert); border:1px solid var(--over-border); border-radius:7px; font-family:var(--mono); font-weight:800; padding:2px 8px; font-size:15px; animation:flash .9s infinite}
+  /* by department grid (2 per row) */
+  .dsec{padding:2px 16px 2px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .ddgrid{display:grid; grid-template-columns:1fr 1fr; gap:0 28px; padding:2px 16px 14px}
+  .ddept{display:grid; grid-template-columns:1.25fr .85fr .85fr; align-items:end; gap:10px; padding:9px 0; border-top:1px solid var(--row-line)}
+  .ddept.hd{border-top:none; padding:6px 0 0} .ddept.hd .h{font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted)} .ddept.hd .h.r{text-align:right}
+  .ddname{font-weight:600; font-size:13px; line-height:1.15} .ddname .ddcode{display:block; font-size:10px; color:var(--muted); font-family:var(--mono)}
+  .ddcell{text-align:right}
+  .ddval{display:flex; align-items:baseline; justify-content:flex-end; gap:2px}
+  .dvn{font-family:var(--mono); font-size:18px; font-weight:700; color:var(--ink)} .dvn.over{color:var(--alert); animation:flash .9s infinite} .dvn.full{color:var(--at)} .dvn.none{color:var(--muted)} .dvn.ok{color:var(--ink)}
+  .dvl{font-family:var(--mono); font-size:11px; color:var(--muted)}
+  .dbar{height:3px; margin-top:5px; background:var(--row-line); border-radius:2px; overflow:hidden}
+  .dbfill{display:block; height:100%; border-radius:2px} .dbfill.over{background:var(--alert)} .dbfill.full{background:var(--at)} .dbfill.ok{background:var(--signal)} .dbfill.none{background:transparent}
+  .legend{grid-column:1/-1; font-size:12px; color:var(--muted); margin:-2px 2px 2px; display:flex; align-items:center; gap:6px}
+  .legend b{color:var(--alert)}
   .prow{display:grid; grid-template-columns:74px 1fr 1fr; align-items:center; gap:8px; padding:10px 15px; border-top:1px solid var(--row-line)}
   .prow .who{font-size:12px; font-weight:600; letter-spacing:.02em}
   .prow .who .sub{display:block; font-size:10px; color:var(--muted); font-weight:400; text-transform:uppercase; letter-spacing:.06em}
@@ -165,7 +188,7 @@
   .wsopt input{width:16px; height:16px; accent-color:var(--signal)}
   .wsgroup-hd{grid-column:1/-1; display:flex; align-items:baseline; gap:10px; margin:6px 0 -2px; padding-bottom:6px; border-bottom:1px solid var(--line); font-weight:700; font-size:16px}
   .wsgroup-hd .wssub{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--signal); font-weight:600}
-  body.tv .wsgroup-hd{font-size:26px} body.tv .wsgroup-hd .wssub{font-size:18px}
+  body.tv .wsgroup-hd{font-size:14px} body.tv .wsgroup-hd .wssub{font-size:18px}
   .logstats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px}
   .logstats .stat{padding:9px 12px}
   .pcard .drow{display:grid; grid-template-columns:1.3fr .85fr .85fr; gap:8px; align-items:center; padding:9px 14px; border-top:1px solid var(--line)}
@@ -239,19 +262,11 @@
   body.tv .dash-head{flex:0 0 auto; margin:0 0 12px; align-items:center}
   body.tv .dash-title h2{font-size:38px}
   body.tv .total .num{font-size:60px}
-  /* the grid fills the remaining height; JS sets columns/rows + --tvcell */
-  body.tv #pgrid{flex:1 1 auto; min-height:0; overflow:hidden; gap:12px; align-content:stretch; grid-auto-rows:1fr}
-  body.tv .pcard{height:100%; min-height:0; display:flex; flex-direction:column; overflow:hidden}
-  body.tv .pcard-hd{align-items:flex-start; gap:6px; padding:min(calc(var(--tvcell,140px)*.05),14px) min(calc(var(--tvcell,140px)*.07),18px) min(calc(var(--tvcell,140px)*.02),8px)}
-  body.tv .pcard-hd h3{flex:1 1 auto; min-width:0; font-size:min(calc(var(--tvcell,140px)*.12),26px); line-height:1.08; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word}
-  body.tv .pcard-hd .pcode{flex:0 0 auto; font-size:min(calc(var(--tvcell,140px)*.05),13px)}
-  body.tv .prow{flex:1 1 0; min-height:0; align-items:center; padding:min(calc(var(--tvcell,140px)*.03),12px) min(calc(var(--tvcell,140px)*.07),18px); grid-template-columns:1fr auto auto; gap:min(calc(var(--tvcell,140px)*.05),14px)}
-  body.tv .prow .who{font-size:min(calc(var(--tvcell,140px)*.075),17px)}
-  body.tv .prow .who .sub{font-size:min(calc(var(--tvcell,140px)*.045),11px)}
-  body.tv .cell .cap{font-size:min(calc(var(--tvcell,140px)*.045),11px)}
-  body.tv .cell .v{font-size:min(calc(var(--tvcell,140px)*.17),48px); line-height:1}
-  body.tv .badge{font-size:min(calc(var(--tvcell,140px)*.045),11px); margin-top:2px}
-  body.tv .wstag{display:inline-block; font-family:var(--mono); font-size:min(calc(var(--tvcell,140px)*.05),12px); color:var(--signal); border:1px solid var(--signal); background:var(--signal-soft); padding:1px 6px; border-radius:5px}
+  /* TV: cards render at natural size in fixed-width columns; JS scales the whole grid to fit */
+  body.tv #pgrid{flex:0 0 auto; display:grid; grid-template-columns:repeat(var(--tvcols,3), 380px); gap:16px; justify-content:center; align-content:start; transform-origin:top center; will-change:transform}
+  body.tv .pcard{overflow:hidden}
+  body.tv .legend{display:none}
+  body.tv .wstag{display:inline-block; font-family:var(--mono); font-size:12px; color:var(--signal); border:1px solid var(--signal); background:var(--signal-soft); padding:1px 6px; border-radius:5px}
   .wstag{display:none}
   body.tv .tvexit{position:fixed; top:12px; right:12px; display:inline-flex !important; z-index:50; opacity:.5}
   body.tv .tvexit:hover{opacity:1}
@@ -667,14 +682,21 @@
     return '<div class="cell spec"><span class="cap">'+cap+' spec</span><span class="v">'+spec+'</span></div>'
          + '<div class="cell actual"><span class="cap">actual</span><span class="v '+st+'">'+actual+'</span>'+badge+'</div>';
   }
-  function dcell(spec, actual){
-    var st=stateOf(spec, actual);
-    var lim = spec>0 ? ('<span class="lim">/'+spec+'</span>') : '<span class="lim">/–</span>';
-    var badge = st==="over"?'<span class="dbadge over">!</span>':(st==="full"?'<span class="dbadge full">=</span>':'');
-    return '<div class="dcol"><span class="dv '+st+'">'+actual+'</span>'+lim+badge+'</div>';
+  function pctBar(spec, actual){
+    var st=stateOf(spec,actual);
+    var w = spec>0 ? Math.min(100, Math.round(actual/spec*100)) : (actual>0?100:0);
+    return '<div class="dbar"><span class="dbfill '+st+'" style="width:'+w+'%"></span></div>';
   }
-  function drow(label, sub, iSpec, iAct, vSpec, vAct, cls){
-    return '<div class="drow'+(cls?' '+cls:'')+'"><div class="dwho">'+esc(label)+(sub?'<span class="sub">'+esc(sub)+'</span>':'')+'</div>'+dcell(iSpec,iAct)+dcell(vSpec,vAct)+'</div>';
+  function ddval(spec, actual){
+    var st=stateOf(spec,actual);
+    return '<div class="ddcell"><div class="ddval"><span class="dvn '+st+'">'+actual+'</span><span class="dvl">/'+(spec>0?spec:'\u2013')+'</span></div>'+pctBar(spec,actual)+'</div>';
+  }
+  function ddept(name, code, iS,iA,vS,vA){
+    return '<div class="ddept"><div class="ddname">'+esc(name)+(code?'<span class="ddcode">'+esc(code)+'</span>':'')+'</div>'+ddval(iS,iA)+ddval(vS,vA)+'</div>';
+  }
+  function ocol(label, spec, actual){
+    var st=stateOf(spec,actual);
+    return '<div class="ocol"><div class="olabel">Overall '+label+'</div><div class="oval"><span class="onum '+st+'">'+actual+'</span><span class="olim">/'+(spec>0?spec:'\u2013')+'</span>'+(st==="over"?'<span class="obadge">!</span>':'')+'</div></div>';
   }
   function procCard(p, overList, wsTag){
     var co=countsIn[p.process_code]||{INT:0,VEN:0};
@@ -685,19 +707,24 @@
     var over=false;
     var oInt=(p.spec_internal>0&&co.INT>p.spec_internal), oVen=(p.spec_vendor>0&&co.VEN>p.spec_vendor);
     if(oInt||oVen){ over=true; var pp=[]; if(oInt)pp.push("INT "+co.INT+"/"+p.spec_internal); if(oVen)pp.push("VEN "+co.VEN+"/"+p.spec_vendor); overList.push({ name:(p.process_name||p.process_code)+" — overall", detail:pp.join(" \u00b7 ") }); }
-    var body = '<div class="drow dhd"><div class="dwho"></div><div class="dgrp">Internal</div><div class="dgrp">Vendor</div></div>'
-             + drow("Overall","total", p.spec_internal, co.INT, p.spec_vendor, co.VEN, "overall");
-    depts.forEach(function(d){
-      var nm=d==="(none)"?"No dept":((depSpecs[d]&&depSpecs[d].name)||d);
-      var sp=(depSpecs[d]||{INT:0,VEN:0}), c=(deptCounts[d]||{INT:0,VEN:0});
-      var di=(sp.INT>0&&c.INT>sp.INT), dv=(sp.VEN>0&&c.VEN>sp.VEN);
-      if(di||dv){ over=true; var pp2=[]; if(di)pp2.push("INT "+c.INT+"/"+sp.INT); if(dv)pp2.push("VEN "+c.VEN+"/"+sp.VEN); overList.push({ name:(p.process_name||p.process_code)+" \u00b7 "+nm, detail:pp2.join(" \u00b7 ") }); }
-      body += drow(nm, d==="(none)"?"":d, sp.INT, c.INT, sp.VEN, c.VEN, "");
-    });
+    var dhtml="";
+    if(depts.length){
+      var hd='<div class="ddept hd"><div class="h">Department</div><div class="h r">Internal</div><div class="h r">Vendor</div></div>';
+      dhtml='<div class="dsec">By department</div><div class="ddgrid">'+hd+hd;
+      depts.forEach(function(d){
+        var nm=d==="(none)"?"No dept":((depSpecs[d]&&depSpecs[d].name)||d);
+        var sp=(depSpecs[d]||{INT:0,VEN:0}), c=(deptCounts[d]||{INT:0,VEN:0});
+        var di=(sp.INT>0&&c.INT>sp.INT), dv=(sp.VEN>0&&c.VEN>sp.VEN);
+        if(di||dv){ over=true; var pp2=[]; if(di)pp2.push("INT "+c.INT+"/"+sp.INT); if(dv)pp2.push("VEN "+c.VEN+"/"+sp.VEN); overList.push({ name:(p.process_name||p.process_code)+" \u00b7 "+nm, detail:pp2.join(" \u00b7 ") }); }
+        dhtml += ddept(nm, d==="(none)"?"":d, sp.INT,c.INT, sp.VEN,c.VEN);
+      });
+      dhtml += '</div>';
+    }
     var tag=wsTag?'<span class="wstag">'+esc(wsTag)+'</span>':'';
     return { count:co.INT+co.VEN, html:'<div class="pcard'+(over?' hasover':'')+'">'
       + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="pcode">'+esc(p.process_code)+'</span></div>'
-      + body + '</div>' };
+      + '<div class="obox">'+ocol("Internal",p.spec_internal,co.INT)+ocol("Vendor",p.spec_vendor,co.VEN)+'</div>'
+      + dhtml + '</div>' };
   }
   function renderDashboard(){
     var tv=document.body.classList.contains("tv");
@@ -714,7 +741,7 @@
       if(multi && !tv) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
       html+=cards;
     });
-    pgrid.innerHTML = html || '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>';
+    pgrid.innerHTML = (html ? ('<div class="legend">Numbers in <b>red</b> exceed the target.</div>'+html) : '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>');
     totalNum.textContent = total;
     renderAlerts(overList);
     if(tv) fitTvLayout();
@@ -1014,35 +1041,28 @@
   // ---- TV mode ----
   function fitTvLayout(){
     var st=pgrid.style;
-    if(!document.body.classList.contains("tv")){ st.gridTemplateColumns=""; st.gridTemplateRows=""; st.gridAutoRows=""; st.justifyContent=""; st.alignContent=""; st.removeProperty("--tvcell"); return; }
-    var count=pgrid.querySelectorAll(".pcard").length; if(!count) return;
-    var availH=pgrid.clientHeight, availW=pgrid.clientWidth; if(availH<40||availW<40) return;
-    var gap=12, target=1.7, best=null;
-    for(var cols=1; cols<=count; cols++){
-      var rows=Math.ceil(count/cols);
-      var cw=(availW-(cols-1)*gap)/cols, ch=(availH-(rows-1)*gap)/rows;
-      if(cw<=0||ch<=0) continue;
-      var score=Math.abs(Math.log((cw/ch)/target))+0.05*(cols*rows-count);
-      if(!best||score<best.score) best={cols:cols,rows:rows,ch:ch,cw:cw,score:score};
+    if(!document.body.classList.contains("tv")){ st.transform=""; st.transformOrigin=""; pgrid.style.removeProperty("--tvcols"); return; }
+    var cards=pgrid.querySelectorAll(".pcard").length; if(!cards) return;
+    st.transform="none";
+    var top = pgrid.getBoundingClientRect().top;
+    var footerH = (tvAlert && tvAlert.classList.contains("show")) ? (tvAlert.getBoundingClientRect().height+18) : 10;
+    var availW = window.innerWidth - 40;
+    var availH = window.innerHeight - top - footerH - 10;
+    if(availW<60||availH<60) return;
+    var best={cols:1, s:0}, CARDW=380, GAP=16;
+    var maxCols=Math.min(8, cards);
+    for(var c=1;c<=maxCols;c++){
+      pgrid.style.setProperty("--tvcols", c);
+      var natW = c*CARDW + (c-1)*GAP;
+      var natH = pgrid.scrollHeight;
+      if(natH<10) continue;
+      var s=Math.min(availW/natW, availH/natH);
+      if(s>best.s){ best={cols:c, s:s}; }
     }
-    if(!best) return;
-    // Cap card size so few processes don't blow up into giant cards; center the grid then.
-    var MAXH=280, MAXW=560;
-    var capped = best.ch>MAXH || best.cw>MAXW;
-    var cellH = Math.min(best.ch, MAXH);
-    if(capped){
-      var cellW = Math.min(best.cw, MAXW);
-      st.gridTemplateColumns="repeat("+best.cols+","+Math.floor(cellW)+"px)";
-      st.gridTemplateRows="";
-      st.gridAutoRows=Math.floor(cellH)+"px";
-      st.justifyContent="center"; st.alignContent="center";
-    } else {
-      st.gridTemplateColumns="repeat("+best.cols+",1fr)";
-      st.gridTemplateRows="repeat("+best.rows+",1fr)";
-      st.gridAutoRows="1fr";
-      st.justifyContent=""; st.alignContent="stretch";
-    }
-    st.setProperty("--tvcell", Math.max(70,Math.floor(cellH))+"px");
+    pgrid.style.setProperty("--tvcols", best.cols);
+    var s=Math.min(best.s, 2.4);
+    st.transformOrigin="top center";
+    st.transform="scale("+s+")";
   }
   var fitPending=null;
   function scheduleFit(){ if(fitPending) cancelAnimationFrame(fitPending); fitPending=requestAnimationFrame(function(){ fitTvLayout(); }); }
