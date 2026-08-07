@@ -123,9 +123,9 @@
   /* by department grid (2 per row, shrink-safe) */
   .dsec{padding:0 14px 2px; font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600}
   .ddgrid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 16px; padding:0 14px 12px}
-  .ddept{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.90fr) minmax(0,.90fr); align-items:end; gap:6px; padding:7px 0; border-top:1px solid var(--row-line); min-width:0}
+  .ddept{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.95fr) minmax(0,.95fr); align-items:end; gap:6px; padding:7px 0; border-top:1px solid var(--row-line); min-width:0}
   .ddept.hd{border-top:none; padding:5px 0 0} .ddept.hd .h{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)} .ddept.hd .h.r{text-align:right}
-  .ddname{font-weight:600; font-size:10px; line-height:1.12; min-width:0; overflow:hidden; text-overflow:ellipsis} .ddname .ddcode{display:block; font-size:9px; color:var(--muted); font-family:var(--mono)}
+  .ddname{font-weight:600; font-size:12px; line-height:1.12; min-width:0; overflow:hidden; text-overflow:ellipsis} .ddname .ddcode{display:block; font-size:9px; color:var(--muted); font-family:var(--mono)}
   .ddcell{text-align:right; min-width:0}
   .ddval{display:flex; align-items:baseline; justify-content:flex-end; gap:1px}
   .dvn{font-family:var(--mono); font-size:16px; font-weight:700; color:var(--ink)} .dvn.over{color:var(--alert); animation:flash .9s infinite} .dvn.full{color:var(--at)} .dvn.none{color:var(--muted)} .dvn.ok{color:var(--ink)}
@@ -134,6 +134,13 @@
   .dbfill{display:block; height:100%; border-radius:2px} .dbfill.over{background:var(--alert)} .dbfill.full{background:var(--at)} .dbfill.ok{background:var(--signal)} .dbfill.none{background:transparent}
   .legend{grid-column:1/-1; font-size:12px; color:var(--muted); margin:-2px 2px 2px; display:flex; align-items:center; gap:6px}
   .legend b{color:var(--alert)}
+  .chk{display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500}
+  .emppanel{margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2,transparent)}
+  .empq{font-size:12px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:.05em}
+  .procpick{display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px}
+  .procpick button{padding:12px 10px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); font-weight:600; cursor:pointer; text-align:left; line-height:1.2}
+  .procpick button:hover{border-color:var(--signal); background:var(--signal-soft)}
+  .procpick button .pc{display:block; font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:2px}
   .prow{display:grid; grid-template-columns:74px 1fr 1fr; align-items:center; gap:8px; padding:10px 15px; border-top:1px solid var(--row-line)}
   .prow .who{font-size:12px; font-weight:600; letter-spacing:.02em}
   .prow .who .sub{display:block; font-size:10px; color:var(--muted); font-weight:400; text-transform:uppercase; letter-spacing:.06em}
@@ -188,7 +195,7 @@
   .wsopt input{width:16px; height:16px; accent-color:var(--signal)}
   .wsgroup-hd{grid-column:1/-1; display:flex; align-items:baseline; gap:10px; margin:6px 0 -2px; padding-bottom:6px; border-bottom:1px solid var(--line); font-weight:700; font-size:16px}
   .wsgroup-hd .wssub{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--signal); font-weight:600}
-  body.tv .wsgroup-hd{font-size:14px} body.tv .wsgroup-hd .wssub{font-size:18px}
+  body.tv .wsgroup-hd{font-size:26px} body.tv .wsgroup-hd .wssub{font-size:18px}
   .logstats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px}
   .logstats .stat{padding:9px 12px}
   .pcard .drow{display:grid; grid-template-columns:1.3fr .85fr .85fr; gap:8px; align-items:center; padding:9px 14px; border-top:1px solid var(--line)}
@@ -353,13 +360,20 @@
             <label class="btn" for="fileInput">Scan image<input type="file" id="fileInput" accept="image/*" hidden></label>
           </div>
           <div class="fld hidden" id="camField" style="margin-top:12px"><label>Camera source</label><select id="camSelect"></select></div>
-          <div class="fld" style="margin-top:12px"><label>Manual entry (e.g. VEN-BK-6)</label><div class="inline"><input type="text" id="manualCode" placeholder="TYPE-PROCESS-N" autocomplete="off"><button class="btn" id="manualBtn">Toggle</button></div></div>
+          <div class="fld" style="margin-top:12px"><label>Manual entry (e.g. VEN-BK-6, or an employee ID in Roster mode)</label><div class="inline"><input type="text" id="manualCode" placeholder="TYPE-PROCESS-N or ID No" autocomplete="off"><button class="btn" id="manualBtn">Enter</button></div></div>
+          <div class="fld" style="margin-top:12px"><label class="chk"><input type="checkbox" id="rosterToggle"> <span>Roster mode — validate employee ID, then choose the process</span></label>
+            <div id="rosterWsWrap" class="hidden" style="margin-top:8px"><label>Gate / workshop</label><select id="rosterWs"></select></div>
+          </div>
         </div>
       </div>
       <div class="card">
         <div class="card-hd">Result &amp; recent activity <button class="btn sm" id="viewAllBtn" style="margin-left:auto">View all &rarr;</button></div>
         <div class="card-bd">
           <div class="result out" id="result"><div class="dir" id="resDir">Ready</div><div class="cardcode" id="resCode">Scan a card to check in / out</div><div class="meta" id="resMeta"></div></div>
+          <div id="empPanel" class="emppanel hidden">
+            <div id="empPick" class="hidden"><div class="empq">Choose the process to enter:</div><div id="procPick" class="procpick"></div></div>
+            <button class="btn danger hidden" id="empOut" style="width:100%">Check OUT</button>
+          </div>
           <div class="evt">
             <table><thead><tr><th style="width:64px">Time</th><th>Card</th><th>Process</th><th style="width:56px">Dir</th></tr></thead><tbody id="evtBody"><tr><td colspan="4" style="color:var(--muted);padding:16px">No activity yet.</td></tr></tbody></table>
           </div>
@@ -430,11 +444,33 @@
         <p style="font-size:12px;color:var(--muted);margin-top:10px">Pick a <b>process</b>, then set each department cap. Department code = the last segment of a card, e.g. <b>INT-BK-1-Baking-PRD</b> → <b>PRD</b>. Spec 0 = no limit. The process <b>Spec overall</b> (above) caps the total, so dept caps may sum higher than overall (e.g. PRD 4 + QA 1 with overall 4).</p>
       </div></div>
 
+      <div class="card" style="margin-top:16px"><div class="card-hd">Employee roster — who may enter a workshop</div><div class="card-bd">
+        <div class="addbar" style="grid-template-columns:1fr 1fr 1.3fr 1fr 1.3fr auto">
+          <div class="fld"><label>Workshop</label><input type="text" id="rsWs" placeholder="1F ELECTRODE"></div>
+          <div class="fld"><label>ID No</label><input type="text" id="rsId"></div>
+          <div class="fld"><label>Full name</label><input type="text" id="rsName"></div>
+          <div class="fld"><label>Dept</label><input type="text" id="rsDept" placeholder="PRD"></div>
+          <div class="fld"><label>Title</label><input type="text" id="rsTitle"></div>
+          <button class="btn go" id="rsAdd">Add</button>
+        </div>
+        <div class="fld" style="margin-top:12px"><label>Bulk import to the workshop above — CSV columns: <b>ID No, Full Name, Dept, Title</b> (a 5th <b>Workshop</b> column overrides). Paste or choose a file.</label>
+          <textarea id="rsCsv" rows="4" class="mono" style="width:100%;resize:vertical" placeholder="1001, Nguyen Van A, PRD, Operator&#10;1002, Tran Thi B, QA, Inspector"></textarea>
+          <div class="inline" style="margin-top:8px"><input type="file" id="rsFile" accept=".csv,text/csv"><button class="btn go" id="rsImport">Import list</button><button class="btn danger" id="rsClearWs">Clear this workshop</button></div>
+          <p id="rsStatus" style="font-size:12px;color:var(--muted);margin-top:6px"></p>
+        </div>
+        <div class="fld" style="margin-top:8px"><label>Filter roster by workshop</label><select id="rsFilter"><option value="">All workshops</option></select></div>
+        <div class="card"><div class="card-bd" style="padding:4px 0">
+          <table class="ptable"><thead><tr><th>Workshop</th><th>ID No</th><th>Full name</th><th>Dept</th><th>Title</th><th></th></tr></thead><tbody id="rosterBody"></tbody></table>
+        </div></div>
+      </div></div>
+
       <div class="card" style="margin-top:16px"><div class="card-hd">Reporting — download &amp; Power BI feed</div><div class="card-bd">
         <div class="row" style="margin-top:0">
-          <button class="btn" id="dlEvents">Download events CSV</button>
-          <button class="btn" id="dlPresence">Download presence CSV</button>
+          <button class="btn go" id="dlBackup">Download full backup (JSON)</button>
+          <button class="btn" id="dlEvents">Events CSV</button>
+          <button class="btn" id="dlPresence">Presence CSV</button>
         </div>
+        <p style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.6">The <b>full backup (JSON)</b> contains processes, department standards, current presence and the whole event log (with dept) — this is the file you import into the local app to switch over.</p>
         <div class="fld" style="margin-top:14px"><label>Power BI — event log (Get Data → Web)</label><div class="inline"><input type="text" id="pbiEvents" class="mono" readonly><button class="btn sm" id="cpEvents">Copy</button></div></div>
         <div class="fld"><label>Power BI — current presence</label><div class="inline"><input type="text" id="pbiPresence" class="mono" readonly><button class="btn sm" id="cpPresence">Copy</button></div></div>
         <p style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">Replace <b style="color:var(--signal)">YOUR_TOKEN</b> with your <b>PBI_TOKEN</b> (Vercel env var), then in Power BI: <b>Get Data → Web → Anonymous</b>, expand to a table, set a scheduled refresh. The feed returns all entry data — keep the URL private and rotate the token if it leaks.</p>
@@ -482,8 +518,9 @@
   var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput"), camField=$("camField"), camSelect=$("camSelect");
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg");
   var resultEl=$("result"), resDir=$("resDir"), resCode=$("resCode"), resMeta=$("resMeta"), evtBody=$("evtBody");
+  var rosterToggle=$("rosterToggle"), rosterWs=$("rosterWs"), rosterWsWrap=$("rosterWsWrap"), empPanel=$("empPanel"), empPick=$("empPick"), procPick=$("procPick"), empOut=$("empOut");
   var setupBody=$("setupBody"), tvBtn=$("tvBtn"), tvExit=$("tvExit"), roleBadge=$("roleBadge"), usersBody=$("usersBody");
-  var dlEvents=$("dlEvents"), dlPresence=$("dlPresence"), pbiEvents=$("pbiEvents"), pbiPresence=$("pbiPresence"), cpEvents=$("cpEvents"), cpPresence=$("cpPresence");
+  var dlEvents=$("dlEvents"), dlPresence=$("dlPresence"), dlBackup=$("dlBackup"), pbiEvents=$("pbiEvents"), pbiPresence=$("pbiPresence"), cpEvents=$("cpEvents"), cpPresence=$("cpPresence");
   var backupBtn=$("backupBtn"), backupStop=$("backupStop"), backupStatus=$("backupStatus");
   var logFrom=$("logFrom"), logTo=$("logTo"), logWs=$("logWs"), logDir=$("logDir"), logType=$("logType"), logApply=$("logApply"), logDownload=$("logDownload"), logTotal=$("logTotal"), logIn=$("logIn"), logOut=$("logOut"), logBody=$("logBody"), logNote=$("logNote"), viewAllBtn=$("viewAllBtn");
   var logRows=[];
@@ -498,6 +535,7 @@
   function sIn(){try{unlockAudio();if(!audioCtx)return;var t=audioCtx.currentTime;tone(760,t,.10,.4);tone(1180,t+.10,.13,.4);}catch(e){}}
   function sOut(){try{unlockAudio();if(!audioCtx)return;var t=audioCtx.currentTime;tone(1180,t,.10,.4);tone(760,t+.10,.13,.4);}catch(e){}}
   function sBad(){try{unlockAudio();if(!audioCtx)return;var t=audioCtx.currentTime;tone(300,t,.22,.35);}catch(e){}}
+  function sOk(){try{unlockAudio();if(!audioCtx)return;var t=audioCtx.currentTime;tone(900,t,.08,.35);tone(900,t+.11,.08,.35);}catch(e){}}
   function vibrate(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 
   // nav / views
@@ -576,6 +614,7 @@
   // ---- scan handling (toggle in/out) ----
   function handleScan(raw){
     if(!canScan()){ toast("You don't have scan permission","alert"); return; }
+    if(rosterMode){ handleRosterScan(String(raw||"").trim()); return; }
     var p=parseCard(raw);
     if(!p){ setResult("bad","Invalid card", String(raw||"").toUpperCase(), "Expected TYPE-PROCESS-N (e.g. VEN-BK-6)"); sBad(); vibrate(60); return; }
     var now=Date.now();
@@ -599,6 +638,113 @@
     });
   }
   function setResult(cls, dir, code, meta){ resultEl.className="result "+cls; resDir.textContent=dir; resCode.textContent=code; resMeta.textContent=meta||""; }
+
+  // ---- roster mode (validate employee ID, then pick a process) ----
+  var rosterMode=false;
+  function hideEmpPanel(){ empPanel.classList.add("hidden"); empPick.classList.add("hidden"); empOut.classList.add("hidden"); procPick.innerHTML=""; }
+  function empKey(id){ return "EMP-"+id; }
+  function procsForWs(ws){ return processes.filter(function(p){ return !ws || p.workshop===ws; }); }
+  function handleRosterScan(id){
+    if(!id){ setResult("bad","Empty","","Scan or type an employee ID"); sBad(); return; }
+    if(!sb||!currentUser){ return; }
+    var ws = rosterWs.value || null;
+    var q = sb.from("ec_roster").select("*").eq("id_no", id).eq("active", true);
+    if(ws) q = q.eq("workshop", ws);
+    q.then(function(res){
+      var rows = (res.data)||[];
+      if(!rows.length){
+        setResult("bad","NOT ON LIST", id, ws?("Not authorised for "+ws):"Employee ID not found in roster");
+        hideEmpPanel(); sBad(); vibrate(90); toast("ID "+id+" is not on the allowed list"+(ws?(" for "+ws):""),"alert"); return;
+      }
+      var emp=rows[0], key=empKey(id);
+      sb.from("ec_presence").select("status,process_code").eq("card_code",key).maybeSingle().then(function(pr){
+        var inside = pr.data && pr.data.status==="in";
+        var sub=[emp.dept||"", emp.title||"", emp.workshop||""].filter(Boolean).join(" · ");
+        setResult("in", inside?"INSIDE — authorised":"AUTHORISED", (emp.full_name||id)+"  #"+id, sub);
+        sOk(); vibrate(40);
+        empPanel.classList.remove("hidden");
+        if(inside){
+          empPick.classList.add("hidden"); procPick.innerHTML="";
+          empOut.classList.remove("hidden");
+          empOut.textContent="Check OUT — "+(procName(pr.data.process_code)||pr.data.process_code||"");
+          empOut.onclick=function(){ recordEmp(emp,key,pr.data.process_code,"out"); };
+        } else {
+          empOut.classList.add("hidden");
+          var list=procsForWs(emp.workshop||ws);
+          if(!list.length){ empPick.classList.add("hidden"); toast("No processes for "+(emp.workshop||ws||"this workshop"),"alert"); return; }
+          procPick.innerHTML=list.map(function(p){ return '<button data-pc="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+'<span class="pc">'+esc(p.process_code)+'</span></button>'; }).join("");
+          Array.prototype.forEach.call(procPick.querySelectorAll("button"), function(b){ b.addEventListener("click", function(){ recordEmp(emp,key,b.getAttribute("data-pc"),"in"); }); });
+          empPick.classList.remove("hidden");
+        }
+      });
+    });
+  }
+  function recordEmp(emp, key, proc, dir){
+    sb.from("ec_presence").upsert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
+      if(up.error){ toast(up.error.message,"alert"); return; }
+      sb.from("ec_event").insert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, direction:dir, created_by:currentUser.id }).then(function(){});
+      setResult(dir, dir==="in"?"CHECK IN":"CHECK OUT", (emp.full_name||emp.id_no)+"  #"+emp.id_no, (procName(proc)||proc)+(emp.dept?(" · "+emp.dept):"")+(emp.title?(" · "+emp.title):""));
+      if(dir==="in"){ sIn(); } else { sOut(); } vibrate(45);
+      hideEmpPanel(); fetchState(); loadEvents();
+    });
+  }
+  function populateRosterWs(){
+    if(!rosterWs) return; var cur=rosterWs.value;
+    rosterWs.innerHTML='<option value="">Any workshop</option>'+allWorkshops.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join("");
+    if(cur) rosterWs.value=cur;
+  }
+  if(rosterToggle) rosterToggle.addEventListener("change", function(){
+    rosterMode=rosterToggle.checked; rosterWsWrap.classList.toggle("hidden", !rosterMode); hideEmpPanel();
+    if(rosterMode){ populateRosterWs(); setResult("out","Roster mode","","Scan an employee ID — green if allowed, red if not"); }
+    else setResult("out","Ready","Scan a card to check in / out","");
+    if(manualCode) manualCode.placeholder = rosterMode ? "Employee ID No" : "TYPE-PROCESS-N";
+  });
+
+  // ---- roster admin (import list) ----
+  function loadRoster(){
+    var body=$("rosterBody"); if(!body||!sb) return;
+    if($("rsFilter")){ var cf=$("rsFilter").value; $("rsFilter").innerHTML='<option value="">All workshops</option>'+allWorkshops.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join(""); $("rsFilter").value=cf; }
+    var q=sb.from("ec_roster").select("*").order("workshop",{ascending:true}).order("id_no",{ascending:true}).limit(5000);
+    var f=$("rsFilter")&&$("rsFilter").value; if(f) q=q.eq("workshop",f);
+    q.then(function(res){
+      var rows=(res.data)||[];
+      body.innerHTML = rows.length ? rows.map(function(r){
+        return '<tr data-id="'+esc(r.id)+'"><td class="mono">'+esc(r.workshop||"")+'</td><td class="mono">'+esc(r.id_no)+'</td><td>'+esc(r.full_name||"")+'</td><td class="mono">'+esc(r.dept||"")+'</td><td>'+esc(r.title||"")+'</td><td><button class="btn sm danger rdel">Del</button></td></tr>';
+      }).join("") : '<tr><td colspan="6" style="color:var(--muted);padding:16px">No employees yet. Add one or bulk-import a CSV.</td></tr>';
+      Array.prototype.forEach.call(body.querySelectorAll(".rdel"), function(b){ b.addEventListener("click", function(){ var id=b.closest("tr").getAttribute("data-id"); sb.from("ec_roster").delete().eq("id",id).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} loadRoster(); }); }); });
+    });
+  }
+  if($("rsFilter")) $("rsFilter").addEventListener("change", loadRoster);
+  if($("rsAdd")) $("rsAdd").addEventListener("click", function(){
+    var id=$("rsId").value.trim(); if(!id){ toast("ID No required","alert"); return; }
+    var row={ id_no:id, full_name:$("rsName").value.trim(), dept:$("rsDept").value.trim(), title:$("rsTitle").value.trim(), workshop:$("rsWs").value.trim()||null, active:true, updated_at:new Date().toISOString() };
+    sb.from("ec_roster").upsert(row,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+id,"ok"); $("rsId").value="";$("rsName").value="";$("rsTitle").value=""; loadRoster(); });
+  });
+  function parseCSV(text){
+    var out=[], lines=String(text).split(/\r?\n/);
+    lines.forEach(function(ln){ if(!ln.trim()) return; var c=ln.split(","); var id=(c[0]||"").trim();
+      if(!id || /^id\s*no$/i.test(id)) return; // skip header / empty
+      out.push({ id_no:id, full_name:(c[1]||"").trim(), dept:(c[2]||"").trim(), title:(c[3]||"").trim(), workshop:(c[4]||"").trim() }); });
+    return out;
+  }
+  function importRoster(text){
+    var ws=$("rsWs").value.trim();
+    var list=parseCSV(text); if(!list.length){ $("rsStatus").textContent="No rows found."; return; }
+    var rows=list.map(function(r){ return { id_no:r.id_no, full_name:r.full_name, dept:r.dept, title:r.title, workshop:r.workshop||ws||null, active:true, updated_at:new Date().toISOString() }; });
+    if(rows.some(function(r){ return !r.workshop; })){ $("rsStatus").textContent="Set a Workshop above (or add a 5th CSV column) before importing."; toast("Workshop required","alert"); return; }
+    $("rsStatus").textContent="Importing "+rows.length+" …";
+    sb.from("ec_roster").upsert(rows,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){ $("rsStatus").textContent="Import failed: "+r.error.message; toast(r.error.message,"alert"); return; } $("rsStatus").innerHTML="Imported <b>"+rows.length+"</b> employees."; toast("Roster imported","ok"); $("rsCsv").value=""; loadRoster(); });
+  }
+  if($("rsImport")) $("rsImport").addEventListener("click", function(){
+    var f=$("rsFile").files&&$("rsFile").files[0];
+    if(f){ var rd=new FileReader(); rd.onload=function(){ importRoster(rd.result); }; rd.readAsText(f); }
+    else importRoster($("rsCsv").value);
+  });
+  if($("rsClearWs")) $("rsClearWs").addEventListener("click", function(){
+    var ws=$("rsWs").value.trim(); if(!ws){ toast("Enter the Workshop to clear","alert"); return; }
+    if(!confirm("Remove ALL roster entries for "+ws+"?")) return;
+    sb.from("ec_roster").delete().eq("workshop",ws).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Cleared "+ws,"ok"); loadRoster(); });
+  });
 
   // ---- data ----
   function allowedWorkshops(all){ if(isAdmin()) return all.slice(); if(!myWorkshops||!myWorkshops.length) return all.slice(); return all.filter(function(w){ return myWorkshops.indexOf(w)!==-1; }); }
@@ -756,7 +902,7 @@
 
   // ---- setup ----
   function renderSetup(){
-    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); return; }
+    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); loadRoster(); return; }
     setupBody.innerHTML = processes.map(function(p){
       return '<tr data-code="'+esc(p.process_code)+'">'
         + '<td class="mono">'+esc(p.process_code)+'</td>'
@@ -770,6 +916,7 @@
     Array.prototype.forEach.call(setupBody.querySelectorAll(".psave"), function(b){ b.addEventListener("click", function(){ saveProc(b.closest("tr")); }); });
     Array.prototype.forEach.call(setupBody.querySelectorAll(".pdel"), function(b){ b.addEventListener("click", function(){ delProc(b.closest("tr")); }); });
     renderSpecs();
+    loadRoster();
   }
   function saveProc(tr){
     var code=tr.getAttribute("data-code"); var patch={updated_at:new Date().toISOString()};
@@ -827,6 +974,37 @@
   function stamp(){ return new Date().toISOString().slice(0,19).replace(/[:T]/g,"-"); }
   function toCSV(rows, cols){ var out=[cols.join(",")]; rows.forEach(function(r){ out.push(cols.map(function(c){ var s=(r[c]==null?"":String(r[c])); return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(",")); }); return out.join("\r\n"); }
   function downloadCSV(name, text){ var b=new Blob([text],{type:"text/csv;charset=utf-8;"}), u=URL.createObjectURL(b), a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },1000); }
+  function downloadJSON(name, obj){ var b=new Blob([JSON.stringify(obj)],{type:"application/json"}), u=URL.createObjectURL(b), a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },1000); }
+  function fetchAllRows(table, cols, orderCol){
+    return new Promise(function(resolve,reject){
+      var all=[], from=0, size=1000;
+      (function next(){
+        var q=sb.from(table).select(cols); if(orderCol) q=q.order(orderCol,{ascending:true});
+        q.range(from, from+size-1).then(function(r){ if(r.error){ reject(r.error); return; }
+          var rows=r.data||[]; all=all.concat(rows);
+          if(rows.length<size) resolve(all); else { from+=size; next(); } });
+      })();
+    });
+  }
+  function fetchAllForMigration(){
+    return Promise.all([
+      sb.from("ec_process").select("*").order("sort_order",{ascending:true}),
+      sb.from("ec_spec").select("*").order("process_code",{ascending:true}),
+      fetchAllRows("ec_presence","card_code,person_type,process_code,card_no,dept,status,updated_at",null),
+      fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,direction","created_at")
+    ]).then(function(r){
+      if(r[0].error) throw r[0].error; if(r[1].error) throw r[1].error;
+      return { version:1, exported_at:new Date().toISOString(),
+        processes:r[0].data||[], specs:r[1].data||[], presence:r[2]||[], events:r[3]||[] };
+    });
+  }
+  if(dlBackup) dlBackup.addEventListener("click", function(){ if(!sb) return;
+    dlBackup.disabled=true; var old=dlBackup.textContent; dlBackup.textContent="Exporting…";
+    fetchAllForMigration().then(function(data){ downloadJSON("scan-tools-migration-"+stamp()+".json", data);
+      toast("Full backup: "+data.processes.length+" processes, "+data.specs.length+" specs, "+data.presence.length+" inside, "+data.events.length+" events","ok"); })
+      .catch(function(e){ toast("Backup failed: "+(e.message||e),"alert"); })
+      .then(function(){ dlBackup.disabled=false; dlBackup.textContent=old; });
+  });
   function setReportingUrls(){ var o=location.origin;
     if(pbiEvents) pbiEvents.value=o+"/api/entry-export?token=YOUR_TOKEN&dataset=events&format=json";
     if(pbiPresence) pbiPresence.value=o+"/api/entry-export?token=YOUR_TOKEN&dataset=presence&format=json";
@@ -903,19 +1081,16 @@
     if(running){ backupBtn.style.display="none"; backupStatus.innerHTML="Backing up every 5 min to <b>"+esc((backupDir&&backupDir.name)||"folder")+"</b> &middot; last: <b>"+(lastBackup?lastBackup.toLocaleTimeString():"—")+"</b>. Keep this tab open."; return; }
     backupBtn.style.display="";
     if(pendingHandle){ backupBtn.textContent="Resume backup \u2192 "+((pendingHandle.name)||"folder"); backupStatus.innerHTML="Folder <b>"+esc(pendingHandle.name||"")+"</b> remembered. Click once to re-allow and resume (the browser asks a quick permission)."; return; }
-    backupBtn.textContent="Choose folder & start"; backupStatus.innerHTML="Not running. Chrome/Edge only; keep this tab open. Writes events + presence CSV every 5 minutes.";
+    backupBtn.textContent="Choose folder & start"; backupStatus.innerHTML="Not running. Chrome/Edge only; keep this tab open. Writes a full migration JSON (+ CSVs) every 5 minutes.";
   }
   function writeBackupFile(name, text){ return backupDir.getFileHandle(name,{create:true}).then(function(fh){ return fh.createWritable(); }).then(function(w){ return Promise.resolve(w.write(text)).then(function(){ return w.close(); }); }); }
   function runBackup(){
     if(!backupDir||!sb) return;
-    var s=stamp();
-    Promise.all([
-      sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction").order("created_at",{ascending:false}).limit(50000),
-      sb.from("ec_presence").select("card_code,person_type,process_code,card_no,status,updated_at").limit(50000)
-    ]).then(function(r){
+    fetchAllForMigration().then(function(data){
       var tasks=[];
-      if(!r[0].error){ var ec=toCSV(r[0].data||[],["created_at","card_code","person_type","process_code","card_no","direction"]); tasks.push(writeBackupFile("entry-events-"+s+".csv",ec)); tasks.push(writeBackupFile("entry-events-latest.csv",ec)); }
-      if(!r[1].error){ var pc=toCSV(r[1].data||[],["card_code","person_type","process_code","card_no","status","updated_at"]); tasks.push(writeBackupFile("entry-presence-"+s+".csv",pc)); tasks.push(writeBackupFile("entry-presence-latest.csv",pc)); }
+      tasks.push(writeBackupFile("scan-tools-migration-latest.json", JSON.stringify(data)));
+      tasks.push(writeBackupFile("entry-events-latest.csv", toCSV(data.events,["created_at","card_code","person_type","process_code","card_no","dept","direction"])));
+      tasks.push(writeBackupFile("entry-presence-latest.csv", toCSV(data.presence,["card_code","person_type","process_code","card_no","dept","status","updated_at"])));
       return Promise.all(tasks);
     }).then(function(){ lastBackup=new Date(); updateBackupUI(); })
       .catch(function(e){ var m=String(e&&e.message||e); toast("Backup failed: "+m,"alert");
