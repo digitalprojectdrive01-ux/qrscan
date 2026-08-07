@@ -141,6 +141,14 @@
   .procpick button{padding:12px 10px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); font-weight:600; cursor:pointer; text-align:left; line-height:1.2}
   .procpick button:hover{border-color:var(--signal); background:var(--signal-soft)}
   .procpick button .pc{display:block; font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:2px}
+  .modal{position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:20px}
+  .modal.hidden{display:none}
+  .modal-card{background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(560px,96vw); max-height:90vh; overflow:auto; box-shadow:0 24px 60px rgba(0,0,0,.4)}
+  .modal-hd{display:flex; align-items:flex-start; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line)}
+  .pmname{font-size:18px; font-weight:700} .pmsub{font-size:12.5px; color:var(--muted); margin-top:3px}
+  .modal-hd .x{margin-left:auto; background:none; border:none; font-size:26px; line-height:1; color:var(--muted); cursor:pointer}
+  .pmbody{padding:16px 18px}
+  .pmbody .empq{font-size:12px; color:var(--muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em}
   .prow{display:grid; grid-template-columns:74px 1fr 1fr; align-items:center; gap:8px; padding:10px 15px; border-top:1px solid var(--row-line)}
   .prow .who{font-size:12px; font-weight:600; letter-spacing:.02em}
   .prow .who .sub{display:block; font-size:10px; color:var(--muted); font-weight:400; text-transform:uppercase; letter-spacing:.06em}
@@ -301,6 +309,7 @@
       <button data-view="log">Data log</button>
       <button data-view="setup">Setup</button>
       <button data-view="users">Users</button>
+      <button data-view="tracking">Tracking</button>
     </div>
     <div class="bar-right"><button class="themebtn" id="themeBtn" title="Light / dark" aria-label="Toggle theme">☾</button>
       <button class="btn sm tvhide hidden" id="tvBtn" title="Fullscreen TV view">TV</button>
@@ -360,20 +369,15 @@
             <label class="btn" for="fileInput">Scan image<input type="file" id="fileInput" accept="image/*" hidden></label>
           </div>
           <div class="fld hidden" id="camField" style="margin-top:12px"><label>Camera source</label><select id="camSelect"></select></div>
-          <div class="fld" style="margin-top:12px"><label>Manual entry (e.g. VEN-BK-6, or an employee ID in Roster mode)</label><div class="inline"><input type="text" id="manualCode" placeholder="TYPE-PROCESS-N or ID No" autocomplete="off"><button class="btn" id="manualBtn">Enter</button></div></div>
-          <div class="fld" style="margin-top:12px"><label class="chk"><input type="checkbox" id="rosterToggle"> <span>Roster mode — validate employee ID, then choose the process</span></label>
-            <div id="rosterWsWrap" class="hidden" style="margin-top:8px"><label>Gate / workshop</label><select id="rosterWs"></select></div>
-          </div>
+          <div class="fld" style="margin-top:12px"><label>Manual entry — card (VEN-BK-6) or employee ID</label><div class="inline"><input type="text" id="manualCode" placeholder="Card or employee ID" autocomplete="off"><button class="btn" id="manualBtn">Enter</button></div></div>
+          <div class="fld" style="margin-top:12px"><label>Gate / workshop (optional — scopes roster &amp; process list)</label><select id="rosterWs"></select></div>
+          <p style="font-size:11.5px;color:var(--muted);margin-top:6px">Employee IDs on the roster pop up a process picker automatically. Other codes are treated as process cards.</p>
         </div>
       </div>
       <div class="card">
         <div class="card-hd">Result &amp; recent activity <button class="btn sm" id="viewAllBtn" style="margin-left:auto">View all &rarr;</button></div>
         <div class="card-bd">
           <div class="result out" id="result"><div class="dir" id="resDir">Ready</div><div class="cardcode" id="resCode">Scan a card to check in / out</div><div class="meta" id="resMeta"></div></div>
-          <div id="empPanel" class="emppanel hidden">
-            <div id="empPick" class="hidden"><div class="empq">Choose the process to enter:</div><div id="procPick" class="procpick"></div></div>
-            <button class="btn danger hidden" id="empOut" style="width:100%">Check OUT</button>
-          </div>
           <div class="evt">
             <table><thead><tr><th style="width:64px">Time</th><th>Card</th><th>Process</th><th style="width:56px">Dir</th></tr></thead><tbody id="evtBody"><tr><td colspan="4" style="color:var(--muted);padding:16px">No activity yet.</td></tr></tbody></table>
           </div>
@@ -483,6 +487,36 @@
   </div>
 
   <!-- USERS (admin) -->
+  <!-- process picker modal (roster) -->
+  <div id="procModal" class="modal hidden"><div class="modal-card">
+    <div class="modal-hd"><div><div id="pmName" class="pmname">Employee</div><div id="pmInfo" class="pmsub"></div></div><button class="x" id="pmClose">&times;</button></div>
+    <div id="pmBody" class="pmbody"></div>
+  </div></div>
+
+  <!-- SCAN TRACKING (admin) -->
+  <div id="viewTracking" class="hidden">
+    <div class="card"><div class="card-hd">Scan tracking — durations &amp; who is still inside</div><div class="card-bd">
+      <div class="logbar" style="grid-template-columns:repeat(4,1fr) auto auto">
+        <div class="fld"><label>From</label><input type="datetime-local" id="tkFrom"></div>
+        <div class="fld"><label>To</label><input type="datetime-local" id="tkTo"></div>
+        <div class="fld"><label>Workshop</label><select id="tkWs"><option value="">All</option></select></div>
+        <div class="fld"><label>Status</label><select id="tkStatus"><option value="inside">Inside now (not out)</option><option value="all">All sessions</option><option value="done">Completed only</option></select></div>
+        <button class="btn go" id="tkApply">Apply</button>
+        <button class="btn" id="tkCsv">Export CSV</button>
+      </div>
+      <div class="logstats" style="margin-top:12px">
+        <div class="stat"><div class="k" id="tkInside">0</div><div class="l">Inside now</div></div>
+        <div class="stat"><div class="k" id="tkSessions">0</div><div class="l">Sessions</div></div>
+        <div class="stat"><div class="k" id="tkAvg">—</div><div class="l">Avg duration</div></div>
+        <div class="stat"><div class="k" id="tkMax">—</div><div class="l">Longest</div></div>
+      </div>
+      <div class="evt" style="margin-top:12px"><table>
+        <thead><tr><th>Card / Employee</th><th style="width:70px">Type</th><th>Process</th><th style="width:64px">Dept</th><th style="width:150px">IN</th><th style="width:150px">OUT</th><th style="width:96px">Duration</th></tr></thead>
+        <tbody id="tkBody"><tr><td colspan="7" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody>
+      </table></div>
+    </div></div>
+  </div>
+
   <div id="viewUsers" class="hidden">
     <div class="setup">
       <div class="card"><div class="card-bd" style="padding:4px 0">
@@ -513,12 +547,12 @@
   var authScreen=$("authScreen"), authMsg=$("authMsg"), authBtn=$("authBtn"), emailEl=$("email"), passEl=$("password");
   var userChip=$("userChip"), userEmail=$("userEmail"), signout=$("signout");
   var led=$("led"), liveTxt=$("liveTxt");
-  var views={dash:$("viewDash"), scan:$("viewScan"), log:$("viewLog"), setup:$("viewSetup"), users:$("viewUsers")};
+  var views={dash:$("viewDash"), scan:$("viewScan"), log:$("viewLog"), setup:$("viewSetup"), users:$("viewUsers"), tracking:$("viewTracking")};
   var wsBtn=$("wsBtn"), wsMenu=$("wsMenu"), wsName=$("wsName"), totalNum=$("totalNum"), asof=$("asof"), pgrid=$("pgrid"), alertBar=$("alertBar"), tvAlert=$("tvAlert");
   var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput"), camField=$("camField"), camSelect=$("camSelect");
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg");
   var resultEl=$("result"), resDir=$("resDir"), resCode=$("resCode"), resMeta=$("resMeta"), evtBody=$("evtBody");
-  var rosterToggle=$("rosterToggle"), rosterWs=$("rosterWs"), rosterWsWrap=$("rosterWsWrap"), empPanel=$("empPanel"), empPick=$("empPick"), procPick=$("procPick"), empOut=$("empOut");
+  var rosterWs=$("rosterWs");
   var setupBody=$("setupBody"), tvBtn=$("tvBtn"), tvExit=$("tvExit"), roleBadge=$("roleBadge"), usersBody=$("usersBody");
   var dlEvents=$("dlEvents"), dlPresence=$("dlPresence"), dlBackup=$("dlBackup"), pbiEvents=$("pbiEvents"), pbiPresence=$("pbiPresence"), cpEvents=$("cpEvents"), cpPresence=$("cpPresence");
   var backupBtn=$("backupBtn"), backupStop=$("backupStop"), backupStatus=$("backupStatus");
@@ -547,6 +581,7 @@
     if(name==="users"){ loadUsers(); }
     if(name==="setup"){ setReportingUrls(); }
     if(name==="log"){ setLogWorkshops(); loadLog(); }
+    if(name==="tracking"){ if(!isAdmin()){ showView("dash"); return; } setTrackWorkshops(); loadTracking(); }
   }
   Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){ showView(b.getAttribute("data-view")); }); });
 
@@ -566,7 +601,7 @@
     sb.from("user_roles").select("role,workshops").eq("user_id",u.id).maybeSingle()
       .then(function(r){ myRole=(r.data&&r.data.role)||"view"; myWorkshops=(r.data&&r.data.workshops)||null; applyRole(); fetchState(); })
       .catch(function(){ myRole="view"; myWorkshops=null; applyRole(); fetchState(); });
-    subscribeRealtime(); startPolling(); }
+    subscribeRealtime(); startPolling(); loadRosterCache(); }
   // Data stays fresh via Supabase Realtime + the 5s poll (no full page reload, so a
   // selected workshop is never reset out from under the user).
 
@@ -579,11 +614,12 @@
     navBtn("log").style.display   = canScan()?"":"none";
     navBtn("setup").style.display = isAdmin()?"":"none";
     navBtn("users").style.display = isAdmin()?"":"none";
+    navBtn("tracking").style.display = isAdmin()?"":"none";
     var dis=!canScan();
     [startBtn,switchBtn,manualBtn].forEach(function(b){ if(b) b.disabled=dis; });
     if(manualCode) manualCode.disabled=dis;
     var cur=document.querySelector('.nav button.active'); var v=cur?cur.getAttribute("data-view"):"dash";
-    if(((v==="scan"||v==="log")&&!canScan())||((v==="setup"||v==="users")&&!isAdmin())) showView("dash");
+    if(((v==="scan"||v==="log")&&!canScan())||((v==="setup"||v==="users"||v==="tracking")&&!isAdmin())) showView("dash");
   }
   function showAuth(){ currentUser=null; userChip.classList.add("hidden"); $("nav").classList.add("hidden"); tvBtn.classList.add("hidden");
     Object.keys(views).forEach(function(k){views[k].classList.add("hidden");}); authScreen.classList.remove("hidden");
@@ -611,12 +647,20 @@
   }
   function procName(pc){ for(var i=0;i<processes.length;i++){ if(processes[i].process_code===pc) return processes[i].process_name||pc; } return null; }
 
-  // ---- scan handling (toggle in/out) ----
+  // ---- scan handling: auto-detect employee ID (roster) vs process card ----
   function handleScan(raw){
     if(!canScan()){ toast("You don't have scan permission","alert"); return; }
-    if(rosterMode){ handleRosterScan(String(raw||"").trim()); return; }
-    var p=parseCard(raw);
-    if(!p){ setResult("bad","Invalid card", String(raw||"").toUpperCase(), "Expected TYPE-PROCESS-N (e.g. VEN-BK-6)"); sBad(); vibrate(60); return; }
+    var val=String(raw||"").trim(); if(!val) return;
+    var gate=(rosterWs&&rosterWs.value)||null;
+    var emp=rosterLookup(val, gate);
+    if(emp){ onEmployeeScan(emp); return; }
+    // an ID that is on the roster for a different workshop than the chosen gate → warn
+    if(gate && rosterById[val.toUpperCase()]){ setResult("bad","WRONG GATE", val.toUpperCase(), "On the roster, but not for "+gate); sBad(); vibrate(90); return; }
+    var p=parseCard(val);
+    if(p){ cardToggle(p); return; }
+    setResult("bad","NOT RECOGNISED", val.toUpperCase(), "Not on the employee roster and not a valid process card"); sBad(); vibrate(80);
+  }
+  function cardToggle(p){
     var now=Date.now();
     if(lastToggle[p.code] && (now-lastToggle[p.code])<3000) return; // debounce same card
     lastToggle[p.code]=now;
@@ -627,9 +671,7 @@
       sb.from("ec_presence").upsert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, status:next, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
         if(up.error){ toast(up.error.message,"alert"); return; }
         sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, direction:next, created_by:currentUser.id }).then(function(){});
-        var nm = procName(p.processCode);
-        var known = nm!==null;
-        var deptTxt = p.dept ? (" · "+ (deptNames[p.dept]||p.dept)) : "";
+        var nm = procName(p.processCode); var known = nm!==null; var deptTxt = p.dept ? (" · "+ (deptNames[p.dept]||p.dept)) : "";
         setResult(next, next==="in"?"CHECK IN":"CHECK OUT", p.code, (p.type==="VEN"?"Vendor":"Internal")+" · "+(known?nm:(p.processCode+" — not configured"))+deptTxt+" · card "+p.cardNo);
         if(next==="in"){ sIn(); } else { sOut(); } vibrate(45);
         if(!known) toast("Process "+p.processCode+" not in Setup","alert");
@@ -639,53 +681,65 @@
   }
   function setResult(cls, dir, code, meta){ resultEl.className="result "+cls; resDir.textContent=dir; resCode.textContent=code; resMeta.textContent=meta||""; }
 
-  // ---- roster mode (validate employee ID, then pick a process) ----
-  var rosterMode=false;
-  function hideEmpPanel(){ empPanel.classList.add("hidden"); empPick.classList.add("hidden"); empOut.classList.add("hidden"); procPick.innerHTML=""; }
-  function empKey(id){ return "EMP-"+id; }
-  function procsForWs(ws){ return processes.filter(function(p){ return !ws || p.workshop===ws; }); }
-  function handleRosterScan(id){
-    if(!id){ setResult("bad","Empty","","Scan or type an employee ID"); sBad(); return; }
-    if(!sb||!currentUser){ return; }
-    var ws = rosterWs.value || null;
-    var q = sb.from("ec_roster").select("*").eq("id_no", id).eq("active", true);
-    if(ws) q = q.eq("workshop", ws);
-    q.then(function(res){
-      var rows = (res.data)||[];
-      if(!rows.length){
-        setResult("bad","NOT ON LIST", id, ws?("Not authorised for "+ws):"Employee ID not found in roster");
-        hideEmpPanel(); sBad(); vibrate(90); toast("ID "+id+" is not on the allowed list"+(ws?(" for "+ws):""),"alert"); return;
-      }
-      var emp=rows[0], key=empKey(id);
-      sb.from("ec_presence").select("status,process_code").eq("card_code",key).maybeSingle().then(function(pr){
-        var inside = pr.data && pr.data.status==="in";
-        var sub=[emp.dept||"", emp.title||"", emp.workshop||""].filter(Boolean).join(" · ");
-        setResult("in", inside?"INSIDE — authorised":"AUTHORISED", (emp.full_name||id)+"  #"+id, sub);
-        sOk(); vibrate(40);
-        empPanel.classList.remove("hidden");
-        if(inside){
-          empPick.classList.add("hidden"); procPick.innerHTML="";
-          empOut.classList.remove("hidden");
-          empOut.textContent="Check OUT — "+(procName(pr.data.process_code)||pr.data.process_code||"");
-          empOut.onclick=function(){ recordEmp(emp,key,pr.data.process_code,"out"); };
-        } else {
-          empOut.classList.add("hidden");
-          var list=procsForWs(emp.workshop||ws);
-          if(!list.length){ empPick.classList.add("hidden"); toast("No processes for "+(emp.workshop||ws||"this workshop"),"alert"); return; }
-          procPick.innerHTML=list.map(function(p){ return '<button data-pc="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+'<span class="pc">'+esc(p.process_code)+'</span></button>'; }).join("");
-          Array.prototype.forEach.call(procPick.querySelectorAll("button"), function(b){ b.addEventListener("click", function(){ recordEmp(emp,key,b.getAttribute("data-pc"),"in"); }); });
-          empPick.classList.remove("hidden");
-        }
+  // ---- roster: in-memory cache, lookup, and the process-picker modal ----
+  var rosterById={};
+  function loadRosterCache(){
+    if(!sb) return; var all=[], from=0, size=1000;
+    (function next(){
+      sb.from("ec_roster").select("id_no,full_name,dept,title,workshop,active").range(from,from+size-1).then(function(r){
+        if(r.error){ return; }
+        var rows=r.data||[]; all=all.concat(rows);
+        if(rows.length<size){ rosterById={}; all.forEach(function(e){ if(e.active===false) return; var k=String(e.id_no).toUpperCase(); (rosterById[k]=rosterById[k]||[]).push(e); }); populateRosterWs(); }
+        else { from+=size; next(); }
       });
+    })();
+  }
+  function rosterLookup(val, gate){
+    var arr=rosterById[String(val).toUpperCase()]; if(!arr||!arr.length) return null;
+    if(gate){ var m=arr.filter(function(e){return e.workshop===gate;}); return m.length?m[0]:null; }
+    return arr[0];
+  }
+  function empKey(id){ return "EMP-"+id; }
+  function empName(cc){ if(cc&&cc.indexOf("EMP-")===0){ var id=cc.slice(4); var a=rosterById[id.toUpperCase()]; return (a&&a[0]&&a[0].full_name)?(a[0].full_name+" #"+id):("Emp #"+id); } return cc; }
+  function procsForWs(ws){ return processes.filter(function(p){ return !ws || p.workshop===ws; }); }
+  function closeModal(){ $("procModal").classList.add("hidden"); }
+  function onEmployeeScan(emp){
+    var id=emp.id_no, key=empKey(id);
+    setResult("in","AUTHORISED", (emp.full_name||id)+"  #"+id, [emp.dept,emp.title,emp.workshop].filter(Boolean).join(" · "));
+    sOk(); vibrate(40);
+    if(!sb||!currentUser) return;
+    sb.from("ec_presence").select("status,process_code").eq("card_code",key).maybeSingle().then(function(pr){
+      var inside=pr.data&&pr.data.status==="in";
+      openEmpModal(emp,key,inside,inside?pr.data.process_code:null);
     });
   }
+  function openEmpModal(emp,key,inside,curProc){
+    $("pmName").textContent=(emp.full_name||emp.id_no)+"  #"+emp.id_no;
+    $("pmInfo").textContent=[emp.dept,emp.title,emp.workshop].filter(Boolean).join(" · ");
+    var body=$("pmBody");
+    if(inside){
+      body.innerHTML='<div class="empq">Currently inside at <b>'+esc(procName(curProc)||curProc||"")+'</b></div><button class="btn danger" id="pmOut" style="width:100%">Check OUT</button>';
+      $("pmOut").addEventListener("click", function(){ recordEmp(emp,key,curProc,"out"); });
+    } else {
+      var list=procsForWs(emp.workshop||(rosterWs&&rosterWs.value)||null);
+      if(!list.length){ body.innerHTML='<div class="empq">No processes configured for '+esc(emp.workshop||"this workshop")+'.</div>'; }
+      else{
+        body.innerHTML='<div class="empq">Choose the process to enter</div><div class="procpick">'+list.map(function(p){ return '<button data-pc="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+'<span class="pc">'+esc(p.process_code)+'</span></button>'; }).join("")+'</div>';
+        Array.prototype.forEach.call(body.querySelectorAll(".procpick button"), function(b){ b.addEventListener("click", function(){ recordEmp(emp,key,b.getAttribute("data-pc"),"in"); }); });
+      }
+    }
+    $("procModal").classList.remove("hidden");
+  }
+  if($("pmClose")) $("pmClose").addEventListener("click", closeModal);
+  if($("procModal")) $("procModal").addEventListener("click", function(e){ if(e.target===$("procModal")) closeModal(); });
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape") closeModal(); });
   function recordEmp(emp, key, proc, dir){
     sb.from("ec_presence").upsert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
       if(up.error){ toast(up.error.message,"alert"); return; }
       sb.from("ec_event").insert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, direction:dir, created_by:currentUser.id }).then(function(){});
       setResult(dir, dir==="in"?"CHECK IN":"CHECK OUT", (emp.full_name||emp.id_no)+"  #"+emp.id_no, (procName(proc)||proc)+(emp.dept?(" · "+emp.dept):"")+(emp.title?(" · "+emp.title):""));
       if(dir==="in"){ sIn(); } else { sOut(); } vibrate(45);
-      hideEmpPanel(); fetchState(); loadEvents();
+      closeModal(); fetchState(); loadEvents();
     });
   }
   function populateRosterWs(){
@@ -693,12 +747,6 @@
     rosterWs.innerHTML='<option value="">Any workshop</option>'+allWorkshops.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join("");
     if(cur) rosterWs.value=cur;
   }
-  if(rosterToggle) rosterToggle.addEventListener("change", function(){
-    rosterMode=rosterToggle.checked; rosterWsWrap.classList.toggle("hidden", !rosterMode); hideEmpPanel();
-    if(rosterMode){ populateRosterWs(); setResult("out","Roster mode","","Scan an employee ID — green if allowed, red if not"); }
-    else setResult("out","Ready","Scan a card to check in / out","");
-    if(manualCode) manualCode.placeholder = rosterMode ? "Employee ID No" : "TYPE-PROCESS-N";
-  });
 
   // ---- roster admin (import list) ----
   function loadRoster(){
@@ -793,7 +841,7 @@
       if(!rows.length){ evtBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">No activity yet.</td></tr>'; return; }
       evtBody.innerHTML = rows.map(function(e){
         var nm=procName(e.process_code)||e.process_code||"";
-        return "<tr><td class=\"mono\">"+nowT(e.created_at)+"</td><td class=\"mono\">"+esc(e.card_code)+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+        return "<tr><td class=\"mono\">"+nowT(e.created_at)+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
       }).join("");
     });
   }
@@ -1053,16 +1101,105 @@
     logTotal.textContent=logRows.length; logIn.textContent=inC; logOut.textContent=outC;
     if(!logRows.length){ logBody.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
     logBody.innerHTML=logRows.map(function(e){ var nm=procName(e.process_code)||e.process_code||""; var d=new Date(e.created_at);
-      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(e.card_code)+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
     }).join("");
     logNote.textContent = logRows.length>=5000 ? "Showing the first 5000 records — narrow the range for the rest." : ("Showing "+logRows.length+" records.");
   }
   if(logApply) logApply.addEventListener("click", loadLog);
   [logDir,logType,logWs].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
   [logFrom,logTo].forEach(function(el){ if(el) el.addEventListener("change", loadLog); });
-  if(logDownload) logDownload.addEventListener("click", function(){ if(!logRows.length){ toast("Nothing to export","alert"); return; }
-    downloadCSV("entry-log-"+stamp()+".csv", toCSV(logRows,["created_at","card_code","person_type","process_code","card_no","dept","direction"])); toast("Exported "+logRows.length+" records","ok"); });
+  if(logDownload) logDownload.addEventListener("click", function(){
+    if(!sb||!canScan()) return;
+    var fromISO,toISO;
+    try{ fromISO=new Date(logFrom.value+"T00:00:00").toISOString(); toISO=new Date(logTo.value+"T23:59:59.999").toISOString(); }catch(e){ toast("Invalid date range","alert"); return; }
+    var codes=null;
+    if(logWs && logWs.value && logWs.value!=="all"){ codes=processes.filter(function(p){return p.workshop===logWs.value;}).map(function(p){return p.process_code;}); if(!codes.length){ toast("No processes in this workshop","alert"); return; } }
+    logDownload.disabled=true; var oldt=logDownload.textContent; logDownload.textContent="Exporting…";
+    var all=[], from=0, size=1000;
+    (function next(){
+      var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false});
+      if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
+      if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
+      if(codes) q=q.in("process_code",codes);
+      q.range(from,from+size-1).then(function(r){
+        if(r.error){ toast("Export: "+r.error.message,"alert"); logDownload.disabled=false; logDownload.textContent=oldt; return; }
+        var rows=r.data||[]; all=all.concat(rows);
+        if(rows.length<size){
+          var out=all.map(function(e){ return { created_at:e.created_at, card_code:e.card_code, name:empName(e.card_code), person_type:e.person_type, process_code:e.process_code, card_no:e.card_no, dept:e.dept||"", direction:e.direction }; });
+          downloadCSV("entry-log-"+stamp()+".csv", toCSV(out,["created_at","card_code","name","person_type","process_code","card_no","dept","direction"]));
+          toast("Exported "+all.length+" records","ok"); logDownload.disabled=false; logDownload.textContent=oldt;
+        } else { from+=size; next(); }
+      });
+    })();
+  });
   if(viewAllBtn) viewAllBtn.addEventListener("click", function(){ showView("log"); });
+
+  // ---- Scan Tracking (admin): durations + who is still inside ----
+  var tkRows=[];
+  function fmtDur(ms){ if(ms<0)ms=0; var s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60); var sec=s%60; if(h>0) return h+"h "+m+"m"; if(m>0) return m+"m "+sec+"s"; return sec+"s"; }
+  function setTrackWorkshops(){ var el=$("tkWs"); if(!el) return; var cur=el.value; el.innerHTML='<option value="">All workshops</option>'+allWorkshops.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join(""); if(cur) el.value=cur; }
+  function ensureTkDates(){ if(!$("tkFrom").value){ var d=new Date(Date.now()-7*864e5); $("tkFrom").value=d.toISOString().slice(0,16); } if(!$("tkTo").value){ $("tkTo").value=new Date(Date.now()+864e5).toISOString().slice(0,16); } }
+  function loadTracking(){
+    if(!sb||!isAdmin()) return;
+    ensureTkDates();
+    var fromISO,toISO;
+    try{ fromISO=new Date($("tkFrom").value).toISOString(); toISO=new Date($("tkTo").value).toISOString(); }catch(e){ toast("Invalid range","alert"); return; }
+    var ws=$("tkWs").value||null;
+    var codes=ws?processes.filter(function(p){return p.workshop===ws;}).map(function(p){return p.process_code;}):null;
+    $("tkBody").innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    var all=[], from=0, size=1000, MAXP=25;
+    (function next(pageN){
+      var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:true});
+      if(codes){ if(!codes.length){ buildSessions([]); return; } q=q.in("process_code",codes); }
+      q.range(from,from+size-1).then(function(r){
+        if(r.error){ toast("Tracking: "+r.error.message,"alert"); $("tkBody").innerHTML='<tr><td colspan="7" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
+        var rows=r.data||[]; all=all.concat(rows);
+        if(rows.length<size || pageN>=MAXP){ buildSessions(all); } else { from+=size; next(pageN+1); }
+      });
+    })(1);
+  }
+  function buildSessions(events){
+    // group by card, pair in->out chronologically
+    var byCard={}; events.forEach(function(e){ (byCard[e.card_code]=byCard[e.card_code]||[]).push(e); });
+    var sessions=[], now=Date.now();
+    Object.keys(byCard).forEach(function(cc){
+      var evs=byCard[cc], open=null;
+      evs.forEach(function(e){
+        if(e.direction==="in"){ if(open){ sessions.push(mkSession(cc,open,null)); } open=e; }
+        else if(e.direction==="out"){ if(open){ sessions.push(mkSession(cc,open,e)); open=null; } else { sessions.push(mkSession(cc,null,e)); } }
+      });
+      if(open) sessions.push(mkSession(cc,open,null)); // still inside
+    });
+    function mkSession(cc, inE, outE){ var base=inE||outE; var inT=inE?new Date(inE.created_at).getTime():null, outT=outE?new Date(outE.created_at).getTime():null;
+      var dur = (inT!=null) ? ((outT!=null?outT:now)-inT) : null;
+      return { card:cc, type:base.person_type, process:base.process_code, dept:base.dept||"", inT:inT, outT:outT, open:(outT==null&&inT!=null), dur:dur }; }
+    // status filter
+    var st=$("tkStatus").value;
+    var rows=sessions.filter(function(s){ if(st==="inside") return s.open; if(st==="done") return !s.open && s.inT!=null; return true; });
+    rows.sort(function(a,b){ return (b.inT||b.outT||0)-(a.inT||a.outT||0); });
+    tkRows=rows;
+    // summary
+    var insideN=sessions.filter(function(s){return s.open;}).length;
+    var done=sessions.filter(function(s){return !s.open&&s.dur!=null;});
+    var avg=done.length?Math.round(done.reduce(function(a,s){return a+s.dur;},0)/done.length):null;
+    var mx=sessions.reduce(function(a,s){return (s.dur!=null&&s.dur>a)?s.dur:a;},0);
+    $("tkInside").textContent=insideN; $("tkSessions").textContent=rows.length;
+    $("tkAvg").textContent=avg!=null?fmtDur(avg):"—"; $("tkMax").textContent=mx?fmtDur(mx):"—";
+    renderTracking();
+  }
+  function renderTracking(){
+    if(!tkRows.length){ $("tkBody").innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No sessions match.</td></tr>'; return; }
+    $("tkBody").innerHTML=tkRows.map(function(s){
+      var dur = s.dur!=null?fmtDur(s.dur):"—";
+      var durCls = s.open?' style="color:var(--alert);font-weight:600"':'';
+      return "<tr><td class=\"mono\">"+esc(empName(s.card))+"</td><td>"+(s.type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(procName(s.process)||s.process||"")+"</td><td class=\"mono\">"+esc(s.dept)+"</td><td class=\"mono\">"+(s.inT?new Date(s.inT).toLocaleString():"—")+"</td><td class=\"mono\">"+(s.outT?new Date(s.outT).toLocaleString():'<span style="color:var(--alert)">— inside —</span>')+"</td><td class=\"mono\""+durCls+">"+dur+"</td></tr>";
+    }).join("");
+  }
+  if($("tkApply")) $("tkApply").addEventListener("click", loadTracking);
+  ["tkWs","tkStatus"].forEach(function(id){ if($(id)) $(id).addEventListener("change", loadTracking); });
+  if($("tkCsv")) $("tkCsv").addEventListener("click", function(){ if(!tkRows.length){ toast("Nothing to export","alert"); return; }
+    var out=tkRows.map(function(s){ return { card_code:s.card, name:empName(s.card), type:s.type, process:s.process, dept:s.dept, in_time:s.inT?new Date(s.inT).toISOString():"", out_time:s.outT?new Date(s.outT).toISOString():"", status:s.open?"inside":"done", duration:s.dur!=null?fmtDur(s.dur):"", duration_seconds:s.dur!=null?Math.floor(s.dur/1000):"" }; });
+    downloadCSV("scan-tracking-"+stamp()+".csv", toCSV(out,["card_code","name","type","process","dept","in_time","out_time","status","duration","duration_seconds"])); toast("Exported "+out.length+" sessions","ok"); });
 
   // ---- auto-backup to a local folder (File System Access API), remembered across reloads ----
   var backupDir=null, backupTimer=null, lastBackup=null, pendingHandle=null, backupRestored=false;
@@ -1164,6 +1301,7 @@
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_presence" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_process" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_spec" }, function(){ fetchState(); })
+        .on("postgres_changes", { event:"*", schema:"public", table:"ec_roster" }, function(){ loadRosterCache(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_event" }, function(){ if(!views.scan.classList.contains("hidden")) loadEvents(); })
         .subscribe(function(status){ if(status==="SUBSCRIBED"){ liveTxt.textContent="Live"; led.classList.add("on"); } });
     }catch(e){}
