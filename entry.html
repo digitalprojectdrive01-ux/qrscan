@@ -80,7 +80,7 @@
   .btn[disabled]{opacity:.5; cursor:not-allowed}
   .btn svg{width:15px;height:15px}
 
-  select,input[type=text],input[type=email],input[type=password],input[type=number],input[type=date]{font-family:var(--sans); font-size:13px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px; width:100%}
+  select,input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],input[type=time],input[type=datetime-local]{font-family:var(--sans); font-size:13px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px; width:100%}
   select:focus,input:focus{outline:2px solid var(--signal); outline-offset:1px; border-color:transparent}
 
   /* auth */
@@ -433,6 +433,9 @@
         <button class="setup-tab active" data-setup-tab="process">Processes</button>
         <button class="setup-tab" data-setup-tab="department">Department specs</button>
         <button class="setup-tab" data-setup-tab="roster">Employee access</button>
+        <button class="setup-tab" data-setup-tab="shifts">Working shifts</button>
+        <button class="setup-tab" data-setup-tab="weekly">Weekly assignment</button>
+        <button class="setup-tab" data-setup-tab="ot">OT registration</button>
         <button class="setup-tab" data-setup-tab="hc">Workshop HC</button>
         <button class="setup-tab" data-setup-tab="reporting">Reporting</button>
       </div>
@@ -475,6 +478,24 @@
         <p style="font-size:12px;color:var(--muted);margin-top:10px">Pick a <b>process</b>, then set each department cap. Department code = the last segment of a card, e.g. <b>INT-BK-1-Baking-PRD</b> → <b>PRD</b>. Spec 0 = no limit. The process <b>Spec overall</b> (above) caps the total, so dept caps may sum higher than overall (e.g. PRD 4 + QA 1 with overall 4).</p>
       </div></div></section>
 
+      <section class="setup-panel" data-setup-panel="shifts"><div class="card"><div class="card-hd">Working shift setup</div><div class="card-bd">
+        <div class="setup-toolbar"><div class="fld search"><label>Search shift</label><input id="shiftSearch" placeholder="Code or shift name"></div><div class="fld"><label>Status</label><select id="shiftStatusFilter"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div><div class="actions"><button class="btn" data-setup-clear="shifts">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="shiftBody">Export CSV</button></div></div>
+        <div class="addbar" style="grid-template-columns:.7fr 1fr repeat(4,.8fr) .6fr auto"><div class="fld"><label>Code</label><input id="sfCode" placeholder="S10E"></div><div class="fld"><label>Name</label><input id="sfName"></div><div class="fld"><label>Work start</label><input id="sfStart" type="time"></div><div class="fld"><label>Work end</label><input id="sfEnd" type="time"></div><div class="fld"><label>OT start</label><input id="sfOtStart" type="time"></div><div class="fld"><label>OT end</label><input id="sfOtEnd" type="time"></div><div class="fld"><label>Grace min</label><input id="sfGrace" type="number" min="0" value="15"></div><button class="btn go" id="sfSave">Add / update</button></div>
+        <div class="setup-table-shell"><table class="ptable"><thead><tr><th>Code</th><th>Name</th><th>Working time</th><th>Overtime</th><th>Grace</th><th>Status</th><th>Actions</th></tr></thead><tbody id="shiftBody"></tbody></table></div>
+      </div></div></section>
+
+      <section class="setup-panel" data-setup-panel="weekly"><div class="card"><div class="card-hd">Weekly employee shift assignment</div><div class="card-bd">
+        <div class="setup-toolbar"><div class="fld search"><label>Search employee ID</label><input id="weeklySearch" placeholder="Employee ID"></div><div class="fld"><label>Week</label><input id="weeklyWeekFilter" type="date"></div><div class="fld"><label>Shift</label><select id="weeklyShiftFilter"><option value="">All shifts</option></select></div><div class="actions"><button class="btn" data-setup-clear="weekly">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="weeklyBody">Export CSV</button></div></div>
+        <div class="addbar"><div class="fld"><label>Employee ID</label><input id="waId"></div><div class="fld"><label>Week starting Monday</label><input id="waWeek" type="date"></div><div class="fld"><label>Shift code</label><select id="waShift"></select></div><button class="btn go" id="waSave">Assign / change shift</button></div>
+        <div class="setup-table-shell"><table class="ptable"><thead><tr><th>Employee ID</th><th>Week start</th><th>Shift</th><th>Working time</th><th>Actions</th></tr></thead><tbody id="weeklyBody"></tbody></table></div>
+      </div></div></section>
+
+      <section class="setup-panel" data-setup-panel="ot"><div class="card"><div class="card-hd">Overtime registration</div><div class="card-bd">
+        <div class="setup-toolbar"><div class="fld search"><label>Search</label><input id="otSearch" placeholder="Employee ID, workshop or process"></div><div class="fld"><label>Status</label><select id="otStatusFilter"><option value="">All</option><option value="approved">Approved</option><option value="pending">Pending</option></select></div><div class="actions"><button class="btn" data-setup-clear="ot">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="otBody">Export CSV</button></div></div>
+        <div class="addbar" style="grid-template-columns:.8fr .9fr .9fr 1.3fr 1.3fr 1.2fr auto"><div class="fld"><label>Employee ID</label><input id="otId"></div><div class="fld"><label>Workshop</label><input id="otWs"></div><div class="fld"><label>Process</label><input id="otProcess"></div><div class="fld"><label>OT start</label><input id="otStart" type="datetime-local"></div><div class="fld"><label>OT end</label><input id="otEnd" type="datetime-local"></div><div class="fld"><label>Reason / note</label><input id="otNote"></div><button class="btn go" id="otSave">Register OT</button></div>
+        <div class="setup-table-shell"><table class="ptable"><thead><tr><th>Employee ID</th><th>Workshop</th><th>Process</th><th>Start</th><th>End</th><th>Status</th><th>Note</th><th>Actions</th></tr></thead><tbody id="otBody"></tbody></table></div>
+      </div></div></section>
+
       <section class="setup-panel" data-setup-panel="roster"><div class="card"><div class="card-hd">Employee roster — who may enter a workshop</div><div class="card-bd">
         <div class="setup-toolbar"><div class="fld search"><label>Search employee access</label><input id="rsSearch" type="text" placeholder="ID, department, title, process or shift"></div><div class="fld"><label>Workshop</label><select id="rsFilter"><option value="">All workshops</option></select></div><div class="actions"><button class="btn" data-setup-clear="roster">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="rosterBody">Export CSV</button></div></div>
         <div class="addbar" style="grid-template-columns:1fr 1fr 1fr 1.3fr 1fr auto">
@@ -483,16 +504,16 @@
           <div class="fld"><label>Dept</label><input type="text" id="rsDept" placeholder="PRD"></div>
           <div class="fld"><label>Title</label><input type="text" id="rsTitle"></div>
           <div class="fld"><label>Process</label><input type="text" id="rsProcess" placeholder="Baking"></div>
-          <div class="fld"><label>Default shift</label><input type="text" id="rsShift" placeholder="A"></div>
+          <div class="fld"><label>Default shift</label><input type="text" id="rsShift" placeholder="S10E"></div>
           <button class="btn go" id="rsAdd">Add</button>
         </div>
         <div class="fld" style="margin-top:12px"><label>Bulk import — privacy-safe CSV columns: <b>ID No, Workshop, Dept, Title, Process, Shift</b>.</label>
-          <textarea id="rsCsv" rows="4" class="mono" style="width:100%;resize:vertical" placeholder="12345, 2F, PRD, Operator 1, Baking, A"></textarea>
+          <textarea id="rsCsv" rows="4" class="mono" style="width:100%;resize:vertical" placeholder="12345, 2F, PRD, Operator 1, Baking, S10E"></textarea>
           <div class="inline" style="margin-top:8px"><input type="file" id="rsFile" accept=".csv,text/csv"><button class="btn go" id="rsImport">Import list</button><button class="btn danger" id="rsClearWs">Clear this workshop</button></div>
           <p id="rsStatus" style="font-size:12px;color:var(--muted);margin-top:6px"></p>
         </div>
         <div class="setup-table-shell"><div class="card"><div class="card-bd" style="padding:4px 0">
-          <table class="ptable"><thead><tr><th>Workshop</th><th>ID No</th><th>Dept</th><th>Title</th><th>Process</th><th>Shift</th><th></th></tr></thead><tbody id="rosterBody"></tbody></table>
+          <table class="ptable"><thead><tr><th>Workshop</th><th>ID No</th><th>Dept</th><th>Title</th><th>Process</th><th>Shift</th><th>Actions</th></tr></thead><tbody id="rosterBody"></tbody></table>
         </div></div></div>
       </div></div></section>
 
@@ -574,7 +595,7 @@
 
   var sb=null, currentUser=null, scanner=null, isScanning=false, cameras=[], camIndex=0, audioCtx=null, startWatch=null, rtChannel=null, pollTimer=null;
   var processes=[], countsIn={}, allWorkshops=[], myAllowedWs=[], selectedWs=[], selectedWsInit=false, lastToggle={}, myWorkshops=null;
-  var specByProc={}, workshopSpecs={}, countsProc={}, countsProcDept={}, knownDepts=[], deptNames={};
+  var specByProc={}, workshopSpecs={}, shiftPatterns=[], weeklyAssignments=[], otRegistrations=[], countsProc={}, countsProcDept={}, knownDepts=[], deptNames={};
   var accessToken=null, myRole="view";
 
   // elements
@@ -613,7 +634,7 @@
     Array.prototype.forEach.call($("nav").children, function(b){ b.classList.toggle("active", b.getAttribute("data-view")===name); });
     if(name!=="scan"){ stopCamera(); }
     if(name==="users"){ loadUsers(); }
-    if(name==="setup"){ setReportingUrls(); }
+    if(name==="setup"){ setReportingUrls(); loadAccessSetup(); }
     if(name==="log"){ setLogWorkshops(); loadLog(); }
     if(name==="tracking"){ if(!isAdmin()){ showView("dash"); return; } setTrackWorkshops(); loadTracking(); }
   }
@@ -641,12 +662,15 @@
     filterBody("specBody",$("deptSearch")&&$("deptSearch").value,0,$("deptProcFilter")&&$("deptProcFilter").value);
     filterBody("rosterBody",$("rsSearch")&&$("rsSearch").value,-1,"");
     filterBody("hcBody",$("hcSearch")&&$("hcSearch").value,-1,"");
+    filterBody("shiftBody",$("shiftSearch")&&$("shiftSearch").value,5,$("shiftStatusFilter")&&$("shiftStatusFilter").value);
+    filterBody("weeklyBody",$("weeklySearch")&&$("weeklySearch").value,2,$("weeklyShiftFilter")&&$("weeklyShiftFilter").value);
+    filterBody("otBody",$("otSearch")&&$("otSearch").value,5,$("otStatusFilter")&&$("otStatusFilter").value);
   }
-  ["procSearch","procWsFilter","deptSearch","deptProcFilter","rsSearch","hcSearch"].forEach(function(id){var el=$(id);if(el){el.addEventListener(el.tagName==="SELECT"?"change":"input",applySetupFilters);}});
-  Array.prototype.forEach.call(document.querySelectorAll("[data-setup-refresh]"),function(b){b.addEventListener("click",function(){fetchState();loadRoster();toast("Data refreshed","ok");});});
+  ["procSearch","procWsFilter","deptSearch","deptProcFilter","rsSearch","hcSearch","shiftSearch","shiftStatusFilter","weeklySearch","weeklyWeekFilter","weeklyShiftFilter","otSearch","otStatusFilter"].forEach(function(id){var el=$(id);if(el){el.addEventListener(el.tagName==="SELECT"||el.type==="date"?"change":"input",function(){if(id==="weeklyWeekFilter")loadWeeklyAssignments();else applySetupFilters();});}});
+  Array.prototype.forEach.call(document.querySelectorAll("[data-setup-refresh]"),function(b){b.addEventListener("click",function(){fetchState();loadRoster();loadAccessSetup();toast("Data refreshed","ok");});});
   Array.prototype.forEach.call(document.querySelectorAll("[data-setup-clear]"),function(b){b.addEventListener("click",function(){
-    var n=b.getAttribute("data-setup-clear"), ids=n==="process"?["procSearch","procWsFilter"]:n==="department"?["deptSearch","deptProcFilter"]:n==="roster"?["rsSearch","rsFilter"]:["hcSearch"];
-    ids.forEach(function(id){if($(id))$(id).value="";}); if(n==="roster")loadRoster();else applySetupFilters();
+    var n=b.getAttribute("data-setup-clear"), ids=n==="process"?["procSearch","procWsFilter"]:n==="department"?["deptSearch","deptProcFilter"]:n==="roster"?["rsSearch","rsFilter"]:n==="shifts"?["shiftSearch","shiftStatusFilter"]:n==="weekly"?["weeklySearch","weeklyWeekFilter","weeklyShiftFilter"]:n==="ot"?["otSearch","otStatusFilter"]:["hcSearch"];
+    ids.forEach(function(id){if($(id))$(id).value="";}); if(n==="roster")loadRoster();else if(n==="weekly")loadWeeklyAssignments();else applySetupFilters();
   });});
   function exportVisibleTable(bodyId){
     var body=$(bodyId);if(!body)return;var table=body.closest("table"),rows=[],headers=[];
@@ -832,9 +856,15 @@
     q.then(function(res){
       var rows=(res.data)||[];
       body.innerHTML = rows.length ? rows.map(function(r){
-        return '<tr data-id="'+esc(r.id)+'"><td class="mono">'+esc(r.workshop||"")+'</td><td class="mono">'+esc(r.id_no)+'</td><td class="mono">'+esc(r.dept||"")+'</td><td>'+esc(r.title||"")+'</td><td>'+esc(r.process_code||"")+'</td><td class="mono">'+esc(r.shift_code||"")+'</td><td><button class="btn sm danger rdel">Del</button></td></tr>';
+        return '<tr data-id="'+esc(r.id)+'" data-json="'+esc(JSON.stringify(r))+'"><td class="mono">'+esc(r.workshop||"")+'</td><td class="mono">'+esc(r.id_no)+'</td><td class="mono">'+esc(r.dept||"")+'</td><td>'+esc(r.title||"")+'</td><td>'+esc(r.process_code||"")+'</td><td class="mono">'+esc(r.shift_code||"")+(r.active===false?' · INACTIVE':'')+'</td><td style="white-space:nowrap"><button class="btn sm redit">Edit</button> <button class="btn sm rshift">Change shift</button> <button class="btn sm rot">Register OT</button> <button class="btn sm rtoggle">'+(r.active===false?'Activate':'Deactivate')+'</button> <button class="btn sm danger rdel">Delete</button></td></tr>';
       }).join("") : '<tr><td colspan="7" style="color:var(--muted);padding:16px">No employees yet. Add one or bulk-import a CSV.</td></tr>';
-      Array.prototype.forEach.call(body.querySelectorAll(".rdel"), function(b){ b.addEventListener("click", function(){ var id=b.closest("tr").getAttribute("data-id"); sb.from("ec_roster").delete().eq("id",id).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} loadRoster(); }); }); });
+      function rowData(b){try{return JSON.parse(b.closest("tr").getAttribute("data-json"));}catch(e){return {};}}
+      Array.prototype.forEach.call(body.querySelectorAll(".redit"),function(b){b.addEventListener("click",function(){var r=rowData(b);$("rsWs").value=r.workshop||"";$("rsId").value=r.id_no||"";$("rsDept").value=r.dept||"";$("rsTitle").value=r.title||"";$("rsProcess").value=r.process_code||"";$("rsShift").value=r.shift_code||"";window.scrollTo({top:0,behavior:"smooth"});});});
+      Array.prototype.forEach.call(body.querySelectorAll(".rshift"),function(b){b.addEventListener("click",function(){var r=rowData(b);$("waId").value=r.id_no||"";$("waWeek").value=mondayISO(new Date());if(r.shift_code)$("waShift").value=r.shift_code;activateSetupTab("weekly");});});
+      Array.prototype.forEach.call(body.querySelectorAll(".rot"),function(b){b.addEventListener("click",function(){var r=rowData(b);$("otId").value=r.id_no||"";$("otWs").value=r.workshop||"";$("otProcess").value=r.process_code||"";prefillOtWindow(r.shift_code);activateSetupTab("ot");});});
+      Array.prototype.forEach.call(body.querySelectorAll(".rtoggle"),function(b){b.addEventListener("click",function(){var r=rowData(b);sb.from("ec_roster").update({active:r.active===false,updated_at:new Date().toISOString()}).eq("id",r.id).then(function(x){if(x.error){toast(x.error.message,"alert");return;}toast(r.active===false?"Employee access activated":"Employee access deactivated","ok");loadRoster();loadRosterCache();});});});
+      Array.prototype.forEach.call(body.querySelectorAll(".rdel"), function(b){ b.addEventListener("click", function(){ var r=rowData(b); if(!confirm("Delete access for employee "+r.id_no+" at "+r.workshop+"?"))return; sb.from("ec_roster").delete().eq("id",r.id).then(function(x){ if(x.error){toast(x.error.message,"alert");return;} loadRoster();loadRosterCache(); }); }); });
+      applySetupFilters();
     });
   }
   if($("rsFilter")) $("rsFilter").addEventListener("change", loadRoster);
@@ -868,6 +898,32 @@
     if(!confirm("Remove ALL roster entries for "+ws+"?")) return;
     sb.from("ec_roster").delete().eq("workshop",ws).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Cleared "+ws,"ok"); loadRoster(); });
   });
+
+  // ---- shift patterns, weekly assignment and overtime ----
+  function hhmm(v){return v?String(v).slice(0,5):"";}
+  function mondayISO(d){d=new Date(d);var day=d.getDay()||7;d.setDate(d.getDate()-day+1);return d.toISOString().slice(0,10);}
+  function localInput(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,16);}
+  function shiftByCode(code){return shiftPatterns.filter(function(s){return s.shift_code===code;})[0]||null;}
+  function fillShiftSelects(){
+    var opts=shiftPatterns.filter(function(s){return s.active!==false;}).map(function(s){return '<option value="'+esc(s.shift_code)+'">'+esc(s.shift_code)+' · '+hhmm(s.start_time)+'–'+hhmm(s.end_time)+'</option>';}).join("");
+    ["waShift"].forEach(function(id){var e=$(id);if(e){var v=e.value;e.innerHTML=opts;if(v)e.value=v;}});
+    var f=$("weeklyShiftFilter");if(f){var v2=f.value;f.innerHTML='<option value="">All shifts</option>'+opts;if(v2)f.value=v2;}
+  }
+  function loadAccessSetup(){if(!sb)return;Promise.all([
+    sb.from("ec_shift_pattern").select("*").order("shift_code",{ascending:true}),
+    sb.from("ec_ot_registration").select("*").order("start_at",{ascending:false}).limit(3000)
+  ]).then(function(r){if(r[0].error){toast("Run entry-access-v2-setup.sql first: "+r[0].error.message,"alert");return;}shiftPatterns=r[0].data||[];otRegistrations=(r[1].data)||[];fillShiftSelects();renderShiftPatterns();renderOtRegistrations();loadWeeklyAssignments();});}
+  function renderShiftPatterns(){var b=$("shiftBody");if(!b)return;b.innerHTML=shiftPatterns.length?shiftPatterns.map(function(s){return '<tr data-code="'+esc(s.shift_code)+'"><td class="mono">'+esc(s.shift_code)+'</td><td>'+esc(s.shift_name||"")+'</td><td class="mono">'+hhmm(s.start_time)+' ~ '+hhmm(s.end_time)+'</td><td class="mono">'+(s.ot_start_time?hhmm(s.ot_start_time)+' ~ '+hhmm(s.ot_end_time):'—')+'</td><td class="mono">'+(s.grace_before_min||0)+' / '+(s.grace_after_min||0)+' min</td><td>'+(s.active===false?'inactive':'active')+'</td><td style="white-space:nowrap"><button class="btn sm sfedit">Edit</button> <button class="btn sm sftoggle">'+(s.active===false?'Activate':'Deactivate')+'</button> <button class="btn sm danger sfdel">Delete</button></td></tr>';}).join(""):'<tr><td colspan="7">No shifts configured.</td></tr>';
+    Array.prototype.forEach.call(b.querySelectorAll(".sfedit"),function(x){x.addEventListener("click",function(){var s=shiftByCode(x.closest("tr").getAttribute("data-code"));$("sfCode").value=s.shift_code;$("sfName").value=s.shift_name||"";$("sfStart").value=hhmm(s.start_time);$("sfEnd").value=hhmm(s.end_time);$("sfOtStart").value=hhmm(s.ot_start_time);$("sfOtEnd").value=hhmm(s.ot_end_time);$("sfGrace").value=s.grace_before_min||0;});});
+    Array.prototype.forEach.call(b.querySelectorAll(".sftoggle"),function(x){x.addEventListener("click",function(){var s=shiftByCode(x.closest("tr").getAttribute("data-code"));sb.from("ec_shift_pattern").update({active:s.active===false}).eq("shift_code",s.shift_code).then(function(r){if(r.error)toast(r.error.message,"alert");else loadAccessSetup();});});});
+    Array.prototype.forEach.call(b.querySelectorAll(".sfdel"),function(x){x.addEventListener("click",function(){var c=x.closest("tr").getAttribute("data-code");if(!confirm("Delete shift "+c+"?"))return;sb.from("ec_shift_pattern").delete().eq("shift_code",c).then(function(r){if(r.error)toast(r.error.message,"alert");else loadAccessSetup();});});});applySetupFilters();}
+  if($("sfSave"))$("sfSave").addEventListener("click",function(){var c=$("sfCode").value.trim().toUpperCase();if(!c||!$("sfStart").value||!$("sfEnd").value){toast("Code and working time are required","alert");return;}var row={shift_code:c,shift_name:$("sfName").value.trim()||c,start_time:$("sfStart").value,end_time:$("sfEnd").value,ot_start_time:$("sfOtStart").value||null,ot_end_time:$("sfOtEnd").value||null,grace_before_min:parseInt($("sfGrace").value,10)||0,grace_after_min:parseInt($("sfGrace").value,10)||0,active:true};sb.from("ec_shift_pattern").upsert(row,{onConflict:"shift_code"}).then(function(r){if(r.error)toast(r.error.message,"alert");else{toast("Shift saved","ok");loadAccessSetup();}});});
+  function loadWeeklyAssignments(){if(!sb||!$("weeklyBody"))return;var q=sb.from("ec_employee_shift").select("*").order("week_start",{ascending:false}).order("id_no",{ascending:true}).limit(5000),w=$("weeklyWeekFilter").value;if(w)q=q.eq("week_start",w);q.then(function(r){if(r.error){toast(r.error.message,"alert");return;}weeklyAssignments=r.data||[];renderWeeklyAssignments();});}
+  function renderWeeklyAssignments(){var b=$("weeklyBody");if(!b)return;b.innerHTML=weeklyAssignments.length?weeklyAssignments.map(function(a){var s=shiftByCode(a.shift_code);return '<tr data-id="'+a.id+'"><td class="mono">'+esc(a.id_no)+'</td><td class="mono">'+esc(a.week_start)+'</td><td class="mono">'+esc(a.shift_code)+'</td><td class="mono">'+(s?hhmm(s.start_time)+' ~ '+hhmm(s.end_time):'—')+'</td><td><button class="btn sm waedit">Edit</button> <button class="btn sm danger wadel">Delete</button></td></tr>';}).join(""):'<tr><td colspan="5">No weekly assignments.</td></tr>';Array.prototype.forEach.call(b.querySelectorAll(".waedit"),function(x){x.addEventListener("click",function(){var id=x.closest("tr").getAttribute("data-id"),a=weeklyAssignments.filter(function(z){return String(z.id)===id;})[0];$("waId").value=a.id_no;$("waWeek").value=a.week_start;$("waShift").value=a.shift_code;});});Array.prototype.forEach.call(b.querySelectorAll(".wadel"),function(x){x.addEventListener("click",function(){if(!confirm("Delete this weekly assignment?"))return;sb.from("ec_employee_shift").delete().eq("id",x.closest("tr").getAttribute("data-id")).then(function(r){if(r.error)toast(r.error.message,"alert");else loadWeeklyAssignments();});});});applySetupFilters();}
+  if($("waSave"))$("waSave").addEventListener("click",function(){var id=$("waId").value.trim(),w=$("waWeek").value,s=$("waShift").value;if(!id||!w||!s){toast("Employee ID, week and shift are required","alert");return;}if(w!==mondayISO(new Date(w+"T12:00:00"))){toast("Week start must be Monday","alert");return;}sb.from("ec_employee_shift").upsert({id_no:id,week_start:w,shift_code:s},{onConflict:"id_no,week_start"}).then(function(r){if(r.error)toast(r.error.message,"alert");else{toast("Weekly shift saved","ok");loadWeeklyAssignments();}});});
+  function prefillOtWindow(code){var s=shiftByCode(code),d=new Date();d.setSeconds(0,0);if(s&&s.ot_start_time){var p=hhmm(s.ot_start_time).split(":"),q=hhmm(s.ot_end_time).split(":");var a=new Date(d),z=new Date(d);a.setHours(+p[0],+p[1],0,0);z.setHours(+q[0],+q[1],0,0);if(z<=a)z.setDate(z.getDate()+1);$("otStart").value=localInput(a);$("otEnd").value=localInput(z);}}
+  function renderOtRegistrations(){var b=$("otBody");if(!b)return;b.innerHTML=otRegistrations.length?otRegistrations.map(function(o){return '<tr data-id="'+o.id+'"><td class="mono">'+esc(o.id_no)+'</td><td>'+esc(o.workshop)+'</td><td>'+esc(o.process_code||"")+'</td><td class="mono">'+new Date(o.start_at).toLocaleString()+'</td><td class="mono">'+new Date(o.end_at).toLocaleString()+'</td><td>'+(o.approved?'approved':'pending')+'</td><td>'+esc(o.note||"")+'</td><td style="white-space:nowrap"><button class="btn sm otedit">Edit</button> <button class="btn sm otapprove">'+(o.approved?'Revoke':'Approve')+'</button> <button class="btn sm danger otdel">Delete</button></td></tr>';}).join(""):'<tr><td colspan="8">No OT registrations.</td></tr>';function find(x){var id=x.closest("tr").getAttribute("data-id");return otRegistrations.filter(function(o){return String(o.id)===id;})[0];}Array.prototype.forEach.call(b.querySelectorAll(".otedit"),function(x){x.addEventListener("click",function(){var o=find(x);$("otId").value=o.id_no;$("otWs").value=o.workshop;$("otProcess").value=o.process_code||"";$("otStart").value=localInput(new Date(o.start_at));$("otEnd").value=localInput(new Date(o.end_at));$("otNote").value=o.note||"";$("otSave").setAttribute("data-edit-id",o.id);$("otSave").textContent="Update OT";});});Array.prototype.forEach.call(b.querySelectorAll(".otapprove"),function(x){x.addEventListener("click",function(){var o=find(x);sb.from("ec_ot_registration").update({approved:!o.approved,approved_by:!o.approved?currentUser.id:null}).eq("id",o.id).then(function(r){if(r.error)toast(r.error.message,"alert");else loadAccessSetup();});});});Array.prototype.forEach.call(b.querySelectorAll(".otdel"),function(x){x.addEventListener("click",function(){var o=find(x);if(!confirm("Delete OT registration for "+o.id_no+"?"))return;sb.from("ec_ot_registration").delete().eq("id",o.id).then(function(r){if(r.error)toast(r.error.message,"alert");else loadAccessSetup();});});});applySetupFilters();}
+  if($("otSave"))$("otSave").addEventListener("click",function(){var id=$("otId").value.trim(),ws=$("otWs").value.trim(),a=$("otStart").value,z=$("otEnd").value;if(!id||!ws||!a||!z||new Date(z)<=new Date(a)){toast("Employee, workshop and valid OT time are required","alert");return;}var row={id_no:id,workshop:ws,process_code:$("otProcess").value.trim()||null,start_at:new Date(a).toISOString(),end_at:new Date(z).toISOString(),note:$("otNote").value.trim(),approved:false},edit=$("otSave").getAttribute("data-edit-id"),q=edit?sb.from("ec_ot_registration").update(row).eq("id",edit):sb.from("ec_ot_registration").insert(row);q.then(function(r){if(r.error)toast(r.error.message,"alert");else{$("otSave").removeAttribute("data-edit-id");$("otSave").textContent="Register OT";toast(edit?"OT updated":"OT registered — pending approval","ok");loadAccessSetup();}});});
 
   // ---- data ----
   function allowedWorkshops(all){ if(isAdmin()) return all.slice(); if(!myWorkshops||!myWorkshops.length) return all.slice(); return all.filter(function(w){ return myWorkshops.indexOf(w)!==-1; }); }
