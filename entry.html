@@ -509,7 +509,7 @@
           <div class="fld"><label>ID No</label><input type="text" id="rsId"></div>
           <div class="fld"><label>Dept</label><input type="text" id="rsDept" placeholder="PRD"></div>
           <div class="fld"><label>Title</label><input type="text" id="rsTitle"></div>
-          <div class="fld"><label>Process</label><input type="text" id="rsProcess" placeholder="Baking"></div>
+          <div class="fld"><label>Process name</label><input type="text" id="rsProcess" list="processOptions" placeholder="ANODE Mixing"><datalist id="processOptions"></datalist></div>
           <div class="fld"><label>Default shift</label><input type="text" id="rsShift" placeholder="S10E"></div>
           <button class="btn go" id="rsAdd">Add</button>
         </div>
@@ -622,6 +622,7 @@
   var logRows=[];
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];});}
+  function normProcess(s){return String(s||"").replace(/\u00a0/g," ").trim().replace(/\s+/g," ").toUpperCase();}
   function nowT(iso){var d=iso?new Date(iso):new Date();return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});}
   function toast(m,k){var e=document.createElement("div");e.className="toast "+(k||"ok");e.innerHTML='<span class="dot"></span>'+esc(m);$("toasts").appendChild(e);setTimeout(function(){e.style.transition="opacity .3s";e.style.opacity="0";setTimeout(function(){e.remove();},300);},2200);}
 
@@ -816,7 +817,11 @@
     sb.from("ec_presence").select("status,process_code").eq("card_code",key).maybeSingle().then(function(pr){
       var inside=pr.data&&pr.data.status==="in";
       if(inside){ openEmpModal(emp,key,true,pr.data.process_code); return; }
-      var mapped=processes.filter(function(p){return p.process_code===emp.process_code&&p.workshop===gate;})[0];
+      var empProcess=normProcess(emp.process_code);
+      var mapped=processes.filter(function(p){
+        return normProcess(p.workshop)===normProcess(gate) &&
+          (normProcess(p.process_name)===empProcess || normProcess(p.process_code)===empProcess);
+      })[0];
       if(mapped){ recordEmp(emp,key,mapped.process_code,"in"); }
       else { openEmpModal(emp,key,false,null,gate); }
     });
@@ -881,7 +886,7 @@
   if($("rsAdd")) $("rsAdd").addEventListener("click", function(){
     var id=$("rsId").value.trim(); if(!id){ toast("ID No required","alert"); return; }
     var row={ id_no:id, dept:$("rsDept").value.trim(), title:$("rsTitle").value.trim(), workshop:$("rsWs").value.trim()||null, process_code:$("rsProcess").value.trim()||null, shift_code:$("rsShift").value.trim()||null, active:true, updated_at:new Date().toISOString() };
-    sb.from("ec_roster").upsert(row,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+id,"ok"); $("rsId").value="";$("rsTitle").value=""; loadRoster(); });
+    sb.from("ec_roster").upsert(row,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved "+id,"ok"); $("rsId").value="";$("rsTitle").value=""; loadRoster(); loadRosterCache(); });
   });
   function parseCSV(text){
     var out=[], lines=String(text).split(/\r?\n/);
@@ -896,7 +901,7 @@
     var rows=list.map(function(r){ return { id_no:r.id_no, dept:r.dept, title:r.title, workshop:r.workshop||ws||null, process_code:r.process_code||null, shift_code:r.shift_code||null, active:true, updated_at:new Date().toISOString() }; });
     if(rows.some(function(r){ return !r.workshop; })){ $("rsStatus").textContent="Set a Workshop above (or add a 5th CSV column) before importing."; toast("Workshop required","alert"); return; }
     $("rsStatus").textContent="Importing "+rows.length+" …";
-    sb.from("ec_roster").upsert(rows,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){ $("rsStatus").textContent="Import failed: "+r.error.message; toast(r.error.message,"alert"); return; } $("rsStatus").innerHTML="Imported <b>"+rows.length+"</b> employees."; toast("Roster imported","ok"); $("rsCsv").value=""; loadRoster(); });
+    sb.from("ec_roster").upsert(rows,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){ $("rsStatus").textContent="Import failed: "+r.error.message; toast(r.error.message,"alert"); return; } $("rsStatus").innerHTML="Imported <b>"+rows.length+"</b> employees."; toast("Roster imported","ok"); $("rsCsv").value=""; loadRoster(); loadRosterCache(); });
   }
   if($("rsImport")) $("rsImport").addEventListener("click", function(){
     var f=$("rsFile").files&&$("rsFile").files[0];
@@ -974,6 +979,7 @@
         countsProcDept[k]=countsProcDept[k]||{}; countsProcDept[k][dept]=countsProcDept[k][dept]||{INT:0,VEN:0}; if(isVen)countsProcDept[k][dept].VEN++; else countsProcDept[k][dept].INT++;
       });
       allWorkshops=[]; processes.forEach(function(p){ if(allWorkshops.indexOf(p.workshop)===-1) allWorkshops.push(p.workshop); });
+      var po=$("processOptions");if(po)po.innerHTML=processes.map(function(p){return '<option value="'+esc(p.process_name||p.process_code)+'">'+esc(p.workshop||"")+' · '+esc(p.process_code)+'</option>';}).join("");
       var pw=$("procWsFilter"), dp=$("deptProcFilter");
       if(pw){var pv=pw.value;pw.innerHTML='<option value="">All workshops</option>'+allWorkshops.map(function(w){return '<option value="'+esc(w)+'">'+esc(w)+'</option>';}).join("");pw.value=pv;}
       if(dp){var dv=dp.value;dp.innerHTML='<option value="">All processes</option>'+processes.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_code)+' — '+esc(p.process_name||p.process_code)+'</option>';}).join("");dp.value=dv;}
