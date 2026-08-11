@@ -228,6 +228,22 @@
   .uws{width:100%; min-width:120px}
   .wsnote{font-size:10.5px; color:var(--muted); margin-top:3px}
   .card-bd{padding:14px}
+  /* Setup worklist */
+  .setup{display:flex;flex-direction:column;height:calc(100vh - 132px);min-height:520px;overflow:hidden}
+  .setup-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:12;overflow-x:auto;flex:none}
+  .setup-tab{appearance:none;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);padding:13px 18px;font:600 12px var(--sans);letter-spacing:.04em;white-space:nowrap;cursor:pointer}
+  .setup-tab:hover{color:var(--ink);background:var(--hover-bg)}
+  .setup-tab.active{color:var(--signal);border-bottom-color:var(--signal);background:var(--signal-soft)}
+  .setup-panel{display:none;min-height:0;overflow:auto;padding:14px 2px 24px}
+  .setup-panel.active{display:block;flex:1}
+  .setup-toolbar{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;padding:10px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  .setup-toolbar .fld{margin:0;min-width:150px;flex:1}
+  .setup-toolbar .search{min-width:240px;flex:2}
+  .setup-toolbar .actions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .setup-table-shell{max-height:calc(100vh - 390px);min-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  .setup-table-shell .card{border:0;border-radius:0}
+  .setup-table-shell .ptable thead{position:sticky;top:0;z-index:3;background:var(--panel-2)}
+  @media(max-width:820px){.setup{height:auto;overflow:visible}.setup-panel{overflow:visible}.setup-table-shell{max-height:520px}.setup-toolbar .fld,.setup-toolbar .search{min-width:100%;}.setup-toolbar .actions{margin-left:0}}
   .viewport{position:relative; width:100%; aspect-ratio:4/3; background:var(--cam-bg); border-radius:10px; overflow:hidden; border:1px solid var(--line)}
   #reader{width:100%;height:100%}
   #reader video{width:100%!important;height:100%!important;object-fit:cover;display:block}
@@ -413,6 +429,15 @@
   <!-- SETUP -->
   <div id="viewSetup" class="hidden">
     <div class="setup">
+      <div class="setup-tabs" role="tablist">
+        <button class="setup-tab active" data-setup-tab="process">Processes</button>
+        <button class="setup-tab" data-setup-tab="department">Department specs</button>
+        <button class="setup-tab" data-setup-tab="roster">Employee access</button>
+        <button class="setup-tab" data-setup-tab="hc">Workshop HC</button>
+        <button class="setup-tab" data-setup-tab="reporting">Reporting</button>
+      </div>
+      <section class="setup-panel active" data-setup-panel="process">
+      <div class="setup-toolbar"><div class="fld search"><label>Search</label><input id="procSearch" type="text" placeholder="Code or process name"></div><div class="fld"><label>Workshop</label><select id="procWsFilter"><option value="">All workshops</option></select></div><div class="actions"><button class="btn" data-setup-clear="process">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="setupBody">Export CSV</button></div></div>
       <div class="addbar">
         <div class="fld"><label>Process code</label><input type="text" id="npCode" placeholder="BK or RUB/JR"></div>
         <div class="fld"><label>Process name</label><input type="text" id="npName" placeholder="Banking"></div>
@@ -421,15 +446,17 @@
         <div class="fld"><label>Overall VEN</label><input type="number" id="npSv" min="0" value="0"></div>
         <button class="btn go" id="npAdd">Add</button>
       </div>
-      <div class="card"><div class="card-bd" style="padding:4px 0">
+      <div class="setup-table-shell"><div class="card"><div class="card-bd" style="padding:4px 0">
         <table class="ptable">
           <thead><tr><th>Code</th><th>Name</th><th>Workshop</th><th>Overall INT</th><th>Overall VEN</th><th>Order</th><th></th></tr></thead>
           <tbody id="setupBody"></tbody>
         </table>
-      </div></div>
+      </div></div></div>
       <p style="font-size:12px;color:var(--muted);margin-top:10px">Codes must match the middle part of a card. <b>VEN-BK-6</b> → code <b>BK</b>. <b>Spec overall</b> = max total headcount in this process. Set per-department caps below.</p>
+      </section>
 
-      <div class="card" style="margin-top:16px"><div class="card-hd">Department standards (per process)</div><div class="card-bd">
+      <section class="setup-panel" data-setup-panel="department"><div class="card"><div class="card-hd">Department standards (per process)</div><div class="card-bd">
+        <div class="setup-toolbar"><div class="fld search"><label>Search</label><input id="deptSearch" type="text" placeholder="Department code or name"></div><div class="fld"><label>Process</label><select id="deptProcFilter"><option value="">All processes</option></select></div><div class="actions"><button class="btn" data-setup-clear="department">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="specBody">Export CSV</button></div></div>
         <div class="addbar">
           <div class="fld"><label>Process</label><select id="spProc"></select></div>
           <div class="fld"><label>Department code</label><input type="text" id="spDept" placeholder="PRD"></div>
@@ -439,16 +466,17 @@
           <div class="fld"><label>Order</label><input type="number" id="spSort" value="0"></div>
           <button class="btn go" id="spAdd">Add / update</button>
         </div>
-        <div class="card"><div class="card-bd" style="padding:4px 0">
+        <div class="setup-table-shell"><div class="card"><div class="card-bd" style="padding:4px 0">
           <table class="ptable">
             <thead><tr><th>Process</th><th>Dept</th><th>Name</th><th>Spec INT</th><th>Spec VEN</th><th>Order</th><th></th></tr></thead>
             <tbody id="specBody"></tbody>
           </table>
-        </div></div>
+        </div></div></div>
         <p style="font-size:12px;color:var(--muted);margin-top:10px">Pick a <b>process</b>, then set each department cap. Department code = the last segment of a card, e.g. <b>INT-BK-1-Baking-PRD</b> → <b>PRD</b>. Spec 0 = no limit. The process <b>Spec overall</b> (above) caps the total, so dept caps may sum higher than overall (e.g. PRD 4 + QA 1 with overall 4).</p>
-      </div></div>
+      </div></div></section>
 
-      <div class="card" style="margin-top:16px"><div class="card-hd">Employee roster — who may enter a workshop</div><div class="card-bd">
+      <section class="setup-panel" data-setup-panel="roster"><div class="card"><div class="card-hd">Employee roster — who may enter a workshop</div><div class="card-bd">
+        <div class="setup-toolbar"><div class="fld search"><label>Search employee access</label><input id="rsSearch" type="text" placeholder="ID, department, title, process or shift"></div><div class="fld"><label>Workshop</label><select id="rsFilter"><option value="">All workshops</option></select></div><div class="actions"><button class="btn" data-setup-clear="roster">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="rosterBody">Export CSV</button></div></div>
         <div class="addbar" style="grid-template-columns:1fr 1fr 1fr 1.3fr 1fr auto">
           <div class="fld"><label>Workshop</label><input type="text" id="rsWs" placeholder="1F ELECTRODE"></div>
           <div class="fld"><label>ID No</label><input type="text" id="rsId"></div>
@@ -463,18 +491,18 @@
           <div class="inline" style="margin-top:8px"><input type="file" id="rsFile" accept=".csv,text/csv"><button class="btn go" id="rsImport">Import list</button><button class="btn danger" id="rsClearWs">Clear this workshop</button></div>
           <p id="rsStatus" style="font-size:12px;color:var(--muted);margin-top:6px"></p>
         </div>
-        <div class="fld" style="margin-top:8px"><label>Filter roster by workshop</label><select id="rsFilter"><option value="">All workshops</option></select></div>
-        <div class="card"><div class="card-bd" style="padding:4px 0">
+        <div class="setup-table-shell"><div class="card"><div class="card-bd" style="padding:4px 0">
           <table class="ptable"><thead><tr><th>Workshop</th><th>ID No</th><th>Dept</th><th>Title</th><th>Process</th><th>Shift</th><th></th></tr></thead><tbody id="rosterBody"></tbody></table>
-        </div></div>
-      </div></div>
+        </div></div></div>
+      </div></div></section>
 
-      <div class="card" style="margin-top:16px"><div class="card-hd">Workshop HC specification</div><div class="card-bd">
+      <section class="setup-panel" data-setup-panel="hc"><div class="card"><div class="card-hd">Workshop HC specification</div><div class="card-bd">
+        <div class="setup-toolbar"><div class="fld search"><label>Search workshop</label><input id="hcSearch" type="text" placeholder="Workshop"></div><div class="actions"><button class="btn" data-setup-clear="hc">Clear filter</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="hcBody">Export CSV</button></div></div>
         <div class="addbar"><div class="fld"><label>Workshop</label><input id="hcWs" placeholder="1F"></div><div class="fld"><label>Spec HC</label><input id="hcSpec" type="number" min="0" value="0"></div><button class="btn go" id="hcSave">Save spec</button></div>
-        <table class="ptable"><thead><tr><th>Workshop</th><th>Spec HC</th><th></th></tr></thead><tbody id="hcBody"></tbody></table>
-      </div></div>
+        <div class="setup-table-shell"><table class="ptable"><thead><tr><th>Workshop</th><th>Spec HC</th><th></th></tr></thead><tbody id="hcBody"></tbody></table></div>
+      </div></div></section>
 
-      <div class="card" style="margin-top:16px"><div class="card-hd">Reporting — download &amp; Power BI feed</div><div class="card-bd">
+      <section class="setup-panel" data-setup-panel="reporting"><div class="card"><div class="card-hd">Reporting — download &amp; Power BI feed</div><div class="card-bd">
         <div class="row" style="margin-top:0">
           <button class="btn go" id="dlBackup">Download full backup (JSON)</button>
           <button class="btn" id="dlEvents">Events CSV</button>
@@ -488,7 +516,7 @@
           <div class="inline"><button class="btn" id="backupBtn">Choose folder &amp; start</button><button class="btn danger" id="backupStop" style="display:none">Stop</button></div>
           <p id="backupStatus" style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6"></p>
         </div>
-      </div></div>
+      </div></div></section>
     </div>
   </div>
 
@@ -590,6 +618,43 @@
     if(name==="tracking"){ if(!isAdmin()){ showView("dash"); return; } setTrackWorkshops(); loadTracking(); }
   }
   Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){ showView(b.getAttribute("data-view")); }); });
+
+  // Setup Worklist tabs, filters and table actions
+  function activateSetupTab(name){
+    Array.prototype.forEach.call(document.querySelectorAll(".setup-tab"),function(b){b.classList.toggle("active",b.getAttribute("data-setup-tab")===name);});
+    Array.prototype.forEach.call(document.querySelectorAll(".setup-panel"),function(p){p.classList.toggle("active",p.getAttribute("data-setup-panel")===name);});
+    try{localStorage.setItem("entry_setup_tab",name);}catch(e){}
+    if(name==="reporting") setReportingUrls();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".setup-tab"),function(b){b.addEventListener("click",function(){activateSetupTab(b.getAttribute("data-setup-tab"));});});
+  try{activateSetupTab(localStorage.getItem("entry_setup_tab")||"process");}catch(e){activateSetupTab("process");}
+
+  function filterBody(bodyId,query,colIndex,value){
+    var body=$(bodyId); if(!body)return; query=String(query||"").trim().toLowerCase(); value=String(value||"").trim().toLowerCase();
+    Array.prototype.forEach.call(body.querySelectorAll("tr"),function(tr){
+      var cells=tr.querySelectorAll("td"), text=tr.textContent.toLowerCase(), cv=(cells[colIndex]&&cells[colIndex].textContent||"").trim().toLowerCase();
+      tr.style.display=(!query||text.indexOf(query)!==-1)&&(!value||cv===value)?"":"none";
+    });
+  }
+  function applySetupFilters(){
+    filterBody("setupBody",$("procSearch")&&$("procSearch").value,2,$("procWsFilter")&&$("procWsFilter").value);
+    filterBody("specBody",$("deptSearch")&&$("deptSearch").value,0,$("deptProcFilter")&&$("deptProcFilter").value);
+    filterBody("rosterBody",$("rsSearch")&&$("rsSearch").value,-1,"");
+    filterBody("hcBody",$("hcSearch")&&$("hcSearch").value,-1,"");
+  }
+  ["procSearch","procWsFilter","deptSearch","deptProcFilter","rsSearch","hcSearch"].forEach(function(id){var el=$(id);if(el){el.addEventListener(el.tagName==="SELECT"?"change":"input",applySetupFilters);}});
+  Array.prototype.forEach.call(document.querySelectorAll("[data-setup-refresh]"),function(b){b.addEventListener("click",function(){fetchState();loadRoster();toast("Data refreshed","ok");});});
+  Array.prototype.forEach.call(document.querySelectorAll("[data-setup-clear]"),function(b){b.addEventListener("click",function(){
+    var n=b.getAttribute("data-setup-clear"), ids=n==="process"?["procSearch","procWsFilter"]:n==="department"?["deptSearch","deptProcFilter"]:n==="roster"?["rsSearch","rsFilter"]:["hcSearch"];
+    ids.forEach(function(id){if($(id))$(id).value="";}); if(n==="roster")loadRoster();else applySetupFilters();
+  });});
+  function exportVisibleTable(bodyId){
+    var body=$(bodyId);if(!body)return;var table=body.closest("table"),rows=[],headers=[];
+    Array.prototype.forEach.call(table.querySelectorAll("thead th"),function(th,i){if(i<table.querySelectorAll("thead th").length-1)headers.push(th.textContent.trim());});rows.push(headers);
+    Array.prototype.forEach.call(body.querySelectorAll("tr"),function(tr){if(tr.style.display==="none")return;var a=[];Array.prototype.forEach.call(tr.querySelectorAll("td"),function(td,i){if(i<tr.querySelectorAll("td").length-1)a.push(td.textContent.trim());});if(a.length)rows.push(a);});
+    var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(",");}).join("\r\n");downloadCSV(bodyId+"-"+stamp()+".csv",csv);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-table-export]"),function(b){b.addEventListener("click",function(){exportVisibleTable(b.getAttribute("data-table-export"));});});
 
   // auth
   function showMsg(t,k){authMsg.className="msg "+k;authMsg.textContent=t;}
@@ -837,12 +902,16 @@
         countsProcDept[k]=countsProcDept[k]||{}; countsProcDept[k][dept]=countsProcDept[k][dept]||{INT:0,VEN:0}; if(isVen)countsProcDept[k][dept].VEN++; else countsProcDept[k][dept].INT++;
       });
       allWorkshops=[]; processes.forEach(function(p){ if(allWorkshops.indexOf(p.workshop)===-1) allWorkshops.push(p.workshop); });
+      var pw=$("procWsFilter"), dp=$("deptProcFilter");
+      if(pw){var pv=pw.value;pw.innerHTML='<option value="">All workshops</option>'+allWorkshops.map(function(w){return '<option value="'+esc(w)+'">'+esc(w)+'</option>';}).join("");pw.value=pv;}
+      if(dp){var dv=dp.value;dp.innerHTML='<option value="">All processes</option>'+processes.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_code)+' — '+esc(p.process_name||p.process_code)+'</option>';}).join("");dp.value=dv;}
       myAllowedWs = allowedWorkshops(allWorkshops);
       if(!selectedWsInit){ restoreSelectedWs(); selectedWsInit=true; }
       selectedWs = selectedWs.filter(function(w){ return myAllowedWs.indexOf(w)!==-1; });
       if(selectedWs.length===0) selectedWs = myAllowedWs.slice();
       renderWorkshopPicker(); renderDashboard();
       if(!views.setup.classList.contains("hidden")) renderSetup();
+      applySetupFilters();
       asof.textContent = nowT();
     });
   }
@@ -986,6 +1055,7 @@
     var rows=Object.keys(workshopSpecs).sort();
     body.innerHTML=rows.length?rows.map(function(w){return '<tr data-ws="'+esc(w)+'"><td>'+esc(w)+'</td><td class="mono">'+workshopSpecs[w]+'</td><td><button class="btn sm danger hcdel">Del</button></td></tr>';}).join(""):'<tr><td colspan="3" style="color:var(--muted);padding:16px">No workshop HC spec configured.</td></tr>';
     Array.prototype.forEach.call(body.querySelectorAll(".hcdel"),function(b){b.addEventListener("click",function(){var w=b.closest("tr").getAttribute("data-ws");sb.from("ec_workshop_spec").delete().eq("workshop",w).then(function(r){if(r.error){toast(r.error.message,"alert");return;}fetchState();});});});
+    applySetupFilters();
   }
   if($("hcSave")) $("hcSave").addEventListener("click",function(){
     var w=$("hcWs").value.trim(), n=parseInt($("hcSpec").value,10); if(!w||isNaN(n)||n<0){toast("Workshop and valid Spec HC required","alert");return;}
