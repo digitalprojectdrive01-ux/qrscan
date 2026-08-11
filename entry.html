@@ -125,7 +125,7 @@
   .ddgrid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 16px; padding:0 14px 12px}
   .ddept{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.95fr) minmax(0,.95fr); align-items:end; gap:6px; padding:7px 0; border-top:1px solid var(--row-line); min-width:0}
   .ddept.hd{border-top:none; padding:5px 0 0} .ddept.hd .h{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)} .ddept.hd .h.r{text-align:right}
-  .ddname{font-weight:600; font-size:10px; line-height:1.12; min-width:0; overflow:hidden; text-overflow:ellipsis} .ddname .ddcode{display:block; font-size:9px; color:var(--muted); font-family:var(--mono)}
+  .ddname{font-weight:600; font-size:12px; line-height:1.12; min-width:0; overflow:hidden; text-overflow:ellipsis} .ddname .ddcode{display:block; font-size:9px; color:var(--muted); font-family:var(--mono)}
   .ddcell{text-align:right; min-width:0}
   .ddval{display:flex; align-items:baseline; justify-content:flex-end; gap:1px}
   .dvn{font-family:var(--mono); font-size:16px; font-weight:700; color:var(--ink)} .dvn.over{color:var(--alert); animation:flash .9s infinite} .dvn.full{color:var(--at)} .dvn.none{color:var(--muted)} .dvn.ok{color:var(--ink)}
@@ -344,7 +344,7 @@
       </div>
       <div class="total">
         <div class="num" id="totalNum">0</div>
-        <div class="lbl">people inside &middot; <span class="asof" id="asof">—</span></div>
+        <div class="lbl">total actual / total spec &middot; <span class="asof" id="asof">—</span></div>
       </div>
     </div>
     <div class="pgrid" id="pgrid"></div>
@@ -449,23 +449,29 @@
       </div></div>
 
       <div class="card" style="margin-top:16px"><div class="card-hd">Employee roster — who may enter a workshop</div><div class="card-bd">
-        <div class="addbar" style="grid-template-columns:1fr 1fr 1.3fr 1fr 1.3fr auto">
+        <div class="addbar" style="grid-template-columns:1fr 1fr 1fr 1.3fr 1fr auto">
           <div class="fld"><label>Workshop</label><input type="text" id="rsWs" placeholder="1F ELECTRODE"></div>
           <div class="fld"><label>ID No</label><input type="text" id="rsId"></div>
-          <div class="fld"><label>Full name</label><input type="text" id="rsName"></div>
           <div class="fld"><label>Dept</label><input type="text" id="rsDept" placeholder="PRD"></div>
           <div class="fld"><label>Title</label><input type="text" id="rsTitle"></div>
+          <div class="fld"><label>Process</label><input type="text" id="rsProcess" placeholder="Baking"></div>
+          <div class="fld"><label>Default shift</label><input type="text" id="rsShift" placeholder="A"></div>
           <button class="btn go" id="rsAdd">Add</button>
         </div>
-        <div class="fld" style="margin-top:12px"><label>Bulk import to the workshop above — CSV columns: <b>ID No, Full Name, Dept, Title</b> (a 5th <b>Workshop</b> column overrides). Paste or choose a file.</label>
-          <textarea id="rsCsv" rows="4" class="mono" style="width:100%;resize:vertical" placeholder="1001, Nguyen Van A, PRD, Operator&#10;1002, Tran Thi B, QA, Inspector"></textarea>
+        <div class="fld" style="margin-top:12px"><label>Bulk import — privacy-safe CSV columns: <b>ID No, Workshop, Dept, Title, Process, Shift</b>.</label>
+          <textarea id="rsCsv" rows="4" class="mono" style="width:100%;resize:vertical" placeholder="12345, 2F, PRD, Operator 1, Baking, A"></textarea>
           <div class="inline" style="margin-top:8px"><input type="file" id="rsFile" accept=".csv,text/csv"><button class="btn go" id="rsImport">Import list</button><button class="btn danger" id="rsClearWs">Clear this workshop</button></div>
           <p id="rsStatus" style="font-size:12px;color:var(--muted);margin-top:6px"></p>
         </div>
         <div class="fld" style="margin-top:8px"><label>Filter roster by workshop</label><select id="rsFilter"><option value="">All workshops</option></select></div>
         <div class="card"><div class="card-bd" style="padding:4px 0">
-          <table class="ptable"><thead><tr><th>Workshop</th><th>ID No</th><th>Full name</th><th>Dept</th><th>Title</th><th></th></tr></thead><tbody id="rosterBody"></tbody></table>
+          <table class="ptable"><thead><tr><th>Workshop</th><th>ID No</th><th>Dept</th><th>Title</th><th>Process</th><th>Shift</th><th></th></tr></thead><tbody id="rosterBody"></tbody></table>
         </div></div>
+      </div></div>
+
+      <div class="card" style="margin-top:16px"><div class="card-hd">Workshop HC specification</div><div class="card-bd">
+        <div class="addbar"><div class="fld"><label>Workshop</label><input id="hcWs" placeholder="1F"></div><div class="fld"><label>Spec HC</label><input id="hcSpec" type="number" min="0" value="0"></div><button class="btn go" id="hcSave">Save spec</button></div>
+        <table class="ptable"><thead><tr><th>Workshop</th><th>Spec HC</th><th></th></tr></thead><tbody id="hcBody"></tbody></table>
       </div></div>
 
       <div class="card" style="margin-top:16px"><div class="card-hd">Reporting — download &amp; Power BI feed</div><div class="card-bd">
@@ -540,7 +546,7 @@
 
   var sb=null, currentUser=null, scanner=null, isScanning=false, cameras=[], camIndex=0, audioCtx=null, startWatch=null, rtChannel=null, pollTimer=null;
   var processes=[], countsIn={}, allWorkshops=[], myAllowedWs=[], selectedWs=[], selectedWsInit=false, lastToggle={}, myWorkshops=null;
-  var specByProc={}, countsProc={}, countsProcDept={}, knownDepts=[], deptNames={};
+  var specByProc={}, workshopSpecs={}, countsProc={}, countsProcDept={}, knownDepts=[], deptNames={};
   var accessToken=null, myRole="view";
 
   // elements
@@ -686,7 +692,7 @@
   function loadRosterCache(){
     if(!sb) return; var all=[], from=0, size=1000;
     (function next(){
-      sb.from("ec_roster").select("id_no,full_name,dept,title,workshop,active").range(from,from+size-1).then(function(r){
+      sb.from("ec_roster").select("id_no,dept,title,workshop,process_code,shift_code,active").range(from,from+size-1).then(function(r){
         if(r.error){ return; }
         var rows=r.data||[]; all=all.concat(rows);
         if(rows.length<size){ rosterById={}; all.forEach(function(e){ if(e.active===false) return; var k=String(e.id_no).toUpperCase(); (rosterById[k]=rosterById[k]||[]).push(e); }); populateRosterWs(); }
@@ -700,21 +706,25 @@
     return arr[0];
   }
   function empKey(id){ return "EMP-"+id; }
-  function empName(cc){ if(cc&&cc.indexOf("EMP-")===0){ var id=cc.slice(4); var a=rosterById[id.toUpperCase()]; return (a&&a[0]&&a[0].full_name)?(a[0].full_name+" #"+id):("Emp #"+id); } return cc; }
+  function empName(cc){ if(cc&&cc.indexOf("EMP-")===0) return "Emp #"+cc.slice(4); return cc; }
   function procsForWs(ws){ return processes.filter(function(p){ return !ws || p.workshop===ws; }); }
   function closeModal(){ $("procModal").classList.add("hidden"); }
   function onEmployeeScan(emp){
     var id=emp.id_no, key=empKey(id);
-    setResult("in","AUTHORISED", (emp.full_name||id)+"  #"+id, [emp.dept,emp.title,emp.workshop].filter(Boolean).join(" · "));
-    sOk(); vibrate(40);
     if(!sb||!currentUser) return;
+    var gate=(rosterWs&&rosterWs.value)||emp.workshop;
+    if(!gate){ setResult("out","DENIED","Emp #"+id,"Select gate / workshop"); sBad(); return; }
+    sb.rpc("validate_entry_access",{p_id_no:id,p_workshop:gate,p_process_code:emp.process_code||null,p_at:new Date().toISOString()}).then(function(v){
+      var a=v.data||{}; if(v.error||!a.allowed){ setResult("out","DENIED","Emp #"+id,(v.error&&v.error.message)||String(a.reason||"ACCESS_DENIED").replace(/_/g," ")); sBad(); vibrate(120); return; }
+      setResult("in","AUTHORISED","Emp #"+id,[emp.dept,emp.title,gate,emp.process_code,"Shift "+(a.shift||emp.shift_code||"")].filter(Boolean).join(" · ")); sOk(); vibrate(40);
     sb.from("ec_presence").select("status,process_code").eq("card_code",key).maybeSingle().then(function(pr){
       var inside=pr.data&&pr.data.status==="in";
       openEmpModal(emp,key,inside,inside?pr.data.process_code:null);
     });
+    });
   }
   function openEmpModal(emp,key,inside,curProc){
-    $("pmName").textContent=(emp.full_name||emp.id_no)+"  #"+emp.id_no;
+    $("pmName").textContent="Emp #"+emp.id_no;
     $("pmInfo").textContent=[emp.dept,emp.title,emp.workshop].filter(Boolean).join(" · ");
     var body=$("pmBody");
     if(inside){
@@ -737,7 +747,7 @@
     sb.from("ec_presence").upsert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
       if(up.error){ toast(up.error.message,"alert"); return; }
       sb.from("ec_event").insert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, direction:dir, created_by:currentUser.id }).then(function(){});
-      setResult(dir, dir==="in"?"CHECK IN":"CHECK OUT", (emp.full_name||emp.id_no)+"  #"+emp.id_no, (procName(proc)||proc)+(emp.dept?(" · "+emp.dept):"")+(emp.title?(" · "+emp.title):""));
+      setResult(dir, dir==="in"?"CHECK IN":"CHECK OUT", "Emp #"+emp.id_no, (procName(proc)||proc)+(emp.dept?(" · "+emp.dept):"")+(emp.title?(" · "+emp.title):""));
       if(dir==="in"){ sIn(); } else { sOut(); } vibrate(45);
       closeModal(); fetchState(); loadEvents();
     });
@@ -757,28 +767,28 @@
     q.then(function(res){
       var rows=(res.data)||[];
       body.innerHTML = rows.length ? rows.map(function(r){
-        return '<tr data-id="'+esc(r.id)+'"><td class="mono">'+esc(r.workshop||"")+'</td><td class="mono">'+esc(r.id_no)+'</td><td>'+esc(r.full_name||"")+'</td><td class="mono">'+esc(r.dept||"")+'</td><td>'+esc(r.title||"")+'</td><td><button class="btn sm danger rdel">Del</button></td></tr>';
-      }).join("") : '<tr><td colspan="6" style="color:var(--muted);padding:16px">No employees yet. Add one or bulk-import a CSV.</td></tr>';
+        return '<tr data-id="'+esc(r.id)+'"><td class="mono">'+esc(r.workshop||"")+'</td><td class="mono">'+esc(r.id_no)+'</td><td class="mono">'+esc(r.dept||"")+'</td><td>'+esc(r.title||"")+'</td><td>'+esc(r.process_code||"")+'</td><td class="mono">'+esc(r.shift_code||"")+'</td><td><button class="btn sm danger rdel">Del</button></td></tr>';
+      }).join("") : '<tr><td colspan="7" style="color:var(--muted);padding:16px">No employees yet. Add one or bulk-import a CSV.</td></tr>';
       Array.prototype.forEach.call(body.querySelectorAll(".rdel"), function(b){ b.addEventListener("click", function(){ var id=b.closest("tr").getAttribute("data-id"); sb.from("ec_roster").delete().eq("id",id).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} loadRoster(); }); }); });
     });
   }
   if($("rsFilter")) $("rsFilter").addEventListener("change", loadRoster);
   if($("rsAdd")) $("rsAdd").addEventListener("click", function(){
     var id=$("rsId").value.trim(); if(!id){ toast("ID No required","alert"); return; }
-    var row={ id_no:id, full_name:$("rsName").value.trim(), dept:$("rsDept").value.trim(), title:$("rsTitle").value.trim(), workshop:$("rsWs").value.trim()||null, active:true, updated_at:new Date().toISOString() };
-    sb.from("ec_roster").upsert(row,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+id,"ok"); $("rsId").value="";$("rsName").value="";$("rsTitle").value=""; loadRoster(); });
+    var row={ id_no:id, dept:$("rsDept").value.trim(), title:$("rsTitle").value.trim(), workshop:$("rsWs").value.trim()||null, process_code:$("rsProcess").value.trim()||null, shift_code:$("rsShift").value.trim()||null, active:true, updated_at:new Date().toISOString() };
+    sb.from("ec_roster").upsert(row,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+id,"ok"); $("rsId").value="";$("rsTitle").value=""; loadRoster(); });
   });
   function parseCSV(text){
     var out=[], lines=String(text).split(/\r?\n/);
     lines.forEach(function(ln){ if(!ln.trim()) return; var c=ln.split(","); var id=(c[0]||"").trim();
       if(!id || /^id\s*no$/i.test(id)) return; // skip header / empty
-      out.push({ id_no:id, full_name:(c[1]||"").trim(), dept:(c[2]||"").trim(), title:(c[3]||"").trim(), workshop:(c[4]||"").trim() }); });
+      out.push({ id_no:id, workshop:(c[1]||"").trim(), dept:(c[2]||"").trim(), title:(c[3]||"").trim(), process_code:(c[4]||"").trim(), shift_code:(c[5]||"").trim() }); });
     return out;
   }
   function importRoster(text){
     var ws=$("rsWs").value.trim();
     var list=parseCSV(text); if(!list.length){ $("rsStatus").textContent="No rows found."; return; }
-    var rows=list.map(function(r){ return { id_no:r.id_no, full_name:r.full_name, dept:r.dept, title:r.title, workshop:r.workshop||ws||null, active:true, updated_at:new Date().toISOString() }; });
+    var rows=list.map(function(r){ return { id_no:r.id_no, dept:r.dept, title:r.title, workshop:r.workshop||ws||null, process_code:r.process_code||null, shift_code:r.shift_code||null, active:true, updated_at:new Date().toISOString() }; });
     if(rows.some(function(r){ return !r.workshop; })){ $("rsStatus").textContent="Set a Workshop above (or add a 5th CSV column) before importing."; toast("Workshop required","alert"); return; }
     $("rsStatus").textContent="Importing "+rows.length+" …";
     sb.from("ec_roster").upsert(rows,{onConflict:"id_no,workshop"}).then(function(r){ if(r.error){ $("rsStatus").textContent="Import failed: "+r.error.message; toast(r.error.message,"alert"); return; } $("rsStatus").innerHTML="Imported <b>"+rows.length+"</b> employees."; toast("Roster imported","ok"); $("rsCsv").value=""; loadRoster(); });
@@ -804,12 +814,14 @@
     Promise.all([
       sb.from("ec_process").select("*").order("workshop",{ascending:true}).order("sort_order",{ascending:true}),
       sb.from("ec_presence").select("process_code,person_type,status,dept").eq("status","in"),
-      sb.from("ec_spec").select("*").order("process_code",{ascending:true}).order("sort_order",{ascending:true})
+      sb.from("ec_spec").select("*").order("process_code",{ascending:true}).order("sort_order",{ascending:true}),
+      sb.from("ec_workshop_spec").select("*")
     ]).then(function(r){
       if(r[0].error){ toast("Load processes: "+r[0].error.message,"alert"); return; }
       processes = r[0].data||[];
       var pres = (r[1].data)||[];
       var specs = (r[2] && r[2].data) || [];
+      workshopSpecs={}; ((r[3]&&r[3].data)||[]).forEach(function(x){workshopSpecs[x.workshop]=x.spec_hc||0;});
       // specs by process (per-department INT/VEN caps)
       specByProc={}; knownDepts=[]; deptNames={};
       specs.forEach(function(s){ specByProc[s.process_code]=specByProc[s.process_code]||{};
@@ -936,7 +948,8 @@
       html+=cards;
     });
     pgrid.innerHTML = (html ? ('<div class="legend">Numbers in <b>red</b> exceed the target.</div>'+html) : '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>');
-    totalNum.textContent = total;
+    var totalSpec=sel.reduce(function(s,w){return s+(workshopSpecs[w]||0);},0);
+    totalNum.textContent = total+" / "+(totalSpec||"—");
     renderAlerts(overList);
     if(tv) fitTvLayout();
   }
@@ -950,6 +963,7 @@
 
   // ---- setup ----
   function renderSetup(){
+    renderWorkshopSpecs();
     if(!processes.length){ setupBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); loadRoster(); return; }
     setupBody.innerHTML = processes.map(function(p){
       return '<tr data-code="'+esc(p.process_code)+'">'
@@ -966,6 +980,17 @@
     renderSpecs();
     loadRoster();
   }
+
+  function renderWorkshopSpecs(){
+    var body=$("hcBody"); if(!body) return;
+    var rows=Object.keys(workshopSpecs).sort();
+    body.innerHTML=rows.length?rows.map(function(w){return '<tr data-ws="'+esc(w)+'"><td>'+esc(w)+'</td><td class="mono">'+workshopSpecs[w]+'</td><td><button class="btn sm danger hcdel">Del</button></td></tr>';}).join(""):'<tr><td colspan="3" style="color:var(--muted);padding:16px">No workshop HC spec configured.</td></tr>';
+    Array.prototype.forEach.call(body.querySelectorAll(".hcdel"),function(b){b.addEventListener("click",function(){var w=b.closest("tr").getAttribute("data-ws");sb.from("ec_workshop_spec").delete().eq("workshop",w).then(function(r){if(r.error){toast(r.error.message,"alert");return;}fetchState();});});});
+  }
+  if($("hcSave")) $("hcSave").addEventListener("click",function(){
+    var w=$("hcWs").value.trim(), n=parseInt($("hcSpec").value,10); if(!w||isNaN(n)||n<0){toast("Workshop and valid Spec HC required","alert");return;}
+    sb.from("ec_workshop_spec").upsert({workshop:w,spec_hc:n,updated_at:new Date().toISOString()},{onConflict:"workshop"}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}toast("Workshop spec saved","ok");fetchState();});
+  });
   function saveProc(tr){
     var code=tr.getAttribute("data-code"); var patch={updated_at:new Date().toISOString()};
     Array.prototype.forEach.call(tr.querySelectorAll("[data-f]"), function(inp){ var f=inp.getAttribute("data-f"); patch[f]= (inp.type==="number")? (parseInt(inp.value,10)||0) : inp.value.trim(); });
