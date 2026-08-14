@@ -249,6 +249,17 @@
   .setup-table-shell{max-height:calc(100vh - 390px);min-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
   .setup-table-shell .card{border:0;border-radius:0}
   .setup-table-shell .ptable thead{position:sticky;top:0;z-index:3;background:var(--panel-2)}
+  /* Report dashboard */
+  .report-page{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 126px);min-height:560px;overflow:auto;padding-bottom:24px}
+  .report-filter{display:grid;grid-template-columns:1.1fr 1.1fr 1fr 1fr .7fr auto auto;gap:8px;align-items:end;position:sticky;top:0;z-index:14;background:var(--bg);padding:10px 0 8px}
+  .report-filter .fld{margin:0}.report-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .rkpi{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:12px}.rkpi .v{font:700 25px var(--mono);color:var(--ink)}.rkpi .v.red{color:var(--alert)}.rkpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:4px}
+  .report-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:12px}.report-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}.report-card .hd{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);background:var(--panel-2);font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}.report-card .bd{padding:12px}.report-card.wide{grid-column:1/-1}
+  .chart-svg{display:block;width:100%;height:250px}.chart-grid{stroke:var(--line);stroke-width:1}.chart-axis{fill:var(--muted);font:10px var(--mono)}.chart-line{fill:none;stroke:var(--signal);stroke-width:2}.chart-area{fill:var(--signal-soft);stroke:none}.chart-spec{stroke:var(--alert);stroke-width:1.5;stroke-dasharray:6 4}.chart-over{fill:var(--alert);opacity:.16}
+  .heat-scroll,.report-table{overflow:auto;max-height:330px}.heat{border-collapse:separate;border-spacing:3px;width:100%;font-size:10px}.heat th{position:sticky;top:0;background:var(--panel);color:var(--muted);padding:4px;white-space:nowrap}.heat td{min-width:45px;text-align:center;padding:7px 3px;border-radius:5px;background:var(--panel-2);font-family:var(--mono)}.heat td.warn{background:var(--warn-bg);color:var(--at)}.heat td.over{background:var(--alert-bg);color:var(--alert);font-weight:700}.heat .area{position:sticky;left:0;background:var(--panel);text-align:left;min-width:120px;font-family:var(--sans);font-weight:600}
+  .flowbars{display:flex;align-items:flex-end;gap:5px;height:215px;padding-top:15px;overflow:hidden}.flowcol{flex:1;min-width:18px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}.flowpair{height:180px;display:flex;align-items:flex-end;gap:2px}.flowin,.flowout{flex:1;min-height:1px;border-radius:3px 3px 0 0}.flowin{background:var(--ok)}.flowout{background:#2d6cdf}.flowlabel{font:9px var(--mono);color:var(--muted);text-align:center;margin-top:5px;white-space:nowrap;transform:rotate(-35deg);transform-origin:center}
+  .rstatus{display:inline-block;padding:2px 7px;border-radius:6px;font:600 10px var(--mono)}.rstatus.over{background:var(--alert-bg);color:var(--alert)}.rstatus.ok{background:var(--ok-bg);color:var(--ok)}
+  @media(max-width:1000px){.report-filter{grid-template-columns:repeat(2,1fr)}.report-kpis{grid-template-columns:repeat(2,1fr)}.report-grid{grid-template-columns:1fr}.report-card.wide{grid-column:auto}}
   @media(max-width:820px){.setup{height:auto;overflow:visible}.setup-panel{overflow:visible}.setup-table-shell{max-height:520px}.setup-toolbar .fld,.setup-toolbar .search{min-width:100%;}.setup-toolbar .actions{margin-left:0}}
   .viewport{position:relative; width:100%; aspect-ratio:4/3; background:var(--cam-bg); border-radius:10px; overflow:hidden; border:1px solid var(--line)}
   #reader{width:100%;height:100%}
@@ -327,6 +338,7 @@
     <div class="brand"><h1>Entry Control Dashboard</h1><p>Workshop head-count</p></div>
     <div class="nav hidden" id="nav">
       <button data-view="dash" class="active">Dashboard</button>
+      <button data-view="report">Report Dashboard</button>
       <button data-view="scan">Scan</button>
       <button data-view="log">Data log</button>
       <button data-view="setup">Setup</button>
@@ -338,6 +350,25 @@
       <div class="live"><span class="led" id="led"></span><span id="liveTxt">—</span></div>
       <div class="chip hidden" id="userChip"><span class="rolebadge view" id="roleBadge">view</span><span class="who" id="userEmail"></span><button class="btn sm" id="signout">Sign out</button></div>
     </div>
+  </div>
+
+  <!-- REPORT DASHBOARD -->
+  <div id="viewReport" class="hidden report-page">
+    <div class="report-filter">
+      <div class="fld"><label>From</label><input type="datetime-local" id="rpFrom"></div><div class="fld"><label>To</label><input type="datetime-local" id="rpTo"></div>
+      <div class="fld"><label>Workshop</label><select id="rpWorkshop"><option value="">All workshops</option></select></div><div class="fld"><label>Process</label><select id="rpProcess"><option value="">All processes</option></select></div>
+      <div class="fld"><label>Time frame</label><select id="rpBin"><option value="2">2 hours</option><option value="4">4 hours</option><option value="6">6 hours</option><option value="8">8 hours</option></select></div>
+      <button class="btn go" id="rpApply">Analyze</button><button class="btn" id="rpExport">Export episodes</button>
+    </div>
+    <div class="report-kpis"><div class="rkpi"><div class="v" id="rpPeak">—</div><div class="l">Peak HC / Spec</div></div><div class="rkpi"><div class="v" id="rpAvg">—</div><div class="l">Average utilization</div></div><div class="rkpi"><div class="v red" id="rpEpisodes">—</div><div class="l">Over-spec episodes</div></div><div class="rkpi"><div class="v red" id="rpOverDuration">—</div><div class="l">Total over duration</div></div><div class="rkpi"><div class="v" id="rpMaxOver">—</div><div class="l">Maximum over spec</div></div></div>
+    <div class="report-grid">
+      <div class="report-card"><div class="hd">Headcount timeline · Actual vs Spec</div><div class="bd" id="rpTimeline"></div></div>
+      <div class="report-card"><div class="hd">Entry / Exit flow by time frame</div><div class="bd" id="rpFlow"></div></div>
+      <div class="report-card wide"><div class="hd">Over-spec heatmap by workshop</div><div class="bd heat-scroll" id="rpHeat"></div></div>
+      <div class="report-card"><div class="hd">Workshop risk ranking</div><div class="bd report-table"><table class="ptable"><thead><tr><th>Workshop</th><th>Peak/Spec</th><th>Avg util.</th><th>Episodes</th><th>Over duration</th></tr></thead><tbody id="rpRank"></tbody></table></div></div>
+      <div class="report-card"><div class="hd">Over-spec episodes</div><div class="bd report-table"><table class="ptable"><thead><tr><th>Area</th><th>Start</th><th>End</th><th>Duration</th><th>Peak/Spec</th></tr></thead><tbody id="rpEpisodeBody"></tbody></table></div></div>
+    </div>
+    <p id="rpNote" style="font-size:11px;color:var(--muted);margin:0 2px"></p>
   </div>
 
   <!-- AUTH -->
@@ -393,7 +424,7 @@
           <div class="fld hidden" id="camField" style="margin-top:12px"><label>Camera source</label><select id="camSelect"></select></div>
           <div class="fld" style="margin-top:12px"><label>Manual entry — card (VEN-BK-6) or employee ID</label><div class="inline"><input type="text" id="manualCode" placeholder="Card or employee ID" autocomplete="off"><button class="btn" id="manualBtn">Enter</button></div></div>
           <div class="fld" style="margin-top:12px"><label>Gate / workshop (optional — scopes roster &amp; process list)</label><select id="rosterWs"></select></div>
-          <p style="font-size:11.5px;color:var(--muted);margin-top:6px">Employee IDs on the roster pop up a process picker automatically. Other codes are treated as process cards.</p>
+          <p style="font-size:11.5px;color:var(--muted);margin-top:6px">Mapped employees check in directly. The process picker appears only when the mapping is missing or invalid for this workshop.</p>
         </div>
       </div>
       <div class="card">
@@ -611,7 +642,7 @@
   var authScreen=$("authScreen"), authMsg=$("authMsg"), authBtn=$("authBtn"), emailEl=$("email"), passEl=$("password");
   var userChip=$("userChip"), userEmail=$("userEmail"), signout=$("signout");
   var led=$("led"), liveTxt=$("liveTxt");
-  var views={dash:$("viewDash"), scan:$("viewScan"), log:$("viewLog"), setup:$("viewSetup"), users:$("viewUsers"), tracking:$("viewTracking")};
+  var views={dash:$("viewDash"), report:$("viewReport"), scan:$("viewScan"), log:$("viewLog"), setup:$("viewSetup"), users:$("viewUsers"), tracking:$("viewTracking")};
   var wsBtn=$("wsBtn"), wsMenu=$("wsMenu"), wsName=$("wsName"), totalNum=$("totalNum"), asof=$("asof"), pgrid=$("pgrid"), alertBar=$("alertBar"), tvAlert=$("tvAlert");
   var startBtn=$("startBtn"), switchBtn=$("switchBtn"), fileInput=$("fileInput"), camField=$("camField"), camSelect=$("camSelect");
   var manualCode=$("manualCode"), manualBtn=$("manualBtn"), reticle=$("reticle"), vpOverlay=$("vpOverlay"), vpBig=$("vpBig"), vpMsg=$("vpMsg");
@@ -622,6 +653,7 @@
   var backupBtn=$("backupBtn"), backupStop=$("backupStop"), backupStatus=$("backupStatus");
   var logFrom=$("logFrom"), logTo=$("logTo"), logWs=$("logWs"), logDir=$("logDir"), logType=$("logType"), logApply=$("logApply"), logDownload=$("logDownload"), logTotal=$("logTotal"), logIn=$("logIn"), logOut=$("logOut"), logBody=$("logBody"), logNote=$("logNote"), viewAllBtn=$("viewAllBtn");
   var logRows=[];
+  var reportEpisodes=[], reportLoaded=false;
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];});}
   function normProcess(s){return String(s||"").replace(/\u00a0/g," ").trim().replace(/\s+/g," ").toUpperCase();}
@@ -644,6 +676,7 @@
     Array.prototype.forEach.call($("nav").children, function(b){ b.classList.toggle("active", b.getAttribute("data-view")===name); });
     if(name!=="scan"){ stopCamera(); }
     if(name==="users"){ loadUsers(); }
+    if(name==="report"){ initReportFilters(); if(!reportLoaded) loadReport(); }
     if(name==="setup"){ setReportingUrls(); loadAccessSetup(); }
     if(name==="log"){ setLogWorkshops(); loadLog(); }
     if(name==="tracking"){ if(!isAdmin()){ showView("dash"); return; } setTrackWorkshops(); loadTracking(); }
@@ -1010,6 +1043,7 @@
       if(selectedWs.length===0) selectedWs = myAllowedWs.slice();
       renderWorkshopPicker(); renderDashboard();
       if(!views.setup.classList.contains("hidden")) renderSetup();
+      if(!views.report.classList.contains("hidden")) initReportFilters();
       applySetupFilters();
       asof.textContent = nowT();
     });
@@ -1128,6 +1162,46 @@
     alertBar.innerHTML=head+pills; alertBar.classList.remove("hidden");
     tvAlert.innerHTML=head+pills; tvAlert.classList.add("show");
   }
+
+  // ---- report dashboard: event-sourced headcount analytics ----
+  function localDT(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,16);}
+  function initReportFilters(){
+    if(!$("rpFrom").value){var to=new Date(),from=new Date(to.getTime()-24*3600000);$("rpFrom").value=localDT(from);$("rpTo").value=localDT(to);}
+    var wv=$("rpWorkshop").value,pv=$("rpProcess").value,ws=myAllowedWs.length?myAllowedWs:allWorkshops;
+    $("rpWorkshop").innerHTML='<option value="">All workshops</option>'+ws.map(function(w){return '<option value="'+esc(w)+'">'+esc(w)+'</option>';}).join("");$("rpWorkshop").value=wv;
+    setReportProcesses(pv);
+  }
+  function setReportProcesses(keep){var w=$("rpWorkshop").value,list=processes.filter(function(p){return (!w||p.workshop===w)&&(!myAllowedWs.length||myAllowedWs.indexOf(p.workshop)!==-1);});$("rpProcess").innerHTML='<option value="">All processes</option>'+list.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+' · '+esc(p.process_code)+'</option>';}).join("");if(keep)$("rpProcess").value=keep;}
+  $("rpWorkshop").addEventListener("change",function(){setReportProcesses("");});
+  function fetchReportEvents(toISO){return new Promise(function(resolve,reject){var all=[],from=0,size=1000,max=100000;(function next(){sb.from("ec_event").select("created_at,card_code,process_code,direction,person_type,dept").lte("created_at",toISO).order("created_at",{ascending:false}).range(from,from+size-1).then(function(r){if(r.error){reject(r.error);return;}var rows=r.data||[];all=all.concat(rows);if(rows.length<size||all.length>=max){all.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at);});resolve({rows:all,truncated:all.length>=max});}else{from+=size;next();}});})();});}
+  function procMap(){var m={};processes.forEach(function(p){m[p.process_code]=p;});return m;}
+  function wsSpec(ws,pm){var s=workshopSpecs[ws]||0;if(s>0)return s;return processes.filter(function(p){return p.workshop===ws;}).reduce(function(n,p){return n+(p.spec_internal||0)+(p.spec_vendor||0);},0);}
+  function scopeSpec(scope,pm){if(scope.process){var p=pm[scope.process];return p?(p.spec_internal||0)+(p.spec_vendor||0):0;}if(scope.workshop)return wsSpec(scope.workshop,pm);return scope.workshops.reduce(function(n,w){return n+wsSpec(w,pm);},0);}
+  function replayBefore(events,fromMs,pm){var state={};events.forEach(function(e){if(new Date(e.created_at).getTime()>=fromMs)return;var p=pm[e.process_code];if(!p)return;if(e.direction==="in")state[e.card_code]=e.process_code;else delete state[e.card_code];});return state;}
+  function countScope(state,scope,pm){var n=0;Object.keys(state).forEach(function(c){var pc=state[c],p=pm[pc];if(!p)return;if(scope.process){if(pc===scope.process)n++;}else if(scope.workshop){if(p.workshop===scope.workshop)n++;}else if(scope.workshops.indexOf(p.workshop)!==-1)n++;});return n;}
+  function applyReplay(state,e){if(e.direction==="in")state[e.card_code]=e.process_code;else delete state[e.card_code];}
+  function durationText(ms){if(!isFinite(ms)||ms<0)return "—";var min=Math.round(ms/60000),h=Math.floor(min/60),m=min%60;return h?h+"h "+m+"m":m+"m";}
+  function analyzeScope(events,fromMs,toMs,scope,spec,pm){
+    var state=replayBefore(events,fromMs,pm),cur=countScope(state,scope,pm),last=fromMs,integral=0,peak=cur,episodes=[],open=cur>spec&&spec>0?{start:fromMs,peak:cur}:null,samples=[{t:fromMs,v:cur}],flow=[];
+    events.forEach(function(e){var t=new Date(e.created_at).getTime();if(t<fromMs||t>toMs)return;var old=countScope(state,scope,pm);integral+=old*(t-last);last=t;applyReplay(state,e);cur=countScope(state,scope,pm);peak=Math.max(peak,cur);if(cur!==old)samples.push({t:t,v:cur});if(spec>0&&!open&&cur>spec)open={start:t,peak:cur};if(open){open.peak=Math.max(open.peak,cur);if(cur<=spec){open.end=t;episodes.push(open);open=null;}};
+      var p=pm[e.process_code],inside=scope.process?e.process_code===scope.process:scope.workshop?p&&p.workshop===scope.workshop:p&&scope.workshops.indexOf(p.workshop)!==-1;if(inside)flow.push(e);
+    });integral+=cur*(toMs-last);samples.push({t:toMs,v:cur});if(open){open.end=toMs;episodes.push(open);}var avg=integral/Math.max(1,toMs-fromMs);return {peak:peak,avg:avg,spec:spec,episodes:episodes,samples:samples,flow:flow};
+  }
+  function downsample(a,max){if(a.length<=max)return a;var out=[],step=(a.length-1)/(max-1);for(var i=0;i<max;i++)out.push(a[Math.round(i*step)]);return out;}
+  function renderTimeline(a,fromMs,toMs){var w=900,h=250,pad=34,max=Math.max(a.peak,a.spec,1)+1,s=downsample(a.samples,500),pts=s.map(function(x){return [pad+(x.t-fromMs)/(toMs-fromMs)*(w-pad*2),h-pad-x.v/max*(h-pad*2)];}),line=pts.map(function(p,i){return (i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" "),area=line+" L"+(w-pad)+","+(h-pad)+" L"+pad+","+(h-pad)+" Z",sy=h-pad-a.spec/max*(h-pad*2),grid="";for(var i=0;i<=4;i++){var y=pad+i*(h-pad*2)/4,v=Math.round(max*(1-i/4));grid+='<line class="chart-grid" x1="'+pad+'" y1="'+y+'" x2="'+(w-pad)+'" y2="'+y+'"/><text class="chart-axis" x="4" y="'+(y+3)+'">'+v+'</text>';}
+    $("rpTimeline").innerHTML='<svg class="chart-svg" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'+grid+'<path class="chart-area" d="'+area+'"/><path class="chart-line" d="'+line+'"/>'+(a.spec>0?'<line class="chart-spec" x1="'+pad+'" y1="'+sy+'" x2="'+(w-pad)+'" y2="'+sy+'"/><text class="chart-axis" x="'+(w-88)+'" y="'+(sy-5)+'">SPEC '+a.spec+'</text>':'')+'</svg>';
+  }
+  function makeBins(fromMs,toMs,hours){var out=[],ms=hours*3600000;for(var t=fromMs;t<toMs;t+=ms)out.push({start:t,end:Math.min(toMs,t+ms),ins:0,outs:0});return out;}
+  function renderFlow(events,bins){events.forEach(function(e){var t=new Date(e.created_at).getTime(),b=bins.filter(function(x){return t>=x.start&&t<x.end;})[0];if(b){if(e.direction==="in")b.ins++;else b.outs++;}});var max=Math.max.apply(null,[1].concat(bins.map(function(b){return Math.max(b.ins,b.outs);})));$("rpFlow").innerHTML='<div class="flowbars">'+bins.map(function(b){return '<div class="flowcol" title="IN '+b.ins+' · OUT '+b.outs+'"><div class="flowpair"><span class="flowin" style="height:'+Math.max(2,b.ins/max*100)+'%"></span><span class="flowout" style="height:'+Math.max(2,b.outs/max*100)+'%"></span></div><div class="flowlabel">'+new Date(b.start).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+'</div></div>';}).join("")+'</div><div style="font-size:11px;color:var(--muted);margin-top:8px"><span style="color:var(--ok)">■ IN</span> &nbsp; <span style="color:#2d6cdf">■ OUT</span></div>';
+  }
+  function heatmap(events,fromMs,toMs,bins,wsList,pm){var state=replayBefore(events,fromMs,pm),counts={},peaks={};wsList.forEach(function(w){counts[w]=0;peaks[w]=bins.map(function(){return 0;});});Object.keys(state).forEach(function(c){var p=pm[state[c]];if(p&&counts[p.workshop]!=null)counts[p.workshop]++;});bins.forEach(function(b,i){wsList.forEach(function(w){peaks[w][i]=counts[w];});events.forEach(function(e){var t=new Date(e.created_at).getTime();if(t<b.start||t>=b.end)return;var old=state[e.card_code],op=pm[old],np=pm[e.process_code];if(e.direction==="in"){if(op&&counts[op.workshop]!=null)counts[op.workshop]--;state[e.card_code]=e.process_code;if(np&&counts[np.workshop]!=null)counts[np.workshop]++;}else{if(op&&counts[op.workshop]!=null)counts[op.workshop]--;delete state[e.card_code];}wsList.forEach(function(w){peaks[w][i]=Math.max(peaks[w][i],counts[w]);});});});return peaks;}
+  function renderHeat(peaks,bins,wsList,pm){var head='<tr><th class="area">Workshop</th>'+bins.map(function(b){return '<th>'+new Date(b.start).toLocaleString([], {month:"2-digit",day:"2-digit",hour:"2-digit"})+'</th>';}).join("")+'</tr>',rows=wsList.map(function(w){var sp=wsSpec(w,pm);return '<tr><td class="area">'+esc(w)+' · Spec '+(sp||'—')+'</td>'+peaks[w].map(function(v){var cls=sp>0&&v>sp?'over':sp>0&&v===sp?'warn':'';return '<td class="'+cls+'">'+v+(sp?'/'+sp:'')+'</td>';}).join("")+'</tr>';}).join("");$("rpHeat").innerHTML='<table class="heat">'+head+rows+'</table>';}
+  function loadReport(){var from=new Date($("rpFrom").value),to=new Date($("rpTo").value);if(!isFinite(from)||!isFinite(to)||to<=from){toast("Choose a valid report range","alert");return;}var maxDays=31;if(to-from>maxDays*86400000){toast("Maximum report range is 31 days","alert");return;}$("rpNote").textContent="Analyzing scan events…";$("rpApply").disabled=true;fetchReportEvents(to.toISOString()).then(function(res){buildReport(res.rows,from.getTime(),to.getTime(),res.truncated);reportLoaded=true;}).catch(function(e){toast(e.message||String(e),"alert");}).finally(function(){$("rpApply").disabled=false;});}
+  function buildReport(events,fromMs,toMs,truncated){var pm=procMap(),wsList=(myAllowedWs.length?myAllowedWs:allWorkshops).filter(function(w){return !$("rpWorkshop").value||w===$("rpWorkshop").value;}),scope={workshop:$("rpWorkshop").value,process:$("rpProcess").value,workshops:wsList},spec=scopeSpec(scope,pm),a=analyzeScope(events,fromMs,toMs,scope,spec,pm),hours=parseInt($("rpBin").value,10)||2,bins=makeBins(fromMs,toMs,hours),avgUtil=spec>0?a.avg/spec*100:0,totalDur=a.episodes.reduce(function(n,e){return n+(e.end-e.start);},0),maxOver=Math.max.apply(null,[0].concat(a.episodes.map(function(e){return e.peak-spec;})));
+    $("rpPeak").textContent=a.peak+" / "+(spec||"—");$("rpAvg").textContent=spec?avgUtil.toFixed(1)+"%":"—";$("rpEpisodes").textContent=a.episodes.length;$("rpOverDuration").textContent=durationText(totalDur);$("rpMaxOver").textContent=maxOver?"+"+maxOver:"0";renderTimeline(a,fromMs,toMs);renderFlow(a.flow,bins);
+    var peaks=heatmap(events,fromMs,toMs,bins,wsList,pm);renderHeat(peaks,bins,wsList,pm);var ranking=wsList.map(function(w){var x=analyzeScope(events,fromMs,toMs,{workshop:w,process:"",workshops:[w]},wsSpec(w,pm),pm);return {w:w,a:x,d:x.episodes.reduce(function(n,e){return n+e.end-e.start;},0)};}).sort(function(x,y){return y.d-x.d||y.a.peak-x.a.peak;});$("rpRank").innerHTML=ranking.map(function(x){var util=x.a.spec?x.a.avg/x.a.spec*100:0;return '<tr><td>'+esc(x.w)+'</td><td class="mono">'+x.a.peak+'/'+(x.a.spec||'—')+'</td><td class="mono">'+(x.a.spec?util.toFixed(1)+'%':'—')+'</td><td class="mono">'+x.a.episodes.length+'</td><td class="mono">'+durationText(x.d)+'</td></tr>';}).join("")||'<tr><td colspan="5">No workshop data.</td></tr>';
+    var area=scope.process?((pm[scope.process]&&pm[scope.process].process_name)||scope.process):scope.workshop||"All selected workshops";reportEpisodes=a.episodes.map(function(e){return {area:area,start:new Date(e.start).toISOString(),end:new Date(e.end).toISOString(),duration_minutes:Math.round((e.end-e.start)/60000),peak:e.peak,spec:spec,max_over:e.peak-spec};});$("rpEpisodeBody").innerHTML=reportEpisodes.map(function(e){return '<tr><td>'+esc(e.area)+'</td><td class="mono">'+new Date(e.start).toLocaleString()+'</td><td class="mono">'+new Date(e.end).toLocaleString()+'</td><td class="mono">'+durationText(e.duration_minutes*60000)+'</td><td><span class="rstatus over">'+e.peak+'/'+e.spec+'</span></td></tr>';}).join("")||'<tr><td colspan="5">No over-spec episodes.</td></tr>';$("rpNote").textContent="Calculated from "+events.length.toLocaleString()+" scan events. Time frame controls flow and heatmap buckets; episode duration uses exact scan timestamps."+(truncated?" Warning: event history reached the 100,000-row safety cap.":"");}
+  $("rpApply").addEventListener("click",loadReport);$("rpExport").addEventListener("click",function(){downloadCSV("over-spec-episodes-"+stamp()+".csv",toCSV(reportEpisodes,["area","start","end","duration_minutes","peak","spec","max_over"]));});
 
   // ---- setup ----
   function renderSetup(){
@@ -1496,7 +1570,7 @@
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_process" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_spec" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_roster" }, function(){ loadRosterCache(); })
-        .on("postgres_changes", { event:"*", schema:"public", table:"ec_event" }, function(){ if(!views.scan.classList.contains("hidden")) loadEvents(); })
+        .on("postgres_changes", { event:"*", schema:"public", table:"ec_event" }, function(){ reportLoaded=false; if(!views.scan.classList.contains("hidden")) loadEvents(); })
         .subscribe(function(status){ if(status==="SUBSCRIBED"){ liveTxt.textContent="Live"; led.classList.add("on"); } });
     }catch(e){}
   }
