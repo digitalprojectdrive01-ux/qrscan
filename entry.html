@@ -607,8 +607,8 @@
         <div class="stat"><div class="k" id="tkMax">—</div><div class="l">Longest</div></div>
       </div>
       <div class="row" style="margin-top:12px;gap:8px;align-items:center">
-        <button class="btn sm" id="tkCheckoutSelected" disabled>Check out selected</button>
-        <button class="btn sm" id="tkCheckoutFiltered">Check out all filtered inside</button>
+        <button class="btn sm" id="tkCheckoutSelected" disabled>Force check out selected</button>
+        <button class="btn sm" id="tkCheckoutFiltered">Force check out all filtered inside</button>
         <button class="btn sm danger" id="tkDeleteSelected" disabled>Delete selected</button>
         <span id="tkSelectedCount" style="font:11px var(--mono);color:var(--muted);margin-left:auto">0 selected</span>
       </div>
@@ -1450,7 +1450,10 @@
     Object.keys(byCard).forEach(function(cc){
       var evs=byCard[cc], open=null;
       evs.forEach(function(e){
-        if(e.direction==="in"){ if(open){ sessions.push(mkSession(cc,open,null)); } open=e; }
+        // Repeated IN without an OUT is a duplicate scan, not a second open
+        // session. Keep only the latest IN so an eventual OUT closes the card
+        // once and cannot leave an older phantom "inside" row behind.
+        if(e.direction==="in"){ open=e; }
         else if(e.direction==="out"){ if(open){ sessions.push(mkSession(cc,open,e)); open=null; } else { sessions.push(mkSession(cc,null,e)); } }
       });
       if(open) sessions.push(mkSession(cc,open,null)); // still inside
@@ -1484,7 +1487,7 @@
     $("tkBody").innerHTML=tkRows.map(function(s){
       var dur = s.dur!=null?fmtDur(s.dur):"—";
       var durCls = s.open?' style="color:var(--alert);font-weight:600"':'';
-      return "<tr data-tk-key=\""+esc(s.key)+"\"><td><input type=\"checkbox\" class=\"tk-row-check\" aria-label=\"Select scan session\""+(tkSelected[s.key]?" checked":"")+"></td><td class=\"mono\">"+esc(empName(s.card))+"</td><td>"+(s.type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(procName(s.process)||s.process||"")+"</td><td class=\"mono\">"+esc(s.dept)+"</td><td class=\"mono\">"+(s.inT?new Date(s.inT).toLocaleString():"—")+"</td><td class=\"mono\">"+(s.outT?new Date(s.outT).toLocaleString():'<span style="color:var(--alert)">— inside —</span>')+"</td><td class=\"mono\""+durCls+">"+dur+"</td><td><div class=\"row\" style=\"gap:5px\">"+(s.open?'<button class="btn sm tk-row-out">Check out</button>':"")+'<button class="btn sm danger tk-row-delete">Delete</button></div></td></tr>';
+      return "<tr data-tk-key=\""+esc(s.key)+"\"><td><input type=\"checkbox\" class=\"tk-row-check\" aria-label=\"Select scan session\""+(tkSelected[s.key]?" checked":"")+"></td><td class=\"mono\">"+esc(empName(s.card))+"</td><td>"+(s.type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(procName(s.process)||s.process||"")+"</td><td class=\"mono\">"+esc(s.dept)+"</td><td class=\"mono\">"+(s.inT?new Date(s.inT).toLocaleString():"—")+"</td><td class=\"mono\">"+(s.outT?new Date(s.outT).toLocaleString():'<span style="color:var(--alert)">— inside —</span>')+"</td><td class=\"mono\""+durCls+">"+dur+"</td><td><div class=\"row\" style=\"gap:5px\">"+(s.open?'<button class="btn sm tk-row-out">Force check out</button>':"")+'<button class="btn sm danger tk-row-delete">Delete</button></div></td></tr>';
     }).join("");
     updateTkSelection();
   }
@@ -1497,7 +1500,10 @@
     var events=open.map(function(s){return {card_code:s.card,person_type:s.type,process_code:s.process,card_no:s.cardNo||null,dept:s.dept||null,direction:"out",created_by:currentUser.id,created_at:when};});
     var presence=open.map(function(s){return {card_code:s.card,person_type:s.type,process_code:s.process,card_no:s.cardNo||null,dept:s.dept||null,status:"out",updated_at:when};});
     sb.from("ec_event").insert(events).then(function(r){if(r.error)throw r.error;return sb.from("ec_presence").upsert(presence,{onConflict:"card_code"});}).then(function(r){
-      if(r.error)throw r.error;finishTrackingAction("Checked out "+open.length+" person(s)");
+      if(r.error)throw r.error;return sb.from("ec_presence").select("card_code,status").in("card_code",open.map(function(s){return s.card;}));
+    }).then(function(r){
+      if(r.error)throw r.error;var stuck=(r.data||[]).filter(function(x){return x.status!=="out";});if(stuck.length)throw new Error("Status verification failed for "+stuck.map(function(x){return x.card_code;}).join(", "));
+      finishTrackingAction("Force checked out "+open.length+" person(s)");
     }).catch(function(e){toast("Check out: "+(e.message||e),"alert");loadTracking();fetchState();});
   }
   function reconcileTrackingCards(cards){
