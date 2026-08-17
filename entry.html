@@ -55,7 +55,8 @@
   .mark{font-family:var(--mono); font-weight:600; font-size:12px; letter-spacing:.14em; color:var(--signal); border:1px solid var(--signal); padding:4px 8px; border-radius:6px; background:var(--signal-soft)}
   .brand h1{font-size:15px; margin:0; font-weight:600}
   .brand p{margin:1px 0 0; font-size:11px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase}
-  .nav{display:flex; gap:4px; margin-left:8px}
+  .nav{display:flex; gap:4px; margin-left:8px; flex:1 1 520px; min-width:0; overflow-x:auto; scrollbar-width:thin; padding-bottom:2px}
+  .nav button{flex:0 0 auto}
   .nav button{font-family:var(--sans); font-weight:600; font-size:13px; cursor:pointer; color:var(--muted); background:transparent; border:1px solid transparent; padding:8px 12px; border-radius:9px}
   .nav button.active{color:var(--ink); background:var(--panel-2); border-color:var(--line)}
   .nav button:hover{color:var(--ink)}
@@ -338,7 +339,7 @@
     <div class="brand"><h1>Entry Control Dashboard</h1><p>Workshop head-count</p></div>
     <div class="nav hidden" id="nav">
       <button data-view="dash" class="active">Dashboard</button>
-      <button data-view="report">Report Dashboard</button>
+      <button data-view="report" title="Scan-data analysis and over-spec reports">Report Dashboard</button>
       <button data-view="scan">Scan</button>
       <button data-view="log">Data log</button>
       <button data-view="setup">Setup</button>
@@ -605,9 +606,15 @@
         <div class="stat"><div class="k" id="tkAvg">—</div><div class="l">Avg duration</div></div>
         <div class="stat"><div class="k" id="tkMax">—</div><div class="l">Longest</div></div>
       </div>
+      <div class="row" style="margin-top:12px;gap:8px;align-items:center">
+        <button class="btn sm" id="tkCheckoutSelected" disabled>Check out selected</button>
+        <button class="btn sm" id="tkCheckoutFiltered">Check out all filtered inside</button>
+        <button class="btn sm danger" id="tkDeleteSelected" disabled>Delete selected</button>
+        <span id="tkSelectedCount" style="font:11px var(--mono);color:var(--muted);margin-left:auto">0 selected</span>
+      </div>
       <div class="evt" style="margin-top:12px"><table>
-        <thead><tr><th>Card / Employee</th><th style="width:70px">Type</th><th>Process</th><th style="width:64px">Dept</th><th style="width:150px">IN</th><th style="width:150px">OUT</th><th style="width:96px">Duration</th></tr></thead>
-        <tbody id="tkBody"><tr><td colspan="7" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody>
+        <thead><tr><th style="width:42px"><input type="checkbox" id="tkSelectAll" aria-label="Select all visible rows"></th><th>Card / Employee</th><th style="width:70px">Type</th><th>Process</th><th style="width:64px">Dept</th><th style="width:150px">IN</th><th style="width:150px">OUT</th><th style="width:96px">Duration</th><th style="width:150px">Actions</th></tr></thead>
+        <tbody id="tkBody"><tr><td colspan="9" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody>
       </table></div>
     </div></div>
   </div>
@@ -681,7 +688,16 @@
     if(name==="log"){ setLogWorkshops(); loadLog(); }
     if(name==="tracking"){ if(!isAdmin()){ showView("dash"); return; } setTrackWorkshops(); loadTracking(); }
   }
-  Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){ showView(b.getAttribute("data-view")); }); });
+  function requestedView(){
+    var name=String(location.hash||"").replace(/^#/,"");
+    return views[name]?name:"dash";
+  }
+  Array.prototype.forEach.call($("nav").children, function(b){ b.addEventListener("click", function(){
+    var name=b.getAttribute("data-view");
+    if(location.hash!=="#"+name) history.replaceState(null,"","#"+name);
+    showView(name);
+  }); });
+  window.addEventListener("hashchange",function(){if(currentUser)showView(requestedView());});
 
   // Setup Worklist tabs, filters and table actions
   function activateSetupTab(name){
@@ -735,7 +751,7 @@
 
   function enterApp(u){ currentUser=u; userEmail.textContent=u.email||u.id; userChip.classList.remove("hidden");
     $("nav").classList.remove("hidden"); tvBtn.classList.remove("hidden");
-    authScreen.classList.add("hidden"); showView("dash"); led.classList.add("on"); liveTxt.textContent="Live";
+    authScreen.classList.add("hidden"); showView(requestedView()); led.classList.add("on"); liveTxt.textContent="Live";
     sb.from("user_roles").select("role,workshops").eq("user_id",u.id).maybeSingle()
       .then(function(r){ myRole=(r.data&&r.data.role)||"view"; myWorkshops=(r.data&&r.data.workshops)||null; applyRole(); fetchState(); })
       .catch(function(){ myRole="view"; myWorkshops=null; applyRole(); fetchState(); });
@@ -1403,7 +1419,7 @@
   if(viewAllBtn) viewAllBtn.addEventListener("click", function(){ showView("log"); });
 
   // ---- Scan Tracking (admin): durations + who is still inside ----
-  var tkRows=[];
+  var tkRows=[], tkSelected={};
   function fmtDur(ms){ if(ms<0)ms=0; var s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60); var sec=s%60; if(h>0) return h+"h "+m+"m"; if(m>0) return m+"m "+sec+"s"; return sec+"s"; }
   function setTrackWorkshops(){ var el=$("tkWs"); if(!el) return; var cur=el.value; el.innerHTML='<option value="">All workshops</option>'+allWorkshops.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join(""); if(cur) el.value=cur; }
   function ensureTkDates(){ if(!$("tkFrom").value){ var d=new Date(Date.now()-7*864e5); $("tkFrom").value=d.toISOString().slice(0,16); } if(!$("tkTo").value){ $("tkTo").value=new Date(Date.now()+864e5).toISOString().slice(0,16); } }
@@ -1414,10 +1430,11 @@
     try{ fromISO=new Date($("tkFrom").value).toISOString(); toISO=new Date($("tkTo").value).toISOString(); }catch(e){ toast("Invalid range","alert"); return; }
     var ws=$("tkWs").value||null;
     var codes=ws?processes.filter(function(p){return p.workshop===ws;}).map(function(p){return p.process_code;}):null;
-    $("tkBody").innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    tkSelected={}; updateTkSelection();
+    $("tkBody").innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:16px">Loading…</td></tr>';
     var all=[], from=0, size=1000, MAXP=25;
     (function next(pageN){
-      var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:true});
+      var q=sb.from("ec_event").select("id,created_at,card_code,person_type,process_code,card_no,direction,dept").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:true});
       if(codes){ if(!codes.length){ buildSessions([]); return; } q=q.in("process_code",codes); }
       q.range(from,from+size-1).then(function(r){
         if(r.error){ toast("Tracking: "+r.error.message,"alert"); $("tkBody").innerHTML='<tr><td colspan="7" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
@@ -1440,7 +1457,7 @@
     });
     function mkSession(cc, inE, outE){ var base=inE||outE; var inT=inE?new Date(inE.created_at).getTime():null, outT=outE?new Date(outE.created_at).getTime():null;
       var dur = (inT!=null) ? ((outT!=null?outT:now)-inT) : null;
-      return { card:cc, type:base.person_type, process:base.process_code, dept:base.dept||"", inT:inT, outT:outT, open:(outT==null&&inT!=null), dur:dur }; }
+      return { key:(inE&&inE.id||"no-in")+":"+(outE&&outE.id||"no-out"), inId:inE&&inE.id||null, outId:outE&&outE.id||null, card:cc, cardNo:base.card_no||"", type:base.person_type, process:base.process_code, dept:base.dept||"", inT:inT, outT:outT, open:(outT==null&&inT!=null), dur:dur }; }
     // status filter
     var st=$("tkStatus").value;
     var rows=sessions.filter(function(s){ if(st==="inside") return s.open; if(st==="done") return !s.open && s.inT!=null; return true; });
@@ -1455,14 +1472,54 @@
     $("tkAvg").textContent=avg!=null?fmtDur(avg):"—"; $("tkMax").textContent=mx?fmtDur(mx):"—";
     renderTracking();
   }
+  function updateTkSelection(){
+    var n=Object.keys(tkSelected).length, selected=tkRows.filter(function(s){return tkSelected[s.key];});
+    if($("tkSelectedCount")) $("tkSelectedCount").textContent=n+" selected";
+    if($("tkDeleteSelected")) $("tkDeleteSelected").disabled=!n;
+    if($("tkCheckoutSelected")) $("tkCheckoutSelected").disabled=!selected.some(function(s){return s.open;});
+    if($("tkSelectAll")){ $("tkSelectAll").checked=!!tkRows.length&&n===tkRows.length; $("tkSelectAll").indeterminate=n>0&&n<tkRows.length; }
+  }
   function renderTracking(){
-    if(!tkRows.length){ $("tkBody").innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No sessions match.</td></tr>'; return; }
+    if(!tkRows.length){ $("tkBody").innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:16px">No sessions match.</td></tr>'; updateTkSelection(); return; }
     $("tkBody").innerHTML=tkRows.map(function(s){
       var dur = s.dur!=null?fmtDur(s.dur):"—";
       var durCls = s.open?' style="color:var(--alert);font-weight:600"':'';
-      return "<tr><td class=\"mono\">"+esc(empName(s.card))+"</td><td>"+(s.type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(procName(s.process)||s.process||"")+"</td><td class=\"mono\">"+esc(s.dept)+"</td><td class=\"mono\">"+(s.inT?new Date(s.inT).toLocaleString():"—")+"</td><td class=\"mono\">"+(s.outT?new Date(s.outT).toLocaleString():'<span style="color:var(--alert)">— inside —</span>')+"</td><td class=\"mono\""+durCls+">"+dur+"</td></tr>";
+      return "<tr data-tk-key=\""+esc(s.key)+"\"><td><input type=\"checkbox\" class=\"tk-row-check\" aria-label=\"Select scan session\""+(tkSelected[s.key]?" checked":"")+"></td><td class=\"mono\">"+esc(empName(s.card))+"</td><td>"+(s.type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(procName(s.process)||s.process||"")+"</td><td class=\"mono\">"+esc(s.dept)+"</td><td class=\"mono\">"+(s.inT?new Date(s.inT).toLocaleString():"—")+"</td><td class=\"mono\">"+(s.outT?new Date(s.outT).toLocaleString():'<span style="color:var(--alert)">— inside —</span>')+"</td><td class=\"mono\""+durCls+">"+dur+"</td><td><div class=\"row\" style=\"gap:5px\">"+(s.open?'<button class="btn sm tk-row-out">Check out</button>':"")+'<button class="btn sm danger tk-row-delete">Delete</button></div></td></tr>';
     }).join("");
+    updateTkSelection();
   }
+  function trackingRow(key){ for(var i=0;i<tkRows.length;i++)if(tkRows[i].key===key)return tkRows[i]; return null; }
+  function finishTrackingAction(message){ toast(message,"ok"); loadTracking(); fetchState(); loadEvents(); }
+  function checkoutTracking(rows){
+    if(!isAdmin())return; var seen={}, open=rows.filter(function(s){if(!s.open||seen[s.card])return false;seen[s.card]=1;return true;});
+    if(!open.length){toast("No selected person is currently inside","alert");return;}
+    var when=new Date().toISOString();
+    var events=open.map(function(s){return {card_code:s.card,person_type:s.type,process_code:s.process,card_no:s.cardNo||null,dept:s.dept||null,direction:"out",created_by:currentUser.id,created_at:when};});
+    var presence=open.map(function(s){return {card_code:s.card,person_type:s.type,process_code:s.process,card_no:s.cardNo||null,dept:s.dept||null,status:"out",updated_at:when};});
+    sb.from("ec_event").insert(events).then(function(r){if(r.error)throw r.error;return sb.from("ec_presence").upsert(presence,{onConflict:"card_code"});}).then(function(r){
+      if(r.error)throw r.error;finishTrackingAction("Checked out "+open.length+" person(s)");
+    }).catch(function(e){toast("Check out: "+(e.message||e),"alert");loadTracking();fetchState();});
+  }
+  function reconcileTrackingCards(cards){
+    return Promise.all(cards.map(function(card){return sb.from("ec_event").select("card_code,person_type,process_code,card_no,dept,direction,created_at").eq("card_code",card).order("created_at",{ascending:false}).limit(1).then(function(r){
+      if(r.error)throw r.error;var e=(r.data||[])[0];if(!e)return sb.from("ec_presence").delete().eq("card_code",card).then(function(x){if(x.error)throw x.error;});
+      return sb.from("ec_presence").upsert({card_code:card,person_type:e.person_type||"INT",process_code:e.process_code,card_no:e.card_no||null,dept:e.dept||null,status:e.direction==="in"?"in":"out",updated_at:e.created_at},{onConflict:"card_code"}).then(function(x){if(x.error)throw x.error;});
+    });}));
+  }
+  function deleteTracking(rows){
+    if(!isAdmin()||!rows.length)return;var ids=[],cards=[];rows.forEach(function(s){if(s.inId)ids.push(s.inId);if(s.outId)ids.push(s.outId);if(cards.indexOf(s.card)===-1)cards.push(s.card);});
+    if(!ids.length)return;if(!confirm("Delete "+rows.length+" scan session(s)? This cannot be undone."))return;
+    var chunks=[];while(ids.length)chunks.push(ids.splice(0,100));
+    chunks.reduce(function(chain,chunk){return chain.then(function(){return sb.from("ec_event").delete().in("id",chunk).then(function(r){if(r.error)throw r.error;});});},Promise.resolve())
+      .then(function(){return reconcileTrackingCards(cards);}).then(function(){finishTrackingAction("Deleted "+rows.length+" scan session(s)");})
+      .catch(function(e){reconcileTrackingCards(cards).then(function(){loadTracking();fetchState();});toast("Delete: "+(e.message||e),"alert");});
+  }
+  $("tkBody").addEventListener("change",function(e){if(!e.target.classList.contains("tk-row-check"))return;var key=e.target.closest("tr").getAttribute("data-tk-key");if(e.target.checked)tkSelected[key]=true;else delete tkSelected[key];updateTkSelection();});
+  $("tkBody").addEventListener("click",function(e){var tr=e.target.closest("tr[data-tk-key]");if(!tr)return;var s=trackingRow(tr.getAttribute("data-tk-key"));if(!s)return;if(e.target.closest(".tk-row-out"))checkoutTracking([s]);if(e.target.closest(".tk-row-delete"))deleteTracking([s]);});
+  $("tkSelectAll").addEventListener("change",function(){tkSelected={};if(this.checked)tkRows.forEach(function(s){tkSelected[s.key]=true;});renderTracking();});
+  $("tkCheckoutSelected").addEventListener("click",function(){checkoutTracking(tkRows.filter(function(s){return tkSelected[s.key];}));});
+  $("tkCheckoutFiltered").addEventListener("click",function(){var open=tkRows.filter(function(s){return s.open;});if(!open.length){toast("No filtered person is currently inside","alert");return;}if(confirm("Check out all "+open.length+" filtered person(s)?"))checkoutTracking(open);});
+  $("tkDeleteSelected").addEventListener("click",function(){deleteTracking(tkRows.filter(function(s){return tkSelected[s.key];}));});
   if($("tkApply")) $("tkApply").addEventListener("click", loadTracking);
   ["tkWs","tkStatus"].forEach(function(id){ if($(id)) $(id).addEventListener("change", loadTracking); });
   if($("tkCsv")) $("tkCsv").addEventListener("click", function(){ if(!tkRows.length){ toast("Nothing to export","alert"); return; }
