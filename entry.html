@@ -211,6 +211,8 @@
   .wsgroup-hd{grid-column:1/-1; display:flex; align-items:baseline; gap:10px; margin:6px 0 -2px; padding-bottom:6px; border-bottom:1px solid var(--line); font-weight:700; font-size:16px}
   .wsgroup-hd .wssub{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--signal); font-weight:600}
   body.tv .wsgroup-hd{font-size:26px} body.tv .wsgroup-hd .wssub{font-size:18px}
+  .procgroup-hd{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:8px 0 -4px;padding:8px 12px;border-left:4px solid var(--signal);border-radius:8px;background:var(--panel-2);font-weight:700}.procgroup-hd .gorder{font:600 11px var(--mono);color:var(--muted)}.procgroup-hd .gtotal{margin-left:auto;font:700 15px var(--mono);color:var(--signal)}.procgroup-hd .gunit{font:10px var(--mono);color:var(--muted)}.process-order{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;border-radius:7px;background:var(--signal);color:var(--on-signal);font:700 11px var(--mono);margin-right:7px}
+  body.tv .procgroup-hd{font-size:22px;padding:10px 16px}body.tv .procgroup-hd .gorder{font-size:14px}body.tv .procgroup-hd .gtotal{font-size:22px}body.tv .process-order{min-width:32px;height:32px;font-size:15px}
   .logstats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px}
   .logstats .stat{padding:9px 12px}
   .pcard .drow{display:grid; grid-template-columns:1.3fr .85fr .85fr; gap:8px; align-items:center; padding:9px 14px; border-top:1px solid var(--line)}
@@ -488,17 +490,20 @@
       </div>
       <section class="setup-panel active" data-setup-panel="process">
       <div class="setup-toolbar"><div class="fld search"><label>Search</label><input id="procSearch" type="text" placeholder="Code or process name"></div><div class="fld"><label>Workshop</label><select id="procWsFilter"><option value="">All workshops</option></select></div><div class="actions"><button class="btn" data-setup-clear="process">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="setupBody">Export CSV</button></div></div>
-      <div class="addbar">
+      <div class="addbar" style="grid-template-columns:repeat(9,1fr) auto">
         <div class="fld"><label>Process code</label><input type="text" id="npCode" placeholder="BK or RUB/JR"></div>
         <div class="fld"><label>Process name</label><input type="text" id="npName" placeholder="Banking"></div>
         <div class="fld"><label>Workshop</label><input type="text" id="npWs" placeholder="Workshop A"></div>
+        <div class="fld"><label>Group name</label><input type="text" id="npGroup" placeholder="Mixing"></div>
+        <div class="fld"><label>Group order</label><input type="number" id="npGroupOrder" min="1" value="1"></div>
+        <div class="fld"><label>Process order</label><input type="number" id="npOrder" min="1" value="1"></div>
         <div class="fld"><label>Overall INT</label><input type="number" id="npSi" min="0" value="0"></div>
         <div class="fld"><label>Overall VEN</label><input type="number" id="npSv" min="0" value="0"></div>
         <button class="btn go" id="npAdd">Add</button>
       </div>
       <div class="setup-table-shell"><div class="card"><div class="card-bd" style="padding:4px 0">
         <table class="ptable">
-          <thead><tr><th>Code</th><th>Name</th><th>Workshop</th><th>Overall INT</th><th>Overall VEN</th><th>Order</th><th></th></tr></thead>
+          <thead><tr><th>Code</th><th>Name</th><th>Workshop</th><th>Group</th><th>Group order</th><th>Process order</th><th>Overall INT</th><th>Overall VEN</th><th></th></tr></thead>
           <tbody id="setupBody"></tbody>
         </table>
       </div></div></div>
@@ -1161,7 +1166,7 @@
     }
     var tag=wsTag?'<span class="wstag">'+esc(wsTag)+'</span>':'';
     return { count:co.INT+co.VEN, html:'<div class="pcard'+(over?' hasover':'')+'">'
-      + '<div class="pcard-hd"><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="pcode">'+esc(p.process_code)+'</span></div>'
+      + '<div class="pcard-hd"><span class="process-order" title="Process display order">'+(parseInt(p.sort_order,10)||0)+'</span><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="pcode">'+esc(p.process_code)+'</span></div>'
       + '<div class="obox">'+ocol("Internal",p.spec_internal,co.INT)+ocol("Vendor",p.spec_vendor,co.VEN)+'</div>'
       + dhtml + '</div>' };
   }
@@ -1174,10 +1179,15 @@
     sel.forEach(function(ws){
       var list=processes.filter(function(p){ return p.workshop===ws; });
       if(!list.length) return;
-      var wsTotal=0, cards="";
-      list.forEach(function(p){ var r=procCard(p, overList, (multi&&tv)?ws:null); wsTotal+=r.count; cards+=r.html; });
+      var wsTotal=0, cards="", groups={};
+      list.forEach(function(p){var gn=String(p.group_name||"").trim()||"UNGROUPED",key=gn.toUpperCase(),ung=key==="UNGROUPED";if(!groups[key])groups[key]={name:gn,order:ung?999999:(parseInt(p.group_order,10)||999998),ungrouped:ung,items:[]};groups[key].order=Math.min(groups[key].order,ung?999999:(parseInt(p.group_order,10)||999998));groups[key].items.push(p);});
+      Object.keys(groups).map(function(k){return groups[k];}).sort(function(a,b){return (a.ungrouped-b.ungrouped)||(a.order-b.order)||(a.name<b.name?-1:1);}).forEach(function(g){
+        g.items.sort(function(a,b){return (parseInt(a.sort_order,10)||999999)-(parseInt(b.sort_order,10)||999999)||(a.process_code<b.process_code?-1:1);});
+        var ga=0,gs=0,gcards="";g.items.forEach(function(p){var r=procCard(p,overList,(multi&&tv)?ws:null);ga+=r.count;gs+=(p.spec_internal||0)+(p.spec_vendor||0);gcards+=r.html;});wsTotal+=ga;
+        cards+='<div class="procgroup-hd"><span class="gorder">'+(g.ungrouped?'—':'GROUP '+g.order)+'</span><span>'+esc(g.name)+'</span><span class="gtotal">'+ga+' / '+(gs||'—')+'</span><span class="gunit">ACT / SPEC</span></div>'+gcards;
+      });
       total+=wsTotal;
-      if(multi && !tv) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
+      if(multi) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
       html+=cards;
     });
     pgrid.innerHTML = (html ? ('<div class="legend">Numbers in <b>red</b> exceed the target.</div>'+html) : '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>');
@@ -1254,15 +1264,17 @@
   // ---- setup ----
   function renderSetup(){
     renderWorkshopSpecs();
-    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); loadRoster(); return; }
-    setupBody.innerHTML = processes.map(function(p){
+    if(!processes.length){ setupBody.innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:16px">No processes yet. Add one above.</td></tr>'; renderSpecs(); loadRoster(); return; }
+    setupBody.innerHTML = processes.slice().sort(function(a,b){var au=!a.group_name,bu=!b.group_name;return (a.workshop<b.workshop?-1:a.workshop>b.workshop?1:0)||(au-bu)||((a.group_order||999998)-(b.group_order||999998))||((a.sort_order||999999)-(b.sort_order||999999))||(a.process_code<b.process_code?-1:1);}).map(function(p){
       return '<tr data-code="'+esc(p.process_code)+'">'
         + '<td class="mono">'+esc(p.process_code)+'</td>'
         + '<td><input type="text" data-f="process_name" value="'+esc(p.process_name||"")+'"></td>'
         + '<td><input type="text" data-f="workshop" value="'+esc(p.workshop||"")+'"></td>'
+        + '<td><input type="text" data-f="group_name" placeholder="UNGROUPED" value="'+esc(p.group_name||"")+'"></td>'
+        + '<td><input type="number" class="num" data-f="group_order" min="1" value="'+(p.group_order||0)+'"></td>'
+        + '<td><input type="number" class="num" data-f="sort_order" min="1" value="'+(p.sort_order||0)+'"></td>'
         + '<td><input type="number" class="num" data-f="spec_internal" min="0" value="'+(p.spec_internal||0)+'"></td>'
         + '<td><input type="number" class="num" data-f="spec_vendor" min="0" value="'+(p.spec_vendor||0)+'"></td>'
-        + '<td><input type="number" class="num" data-f="sort_order" value="'+(p.sort_order||0)+'"></td>'
         + '<td style="white-space:nowrap"><button class="btn sm psave">Save</button> <button class="btn sm danger pdel">Del</button></td></tr>';
     }).join("");
     Array.prototype.forEach.call(setupBody.querySelectorAll(".psave"), function(b){ b.addEventListener("click", function(){ saveProc(b.closest("tr")); }); });
@@ -1293,8 +1305,8 @@
   }
   $("npAdd").addEventListener("click", function(){
     var code=$("npCode").value.trim().toUpperCase(); if(!code){ toast("Enter a process code","alert"); return; }
-    var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", spec_internal:parseInt($("npSi").value,10)||0, spec_vendor:parseInt($("npSv").value,10)||0, sort_order:processes.length+1 };
-    sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npSi").value="0";$("npSv").value="0"; fetchState(); });
+    var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", group_name:$("npGroup").value.trim()||null, group_order:parseInt($("npGroupOrder").value,10)||0, sort_order:parseInt($("npOrder").value,10)||1, spec_internal:parseInt($("npSi").value,10)||0, spec_vendor:parseInt($("npSv").value,10)||0 };
+    sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npGroup").value="";$("npOrder").value="1";$("npSi").value="0";$("npSv").value="0"; fetchState(); });
   });
 
   // ---- department standards (per process) ----
