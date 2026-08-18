@@ -1170,26 +1170,28 @@
       + '<div class="obox">'+ocol("Internal",p.spec_internal,co.INT)+ocol("Vendor",p.spec_vendor,co.VEN)+'</div>'
       + dhtml + '</div>' };
   }
+  function groupedProcessCards(list,overList,showWorkshopTag){
+    var groups={};
+    list.forEach(function(p){var gn=String(p.group_name||"").trim()||"UNGROUPED",key=gn.toUpperCase(),ung=key==="UNGROUPED";if(!groups[key])groups[key]={name:gn,order:ung?999999:(parseInt(p.group_order,10)||999998),ungrouped:ung,items:[]};groups[key].order=Math.min(groups[key].order,ung?999999:(parseInt(p.group_order,10)||999998));groups[key].items.push(p);});
+    var actual=0,html="";
+    Object.keys(groups).map(function(k){return groups[k];}).sort(function(a,b){return (a.ungrouped-b.ungrouped)||(a.order-b.order)||(a.name<b.name?-1:1);}).forEach(function(g){
+      g.items.sort(function(a,b){return (parseInt(a.sort_order,10)||999999)-(parseInt(b.sort_order,10)||999999)||(a.workshop<b.workshop?-1:a.workshop>b.workshop?1:0)||(a.process_code<b.process_code?-1:1);});
+      var ga=0,gs=0,gcards="";g.items.forEach(function(p){var r=procCard(p,overList,showWorkshopTag?p.workshop:null);ga+=r.count;gs+=(p.spec_internal||0)+(p.spec_vendor||0);gcards+=r.html;});actual+=ga;
+      html+='<div class="procgroup-hd"><span class="gorder">'+(g.ungrouped?'—':'GROUP '+g.order)+'</span><span>'+esc(g.name)+'</span><span class="gtotal">'+ga+' / '+(gs||'—')+'</span><span class="gunit">ACT / SPEC</span></div>'+gcards;
+    });
+    return {actual:actual,html:html};
+  }
   function renderDashboard(){
     var tv=document.body.classList.contains("tv");
     var sel = selectedWs.length?selectedWs:myAllowedWs;
     var tot=myAllowedWs.length, n=sel.length;
     wsName.textContent = (tot===0)?"No workshop configured":(n>=tot?"All workshops":(n===1?sel[0]:n+" workshops"));
     var total=0, overList=[], html="", multi=sel.length>1;
-    sel.forEach(function(ws){
-      var list=processes.filter(function(p){ return p.workshop===ws; });
-      if(!list.length) return;
-      var wsTotal=0, cards="", groups={};
-      list.forEach(function(p){var gn=String(p.group_name||"").trim()||"UNGROUPED",key=gn.toUpperCase(),ung=key==="UNGROUPED";if(!groups[key])groups[key]={name:gn,order:ung?999999:(parseInt(p.group_order,10)||999998),ungrouped:ung,items:[]};groups[key].order=Math.min(groups[key].order,ung?999999:(parseInt(p.group_order,10)||999998));groups[key].items.push(p);});
-      Object.keys(groups).map(function(k){return groups[k];}).sort(function(a,b){return (a.ungrouped-b.ungrouped)||(a.order-b.order)||(a.name<b.name?-1:1);}).forEach(function(g){
-        g.items.sort(function(a,b){return (parseInt(a.sort_order,10)||999999)-(parseInt(b.sort_order,10)||999999)||(a.process_code<b.process_code?-1:1);});
-        var ga=0,gs=0,gcards="";g.items.forEach(function(p){var r=procCard(p,overList,(multi&&tv)?ws:null);ga+=r.count;gs+=(p.spec_internal||0)+(p.spec_vendor||0);gcards+=r.html;});wsTotal+=ga;
-        cards+='<div class="procgroup-hd"><span class="gorder">'+(g.ungrouped?'—':'GROUP '+g.order)+'</span><span>'+esc(g.name)+'</span><span class="gtotal">'+ga+' / '+(gs||'—')+'</span><span class="gunit">ACT / SPEC</span></div>'+gcards;
-      });
-      total+=wsTotal;
-      if(multi) html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+wsTotal+' inside</span></div>';
-      html+=cards;
-    });
+    if(tv&&multi){
+      var combined=processes.filter(function(p){return sel.indexOf(p.workshop)!==-1;}),cg=groupedProcessCards(combined,overList,true);total=cg.actual;html=cg.html;
+    }else{
+      sel.forEach(function(ws){var list=processes.filter(function(p){return p.workshop===ws;});if(!list.length)return;var grouped=groupedProcessCards(list,overList,false);total+=grouped.actual;if(multi)html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+grouped.actual+' inside</span></div>';html+=grouped.html;});
+    }
     pgrid.innerHTML = (html ? ('<div class="legend">Numbers in <b>red</b> exceed the target.</div>'+html) : '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>');
     var totalSpec=sel.reduce(function(s,w){return s+(workshopSpecs[w]||0);},0);
     totalNum.textContent = total+" / "+(totalSpec||"—");
