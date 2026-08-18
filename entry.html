@@ -260,7 +260,8 @@
   .heat-scroll,.report-table{overflow:auto;max-height:330px}.heat{border-collapse:separate;border-spacing:3px;width:100%;font-size:10px}.heat th{position:sticky;top:0;background:var(--panel);color:var(--muted);padding:4px;white-space:nowrap}.heat td{min-width:45px;text-align:center;padding:7px 3px;border-radius:5px;background:var(--panel-2);font-family:var(--mono)}.heat td.warn{background:var(--warn-bg);color:var(--at)}.heat td.over{background:var(--alert-bg);color:var(--alert);font-weight:700}.heat .area{position:sticky;left:0;background:var(--panel);text-align:left;min-width:120px;font-family:var(--sans);font-weight:600}
   .flowbars{display:flex;align-items:flex-end;gap:5px;height:215px;padding-top:15px;overflow:hidden}.flowcol{flex:1;min-width:18px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}.flowpair{height:180px;display:flex;align-items:flex-end;gap:2px}.flowin,.flowout{flex:1;min-height:1px;border-radius:3px 3px 0 0}.flowin{background:var(--ok)}.flowout{background:#2d6cdf}.flowlabel{font:9px var(--mono);color:var(--muted);text-align:center;margin-top:5px;white-space:nowrap;transform:rotate(-35deg);transform-origin:center}
   .rstatus{display:inline-block;padding:2px 7px;border-radius:6px;font:600 10px var(--mono)}.rstatus.over{background:var(--alert-bg);color:var(--alert)}.rstatus.ok{background:var(--ok-bg);color:var(--ok)}
-  @media(max-width:1000px){.report-filter{grid-template-columns:repeat(2,1fr)}.report-kpis{grid-template-columns:repeat(2,1fr)}.report-grid{grid-template-columns:1fr}.report-card.wide{grid-column:auto}}
+  .decision-panel{display:grid;grid-template-columns:1.05fr 1fr 1fr 1.4fr;gap:8px}.decision-item{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:12px;min-height:92px}.decision-item .dl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.decision-item .dv{font-size:15px;font-weight:700;margin-top:7px;line-height:1.25}.decision-item .ds{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35}.decision-item.critical{border-color:var(--alert-border);background:var(--alert-bg)}.decision-item.critical .dv{color:var(--alert)}.decision-item.watch{border-color:var(--warn-border);background:var(--warn-bg)}.decision-item.watch .dv{color:var(--warn-ink)}.decision-item.controlled{border-color:var(--ok-border);background:var(--ok-bg)}.decision-item.controlled .dv{color:var(--ok-ink)}
+  @media(max-width:1000px){.report-filter{grid-template-columns:repeat(2,1fr)}.report-kpis{grid-template-columns:repeat(2,1fr)}.decision-panel{grid-template-columns:repeat(2,1fr)}.report-grid{grid-template-columns:1fr}.report-card.wide{grid-column:auto}}
   @media(max-width:820px){.setup{height:auto;overflow:visible}.setup-panel{overflow:visible}.setup-table-shell{max-height:520px}.setup-toolbar .fld,.setup-toolbar .search{min-width:100%;}.setup-toolbar .actions{margin-left:0}}
   .viewport{position:relative; width:100%; aspect-ratio:4/3; background:var(--cam-bg); border-radius:10px; overflow:hidden; border:1px solid var(--line)}
   #reader{width:100%;height:100%}
@@ -361,6 +362,12 @@
       <div class="fld"><label>Time frame</label><select id="rpBin"><option value="2">2 hours</option><option value="4">4 hours</option><option value="6">6 hours</option><option value="8">8 hours</option></select></div>
       <button class="btn go" id="rpApply">Analyze</button><button class="btn" id="rpExport">Export episodes</button>
     </div>
+    <div class="decision-panel">
+      <div class="decision-item" id="rpDecisionStatus"><div class="dl">Decision status</div><div class="dv" id="rpDecisionStatusText">Analyzing…</div><div class="ds" id="rpDecisionStatusSub">Capacity risk for the selected scope.</div></div>
+      <div class="decision-item"><div class="dl">Priority area</div><div class="dv" id="rpPriorityArea">—</div><div class="ds" id="rpPriorityReason">Area requiring management attention.</div></div>
+      <div class="decision-item"><div class="dl">Critical time</div><div class="dv" id="rpCriticalTime">—</div><div class="ds" id="rpCriticalReason">Longest over-spec period.</div></div>
+      <div class="decision-item"><div class="dl">Recommended action</div><div class="dv" id="rpRecommendation">—</div><div class="ds" id="rpRecommendationWhy">Based on scan events and configured HC spec.</div></div>
+    </div>
     <div class="report-kpis"><div class="rkpi"><div class="v" id="rpPeak">—</div><div class="l">Peak HC / Spec</div></div><div class="rkpi"><div class="v" id="rpAvg">—</div><div class="l">Average utilization</div></div><div class="rkpi"><div class="v red" id="rpEpisodes">—</div><div class="l">Over-spec episodes</div></div><div class="rkpi"><div class="v red" id="rpOverDuration">—</div><div class="l">Total over duration</div></div><div class="rkpi"><div class="v" id="rpMaxOver">—</div><div class="l">Maximum over spec</div></div></div>
     <div class="report-grid">
       <div class="report-card"><div class="hd">Headcount timeline · Actual vs Spec</div><div class="bd" id="rpTimeline"></div></div>
@@ -368,6 +375,7 @@
       <div class="report-card wide"><div class="hd">Over-spec heatmap by workshop</div><div class="bd heat-scroll" id="rpHeat"></div></div>
       <div class="report-card"><div class="hd">Workshop risk ranking</div><div class="bd report-table"><table class="ptable"><thead><tr><th>Workshop</th><th>Peak/Spec</th><th>Avg util.</th><th>Episodes</th><th>Over duration</th></tr></thead><tbody id="rpRank"></tbody></table></div></div>
       <div class="report-card"><div class="hd">Over-spec episodes</div><div class="bd report-table"><table class="ptable"><thead><tr><th>Area</th><th>Start</th><th>End</th><th>Duration</th><th>Peak/Spec</th></tr></thead><tbody id="rpEpisodeBody"></tbody></table></div></div>
+      <div class="report-card wide"><div class="hd">Scanner accountability</div><div class="bd report-table"><table class="ptable"><thead><tr><th>Scan user</th><th>Total scans</th><th>IN</th><th>OUT</th><th>Last scan</th></tr></thead><tbody id="rpScannerBody"></tbody></table></div></div>
     </div>
     <p id="rpNote" style="font-size:11px;color:var(--muted);margin:0 2px"></p>
   </div>
@@ -433,7 +441,7 @@
         <div class="card-bd">
           <div class="result out" id="result"><div class="dir" id="resDir">Ready</div><div class="cardcode" id="resCode">Scan a card to check in / out</div><div class="meta" id="resMeta"></div></div>
           <div class="evt">
-            <table><thead><tr><th style="width:64px">Time</th><th>Card</th><th>Process</th><th style="width:56px">Dir</th></tr></thead><tbody id="evtBody"><tr><td colspan="4" style="color:var(--muted);padding:16px">No activity yet.</td></tr></tbody></table>
+            <table><thead><tr><th style="width:64px">Time</th><th>Card</th><th>Process</th><th>Dept</th><th>Scan user</th><th style="width:56px">Dir</th></tr></thead><tbody id="evtBody"><tr><td colspan="6" style="color:var(--muted);padding:16px">No activity yet.</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -458,7 +466,7 @@
     </div>
     <div class="card" style="margin-top:14px"><div class="card-bd" style="padding:0">
       <div class="evt" style="max-height:520px; margin-top:0">
-        <table><thead><tr><th style="width:158px">Time</th><th>Card</th><th style="width:88px">Type</th><th>Process</th><th style="width:70px">Dept</th><th style="width:58px">Dir</th></tr></thead><tbody id="logBody"><tr><td colspan="6" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody></table>
+        <table><thead><tr><th style="width:158px">Time</th><th>Card</th><th style="width:88px">Type</th><th>Process</th><th style="width:70px">Dept</th><th>Scan user</th><th style="width:58px">Dir</th></tr></thead><tbody id="logBody"><tr><td colspan="7" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody></table>
       </div>
     </div></div>
     <p id="logNote" style="font-size:11.5px;color:var(--muted);margin-top:8px"></p>
@@ -679,6 +687,9 @@
   // nav / views
   function showView(name){
     if(!currentUser) return;
+    if(name==="report"&&!canViewReport()){ name="dash"; toast("Report Dashboard is available to viewer and admin only","alert"); }
+    if((name==="scan"||name==="log")&&!canScan()) name="dash";
+    if((name==="setup"||name==="users"||name==="tracking")&&!isAdmin()) name="dash";
     Object.keys(views).forEach(function(k){ views[k].classList.toggle("hidden", k!==name); });
     Array.prototype.forEach.call($("nav").children, function(b){ b.classList.toggle("active", b.getAttribute("data-view")===name); });
     if(name!=="scan"){ stopCamera(); }
@@ -751,20 +762,23 @@
 
   function enterApp(u){ currentUser=u; userEmail.textContent=u.email||u.id; userChip.classList.remove("hidden");
     $("nav").classList.remove("hidden"); tvBtn.classList.remove("hidden");
-    authScreen.classList.add("hidden"); showView(requestedView()); led.classList.add("on"); liveTxt.textContent="Live";
+    authScreen.classList.add("hidden"); showView("dash"); led.classList.add("on"); liveTxt.textContent="Live";
     sb.from("user_roles").select("role,workshops").eq("user_id",u.id).maybeSingle()
-      .then(function(r){ myRole=(r.data&&r.data.role)||"view"; myWorkshops=(r.data&&r.data.workshops)||null; applyRole(); fetchState(); })
-      .catch(function(){ myRole="view"; myWorkshops=null; applyRole(); fetchState(); });
+      .then(function(r){ myRole=(r.data&&r.data.role)||"view"; myWorkshops=(r.data&&r.data.workshops)||null; applyRole(); showView(requestedView()); fetchState(); })
+      .catch(function(){ myRole="view"; myWorkshops=null; applyRole(); showView(requestedView()); fetchState(); });
     subscribeRealtime(); startPolling(); loadRosterCache(); }
   // Data stays fresh via Supabase Realtime + the 5s poll (no full page reload, so a
   // selected workshop is never reset out from under the user).
 
   function isAdmin(){ return myRole==="admin"; }
   function canScan(){ return myRole==="scan"||myRole==="admin"; }
+  function canViewReport(){ return myRole==="view"||myRole==="admin"; }
+  function scanUserName(){var m=(currentUser&&currentUser.user_metadata)||{};return String(m.full_name||m.display_name||(currentUser&&currentUser.email)||"Unknown").trim();}
   function navBtn(v){ return $("nav").querySelector('[data-view="'+v+'"]'); }
   function applyRole(){
     roleBadge.textContent=myRole; roleBadge.className="rolebadge "+myRole;
     navBtn("scan").style.display  = canScan()?"":"none";
+    navBtn("report").style.display = canViewReport()?"":"none";
     navBtn("log").style.display   = canScan()?"":"none";
     navBtn("setup").style.display = isAdmin()?"":"none";
     navBtn("users").style.display = isAdmin()?"":"none";
@@ -773,7 +787,7 @@
     [startBtn,switchBtn,manualBtn].forEach(function(b){ if(b) b.disabled=dis; });
     if(manualCode) manualCode.disabled=dis;
     var cur=document.querySelector('.nav button.active'); var v=cur?cur.getAttribute("data-view"):"dash";
-    if(((v==="scan"||v==="log")&&!canScan())||((v==="setup"||v==="users"||v==="tracking")&&!isAdmin())) showView("dash");
+    if((v==="report"&&!canViewReport())||((v==="scan"||v==="log")&&!canScan())||((v==="setup"||v==="users"||v==="tracking")&&!isAdmin())) showView("dash");
   }
   function showAuth(){ currentUser=null; userChip.classList.add("hidden"); $("nav").classList.add("hidden"); tvBtn.classList.add("hidden");
     Object.keys(views).forEach(function(k){views[k].classList.add("hidden");}); authScreen.classList.remove("hidden");
@@ -824,7 +838,7 @@
       var next = cur==="in" ? "out" : "in";
       sb.from("ec_presence").upsert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, status:next, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
         if(up.error){ toast(up.error.message,"alert"); return; }
-        sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, direction:next, created_by:currentUser.id }).then(function(){});
+        sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, direction:next, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
         var nm = procName(p.processCode); var known = nm!==null; var deptTxt = p.dept ? (" · "+ (deptNames[p.dept]||p.dept)) : "";
         setResult(next, next==="in"?"CHECK IN":"CHECK OUT", p.code, (p.type==="VEN"?"Vendor":"Internal")+" · "+(known?nm:(p.processCode+" — not configured"))+deptTxt+" · card "+p.cardNo);
         if(next==="in"){ sIn(); } else { sOut(); } vibrate(45);
@@ -901,7 +915,7 @@
   function recordEmp(emp, key, proc, dir){
     sb.from("ec_presence").upsert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
       if(up.error){ toast(up.error.message,"alert"); return; }
-      sb.from("ec_event").insert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, direction:dir, created_by:currentUser.id }).then(function(){});
+      sb.from("ec_event").insert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, direction:dir, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
       setResult(dir, dir==="in"?"CHECK IN":"CHECK OUT", "Emp #"+emp.id_no, (procName(proc)||proc)+(emp.dept?(" · "+emp.dept):"")+(emp.title?(" · "+emp.title):""));
       if(dir==="in"){ sIn(); } else { sOut(); } vibrate(45);
       closeModal(); fetchState(); loadEvents();
@@ -1068,10 +1082,10 @@
     if(!sb) return;
     sb.from("ec_event").select("*").order("created_at",{ascending:false}).limit(15).then(function(r){
       if(r.error) return; var rows=r.data||[];
-      if(!rows.length){ evtBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">No activity yet.</td></tr>'; return; }
+      if(!rows.length){ evtBody.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px">No activity yet.</td></tr>'; return; }
       evtBody.innerHTML = rows.map(function(e){
         var nm=procName(e.process_code)||e.process_code||"";
-        return "<tr><td class=\"mono\">"+nowT(e.created_at)+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+        return "<tr><td class=\"mono\">"+nowT(e.created_at)+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td>"+esc(e.scanned_by||"Unknown / Legacy")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
       }).join("");
     });
   }
@@ -1189,7 +1203,7 @@
   }
   function setReportProcesses(keep){var w=$("rpWorkshop").value,list=processes.filter(function(p){return (!w||p.workshop===w)&&(!myAllowedWs.length||myAllowedWs.indexOf(p.workshop)!==-1);});$("rpProcess").innerHTML='<option value="">All processes</option>'+list.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+' · '+esc(p.process_code)+'</option>';}).join("");if(keep)$("rpProcess").value=keep;}
   $("rpWorkshop").addEventListener("change",function(){setReportProcesses("");});
-  function fetchReportEvents(toISO){return new Promise(function(resolve,reject){var all=[],from=0,size=1000,max=100000;(function next(){sb.from("ec_event").select("created_at,card_code,process_code,direction,person_type,dept").lte("created_at",toISO).order("created_at",{ascending:false}).range(from,from+size-1).then(function(r){if(r.error){reject(r.error);return;}var rows=r.data||[];all=all.concat(rows);if(rows.length<size||all.length>=max){all.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at);});resolve({rows:all,truncated:all.length>=max});}else{from+=size;next();}});})();});}
+  function fetchReportEvents(toISO){return new Promise(function(resolve,reject){var all=[],from=0,size=1000,max=100000;(function next(){sb.from("ec_event").select("created_at,card_code,process_code,direction,person_type,dept,scanned_by").lte("created_at",toISO).order("created_at",{ascending:false}).range(from,from+size-1).then(function(r){if(r.error){reject(r.error);return;}var rows=r.data||[];all=all.concat(rows);if(rows.length<size||all.length>=max){all.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at);});resolve({rows:all,truncated:all.length>=max});}else{from+=size;next();}});})();});}
   function procMap(){var m={};processes.forEach(function(p){m[p.process_code]=p;});return m;}
   function wsSpec(ws,pm){var s=workshopSpecs[ws]||0;if(s>0)return s;return processes.filter(function(p){return p.workshop===ws;}).reduce(function(n,p){return n+(p.spec_internal||0)+(p.spec_vendor||0);},0);}
   function scopeSpec(scope,pm){if(scope.process){var p=pm[scope.process];return p?(p.spec_internal||0)+(p.spec_vendor||0):0;}if(scope.workshop)return wsSpec(scope.workshop,pm);return scope.workshops.reduce(function(n,w){return n+wsSpec(w,pm);},0);}
@@ -1212,10 +1226,24 @@
   }
   function heatmap(events,fromMs,toMs,bins,wsList,pm){var state=replayBefore(events,fromMs,pm),counts={},peaks={};wsList.forEach(function(w){counts[w]=0;peaks[w]=bins.map(function(){return 0;});});Object.keys(state).forEach(function(c){var p=pm[state[c]];if(p&&counts[p.workshop]!=null)counts[p.workshop]++;});bins.forEach(function(b,i){wsList.forEach(function(w){peaks[w][i]=counts[w];});events.forEach(function(e){var t=new Date(e.created_at).getTime();if(t<b.start||t>=b.end)return;var old=state[e.card_code],op=pm[old],np=pm[e.process_code];if(e.direction==="in"){if(op&&counts[op.workshop]!=null)counts[op.workshop]--;state[e.card_code]=e.process_code;if(np&&counts[np.workshop]!=null)counts[np.workshop]++;}else{if(op&&counts[op.workshop]!=null)counts[op.workshop]--;delete state[e.card_code];}wsList.forEach(function(w){peaks[w][i]=Math.max(peaks[w][i],counts[w]);});});});return peaks;}
   function renderHeat(peaks,bins,wsList,pm){var head='<tr><th class="area">Workshop</th>'+bins.map(function(b){return '<th>'+new Date(b.start).toLocaleString([], {month:"2-digit",day:"2-digit",hour:"2-digit"})+'</th>';}).join("")+'</tr>',rows=wsList.map(function(w){var sp=wsSpec(w,pm);return '<tr><td class="area">'+esc(w)+' · Spec '+(sp||'—')+'</td>'+peaks[w].map(function(v){var cls=sp>0&&v>sp?'over':sp>0&&v===sp?'warn':'';return '<td class="'+cls+'">'+v+(sp?'/'+sp:'')+'</td>';}).join("")+'</tr>';}).join("");$("rpHeat").innerHTML='<table class="heat">'+head+rows+'</table>';}
+  function renderDecision(a,spec,ranking,totalDur,maxOver){
+    var box=$("rpDecisionStatus"),ratio=spec>0?a.peak/spec:0,status="controlled",title="CONTROLLED",sub="No over-spec episode in the selected period.";
+    if(!spec){status="watch";title="SPEC REQUIRED";sub="Configure HC spec before making a capacity decision.";}
+    else if(a.episodes.length&&(ratio>=1.2||totalDur>=120*60000)){status="critical";title="ACTION REQUIRED";sub="Material capacity exposure detected; immediate review is recommended.";}
+    else if(a.episodes.length){status="watch";title="WATCH";sub="Short or limited over-spec exposure requires follow-up.";}
+    box.className="decision-item "+status;$("rpDecisionStatusText").textContent=title;$("rpDecisionStatusSub").textContent=sub;
+    var priority=ranking[0];$("rpPriorityArea").textContent=priority?priority.w:"—";$("rpPriorityReason").textContent=priority?(priority.a.episodes.length+" episode(s), "+durationText(priority.d)+" over spec."):"No workshop data in scope.";
+    var longest=a.episodes.slice().sort(function(x,y){return (y.end-y.start)-(x.end-x.start);})[0];$("rpCriticalTime").textContent=longest?new Date(longest.start).toLocaleString():"No critical period";$("rpCriticalReason").textContent=longest?(durationText(longest.end-longest.start)+" · peak "+longest.peak+" / spec "+spec):"Headcount remained within configured spec.";
+    if(!spec){$("rpRecommendation").textContent="Set and approve HC spec";$("rpRecommendationWhy").textContent="Risk and utilization cannot be evaluated without a baseline.";}
+    else if(status==="critical"){$("rpRecommendation").textContent="Rebalance manpower / restrict entry";$("rpRecommendationWhy").textContent="Prioritize "+(priority?priority.w:"the highest-risk area")+"; peak exceeded spec by "+maxOver+".";}
+    else if(status==="watch"){$("rpRecommendation").textContent="Review shift overlap and scan timing";$("rpRecommendationWhy").textContent="Validate handover, break and OT windows around the critical period.";}
+    else{$("rpRecommendation").textContent="Maintain current control plan";$("rpRecommendationWhy").textContent="Continue monitoring the same time frame for recurring patterns.";}
+  }
+  function renderScannerAccountability(events){var m={};events.forEach(function(e){var u=e.scanned_by||"Unknown / Legacy",x=m[u]||(m[u]={u:u,total:0,ins:0,outs:0,last:0});x.total++;if(e.direction==="in")x.ins++;else if(e.direction==="out")x.outs++;x.last=Math.max(x.last,new Date(e.created_at).getTime());});var rows=Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){return b.total-a.total;});$("rpScannerBody").innerHTML=rows.map(function(x){return '<tr><td>'+esc(x.u)+'</td><td class="mono">'+x.total+'</td><td class="mono din">'+x.ins+'</td><td class="mono dout">'+x.outs+'</td><td class="mono">'+new Date(x.last).toLocaleString()+'</td></tr>';}).join("")||'<tr><td colspan="5">No scan activity in scope.</td></tr>';}
   function loadReport(){var from=new Date($("rpFrom").value),to=new Date($("rpTo").value);if(!isFinite(from)||!isFinite(to)||to<=from){toast("Choose a valid report range","alert");return;}var maxDays=31;if(to-from>maxDays*86400000){toast("Maximum report range is 31 days","alert");return;}$("rpNote").textContent="Analyzing scan events…";$("rpApply").disabled=true;fetchReportEvents(to.toISOString()).then(function(res){buildReport(res.rows,from.getTime(),to.getTime(),res.truncated);reportLoaded=true;}).catch(function(e){toast(e.message||String(e),"alert");}).finally(function(){$("rpApply").disabled=false;});}
   function buildReport(events,fromMs,toMs,truncated){var pm=procMap(),wsList=(myAllowedWs.length?myAllowedWs:allWorkshops).filter(function(w){return !$("rpWorkshop").value||w===$("rpWorkshop").value;}),scope={workshop:$("rpWorkshop").value,process:$("rpProcess").value,workshops:wsList},spec=scopeSpec(scope,pm),a=analyzeScope(events,fromMs,toMs,scope,spec,pm),hours=parseInt($("rpBin").value,10)||2,bins=makeBins(fromMs,toMs,hours),avgUtil=spec>0?a.avg/spec*100:0,totalDur=a.episodes.reduce(function(n,e){return n+(e.end-e.start);},0),maxOver=Math.max.apply(null,[0].concat(a.episodes.map(function(e){return e.peak-spec;})));
     $("rpPeak").textContent=a.peak+" / "+(spec||"—");$("rpAvg").textContent=spec?avgUtil.toFixed(1)+"%":"—";$("rpEpisodes").textContent=a.episodes.length;$("rpOverDuration").textContent=durationText(totalDur);$("rpMaxOver").textContent=maxOver?"+"+maxOver:"0";renderTimeline(a,fromMs,toMs);renderFlow(a.flow,bins);
-    var peaks=heatmap(events,fromMs,toMs,bins,wsList,pm);renderHeat(peaks,bins,wsList,pm);var ranking=wsList.map(function(w){var x=analyzeScope(events,fromMs,toMs,{workshop:w,process:"",workshops:[w]},wsSpec(w,pm),pm);return {w:w,a:x,d:x.episodes.reduce(function(n,e){return n+e.end-e.start;},0)};}).sort(function(x,y){return y.d-x.d||y.a.peak-x.a.peak;});$("rpRank").innerHTML=ranking.map(function(x){var util=x.a.spec?x.a.avg/x.a.spec*100:0;return '<tr><td>'+esc(x.w)+'</td><td class="mono">'+x.a.peak+'/'+(x.a.spec||'—')+'</td><td class="mono">'+(x.a.spec?util.toFixed(1)+'%':'—')+'</td><td class="mono">'+x.a.episodes.length+'</td><td class="mono">'+durationText(x.d)+'</td></tr>';}).join("")||'<tr><td colspan="5">No workshop data.</td></tr>';
+    var peaks=heatmap(events,fromMs,toMs,bins,wsList,pm);renderHeat(peaks,bins,wsList,pm);var ranking=wsList.map(function(w){var x=analyzeScope(events,fromMs,toMs,{workshop:w,process:"",workshops:[w]},wsSpec(w,pm),pm);return {w:w,a:x,d:x.episodes.reduce(function(n,e){return n+e.end-e.start;},0)};}).sort(function(x,y){return y.d-x.d||y.a.peak-x.a.peak;});$("rpRank").innerHTML=ranking.map(function(x){var util=x.a.spec?x.a.avg/x.a.spec*100:0;return '<tr><td>'+esc(x.w)+'</td><td class="mono">'+x.a.peak+'/'+(x.a.spec||'—')+'</td><td class="mono">'+(x.a.spec?util.toFixed(1)+'%':'—')+'</td><td class="mono">'+x.a.episodes.length+'</td><td class="mono">'+durationText(x.d)+'</td></tr>';}).join("")||'<tr><td colspan="5">No workshop data.</td></tr>';renderDecision(a,spec,ranking,totalDur,maxOver);renderScannerAccountability(a.flow);
     var area=scope.process?((pm[scope.process]&&pm[scope.process].process_name)||scope.process):scope.workshop||"All selected workshops";reportEpisodes=a.episodes.map(function(e){return {area:area,start:new Date(e.start).toISOString(),end:new Date(e.end).toISOString(),duration_minutes:Math.round((e.end-e.start)/60000),peak:e.peak,spec:spec,max_over:e.peak-spec};});$("rpEpisodeBody").innerHTML=reportEpisodes.map(function(e){return '<tr><td>'+esc(e.area)+'</td><td class="mono">'+new Date(e.start).toLocaleString()+'</td><td class="mono">'+new Date(e.end).toLocaleString()+'</td><td class="mono">'+durationText(e.duration_minutes*60000)+'</td><td><span class="rstatus over">'+e.peak+'/'+e.spec+'</span></td></tr>';}).join("")||'<tr><td colspan="5">No over-spec episodes.</td></tr>';$("rpNote").textContent="Calculated from "+events.length.toLocaleString()+" scan events. Time frame controls flow and heatmap buckets; episode duration uses exact scan timestamps."+(truncated?" Warning: event history reached the 100,000-row safety cap.":"");}
   $("rpApply").addEventListener("click",loadReport);$("rpExport").addEventListener("click",function(){downloadCSV("over-spec-episodes-"+stamp()+".csv",toCSV(reportEpisodes,["area","start","end","duration_minutes","peak","spec","max_over"]));});
 
@@ -1323,7 +1351,7 @@
       sb.from("ec_process").select("*").order("sort_order",{ascending:true}),
       sb.from("ec_spec").select("*").order("process_code",{ascending:true}),
       fetchAllRows("ec_presence","card_code,person_type,process_code,card_no,dept,status,updated_at",null),
-      fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,direction","created_at")
+      fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,direction,scanned_by","created_at")
     ]).then(function(r){
       if(r[0].error) throw r[0].error; if(r[1].error) throw r[1].error;
       return { version:1, exported_at:new Date().toISOString(),
@@ -1344,8 +1372,8 @@
   }
   function copyField(inp){ try{ inp.select(); inp.setSelectionRange(0,99999); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value); else document.execCommand("copy"); toast("Copied","ok"); }catch(e){ toast("Copy failed — select manually","alert"); } }
   if(dlEvents) dlEvents.addEventListener("click", function(){ if(!sb) return;
-    sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction").order("created_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
-      downloadCSV("entry-events-"+stamp()+".csv", toCSV(r.data||[], ["created_at","card_code","person_type","process_code","card_no","direction"])); toast("Exported "+((r.data||[]).length)+" events","ok"); }); });
+    sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,scanned_by").order("created_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
+      downloadCSV("entry-events-"+stamp()+".csv", toCSV(r.data||[], ["created_at","card_code","person_type","process_code","card_no","direction","scanned_by"])); toast("Exported "+((r.data||[]).length)+" events","ok"); }); });
   if(dlPresence) dlPresence.addEventListener("click", function(){ if(!sb) return;
     sb.from("ec_presence").select("card_code,person_type,process_code,card_no,status,updated_at").order("updated_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
       downloadCSV("entry-presence-"+stamp()+".csv", toCSV(r.data||[], ["card_code","person_type","process_code","card_no","status","updated_at"])); toast("Exported "+((r.data||[]).length)+" rows","ok"); }); });
@@ -1367,8 +1395,8 @@
     var fromISO, toISO;
     try{ fromISO=new Date(logFrom.value+"T00:00:00").toISOString(); toISO=new Date(logTo.value+"T23:59:59.999").toISOString(); }
     catch(e){ toast("Invalid date range","alert"); return; }
-    logBody.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px">Loading…</td></tr>';
-    var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept")
+    logBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept,scanned_by")
       .gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false}).limit(5000);
     if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
     if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
@@ -1377,15 +1405,15 @@
       if(!codes.length){ logRows=[]; renderLog(); return; }
       q=q.in("process_code", codes);
     }
-    q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="6" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
+    q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="7" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
       logRows=r.data||[]; renderLog(); });
   }
   function renderLog(){
     var inC=0,outC=0; logRows.forEach(function(e){ if(e.direction==="in")inC++; else if(e.direction==="out")outC++; });
     logTotal.textContent=logRows.length; logIn.textContent=inC; logOut.textContent=outC;
-    if(!logRows.length){ logBody.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
+    if(!logRows.length){ logBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
     logBody.innerHTML=logRows.map(function(e){ var nm=procName(e.process_code)||e.process_code||""; var d=new Date(e.created_at);
-      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td>"+esc(e.scanned_by||"Unknown / Legacy")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
     }).join("");
     logNote.textContent = logRows.length>=5000 ? "Showing the first 5000 records — narrow the range for the rest." : ("Showing "+logRows.length+" records.");
   }
@@ -1401,7 +1429,7 @@
     logDownload.disabled=true; var oldt=logDownload.textContent; logDownload.textContent="Exporting…";
     var all=[], from=0, size=1000;
     (function next(){
-      var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false});
+      var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept,scanned_by").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false});
       if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
       if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
       if(codes) q=q.in("process_code",codes);
@@ -1409,8 +1437,8 @@
         if(r.error){ toast("Export: "+r.error.message,"alert"); logDownload.disabled=false; logDownload.textContent=oldt; return; }
         var rows=r.data||[]; all=all.concat(rows);
         if(rows.length<size){
-          var out=all.map(function(e){ return { created_at:e.created_at, card_code:e.card_code, name:empName(e.card_code), person_type:e.person_type, process_code:e.process_code, card_no:e.card_no, dept:e.dept||"", direction:e.direction }; });
-          downloadCSV("entry-log-"+stamp()+".csv", toCSV(out,["created_at","card_code","name","person_type","process_code","card_no","dept","direction"]));
+          var out=all.map(function(e){ return { created_at:e.created_at, card_code:e.card_code, name:empName(e.card_code), person_type:e.person_type, process_code:e.process_code, card_no:e.card_no, dept:e.dept||"", scanned_by:e.scanned_by||"", direction:e.direction }; });
+          downloadCSV("entry-log-"+stamp()+".csv", toCSV(out,["created_at","card_code","name","person_type","process_code","card_no","dept","scanned_by","direction"]));
           toast("Exported "+all.length+" records","ok"); logDownload.disabled=false; logDownload.textContent=oldt;
         } else { from+=size; next(); }
       });
@@ -1497,7 +1525,7 @@
     if(!isAdmin())return; var seen={}, open=rows.filter(function(s){if(!s.open||seen[s.card])return false;seen[s.card]=1;return true;});
     if(!open.length){toast("No selected person is currently inside","alert");return;}
     var when=new Date().toISOString();
-    var events=open.map(function(s){return {card_code:s.card,person_type:s.type,process_code:s.process,card_no:s.cardNo||null,dept:s.dept||null,direction:"out",created_by:currentUser.id,created_at:when};});
+    var events=open.map(function(s){return {card_code:s.card,person_type:s.type,process_code:s.process,card_no:s.cardNo||null,dept:s.dept||null,direction:"out",created_by:currentUser.id,scanned_by:scanUserName(),created_at:when};});
     var presence=open.map(function(s){return {card_code:s.card,person_type:s.type,process_code:s.process,card_no:s.cardNo||null,dept:s.dept||null,status:"out",updated_at:when};});
     sb.from("ec_event").insert(events).then(function(r){if(r.error)throw r.error;return sb.from("ec_presence").upsert(presence,{onConflict:"card_code"});}).then(function(r){
       if(r.error)throw r.error;return sb.from("ec_presence").select("card_code,status").in("card_code",open.map(function(s){return s.card;}));
@@ -1557,7 +1585,7 @@
     fetchAllForMigration().then(function(data){
       var tasks=[];
       tasks.push(writeBackupFile("scan-tools-migration-latest.json", JSON.stringify(data)));
-      tasks.push(writeBackupFile("entry-events-latest.csv", toCSV(data.events,["created_at","card_code","person_type","process_code","card_no","dept","direction"])));
+      tasks.push(writeBackupFile("entry-events-latest.csv", toCSV(data.events,["created_at","card_code","person_type","process_code","card_no","dept","direction","scanned_by"])));
       tasks.push(writeBackupFile("entry-presence-latest.csv", toCSV(data.presence,["card_code","person_type","process_code","card_no","dept","status","updated_at"])));
       return Promise.all(tasks);
     }).then(function(){ lastBackup=new Date(); updateBackupUI(); })
