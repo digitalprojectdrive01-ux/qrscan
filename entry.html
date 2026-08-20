@@ -150,6 +150,26 @@
   .pmname{font-size:18px; font-weight:700} .pmsub{font-size:12.5px; color:var(--muted); margin-top:3px}
   .modal-hd .x{margin-left:auto; background:none; border:none; font-size:26px; line-height:1; color:var(--muted); cursor:pointer}
   .cal-modal-card{width:min(1050px,97vw)}
+  .access-modal-card{width:min(760px,96vw);max-height:min(820px,92vh);overflow:hidden;display:flex;flex-direction:column;border-radius:13px}
+  .access-modal-card .modal-hd{padding:20px 24px 17px;flex:none}
+  .access-modal-card .pmname{font-size:18px;letter-spacing:-.01em}
+  .access-modal-card .pmsub{font-size:11.5px}
+  .access-modal-card .x{font-size:22px;padding:0 2px}
+  .access-modal-body{padding:18px 24px 0;overflow:auto;min-height:0}
+  .access-modebar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px}
+  .access-mode-tabs{display:inline-flex;padding:3px;border-radius:9px;background:var(--panel-2);border:1px solid var(--row-line)}
+  .access-mode-tabs .btn{border:0;background:transparent;border-radius:7px;padding:8px 16px;font-size:12px;color:var(--muted)}
+  .access-mode-tabs .btn.go{background:var(--signal);color:var(--on-signal);box-shadow:0 3px 10px rgba(255,55,65,.18)}
+  .access-template{white-space:nowrap;padding:8px 12px;font-size:12px}
+  .access-form-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"id title" "workshop process" "group work" "dept shift" "note note";column-gap:24px;row-gap:16px}
+  .access-form-grid .fld{margin:0}.access-form-grid .fld label{font-size:10px;margin-bottom:7px;font-weight:600}
+  .access-form-grid input,.access-form-grid textarea{min-height:40px;background:var(--panel-2)}
+  .access-form-grid textarea{font-family:var(--sans);font-size:13px;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 11px;width:100%;resize:vertical;min-height:78px}
+  .access-form-grid textarea:focus{outline:2px solid var(--signal);outline-offset:1px;border-color:transparent}
+  .access-id{grid-area:id}.access-title{grid-area:title}.access-workshop{grid-area:workshop}.access-process{grid-area:process}.access-group{grid-area:group}.access-work{grid-area:work}.access-dept{grid-area:dept}.access-shift{grid-area:shift}.access-note{grid-area:note}
+  .access-bulk{padding:2px 0 4px}.access-bulk textarea{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px;width:100%;resize:vertical;min-height:190px}.access-bulk textarea:focus{outline:2px solid var(--signal);outline-offset:1px}.access-file{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:9px;background:var(--panel-2)}
+  .access-modal-footer{display:flex;align-items:center;gap:12px;padding:16px 24px 20px;margin-top:18px;border-top:1px solid var(--line);flex:none}.access-modal-footer .btn{padding:10px 18px}.access-modal-footer #arSubmitStatus{font-size:12px;color:var(--muted)}
+  @media(max-width:620px){.modal{padding:8px}.access-modal-card{width:100%;max-height:96vh}.access-modal-card .modal-hd,.access-modal-body,.access-modal-footer{padding-left:16px;padding-right:16px}.access-modebar{align-items:stretch;flex-direction:column}.access-template{align-self:flex-start}.access-form-grid{grid-template-columns:1fr;grid-template-areas:"id" "workshop" "group" "dept" "title" "process" "work" "shift" "note";gap:12px}.access-modal-footer{margin-top:14px}}
   .shift-calendar{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));gap:8px;padding:14px}
   .shift-day{border:1px solid var(--line);border-radius:10px;padding:9px;background:var(--panel-2);min-width:0}
   .shift-day .date{font:600 11px var(--mono);margin-bottom:7px}.shift-day .dow{color:var(--muted);margin-left:4px}
@@ -622,13 +642,24 @@
     <div class="modal-hd"><div><div id="pmName" class="pmname">Employee</div><div id="pmInfo" class="pmsub"></div></div><button class="x" id="pmClose">&times;</button></div>
     <div id="pmBody" class="pmbody"></div>
   </div></div>
-  <div id="accessRequestModal" class="modal hidden"><div class="modal-card cal-modal-card">
-    <div class="modal-hd"><div><div class="pmname">Register new Employee Access</div><div class="pmsub">Submit single or bulk employees for admin approval</div></div><button class="x" id="accessRequestClose">&times;</button></div>
-    <div class="pmbody"><div class="row"><button class="btn go" id="arModeSingle">Single employee</button><button class="btn" id="arModeBulk">Bulk employees</button><button class="btn" id="arTemplate" style="margin-left:auto">Download template</button></div>
-      <div id="arSingleFields" style="margin-top:14px"><div class="addbar" style="grid-template-columns:repeat(4,1fr)"><div class="fld"><label>Employee ID *</label><input id="arId"></div><div class="fld"><label>Workshop *</label><input id="arWorkshop" list="arWorkshopOptions"><datalist id="arWorkshopOptions"></datalist></div><div class="fld"><label>Group</label><input id="arGroup" list="arGroupOptions"><datalist id="arGroupOptions"></datalist></div><div class="fld"><label>Department</label><input id="arDept" list="arDeptOptions"><datalist id="arDeptOptions"></datalist></div><div class="fld"><label>Title / Position</label><input id="arTitle" list="arTitleOptions"><datalist id="arTitleOptions"></datalist></div><div class="fld"><label>Process Name *</label><input id="arProcessName" list="arProcessOptions" placeholder="Search configured process"><datalist id="arProcessOptions"></datalist></div><div class="fld"><label>Process Work</label><input id="arProcessWork" placeholder="Additional work reference"></div><div class="fld"><label>Default Shift</label><input id="arShift" list="arShiftOptions"><datalist id="arShiftOptions"></datalist></div><div class="fld"><label>Note</label><input id="arNote"></div></div></div>
-      <div id="arBulkFields" class="hidden" style="margin-top:14px"><div class="fld"><label>CSV rows: Employee ID, Workshop, Group, Dept, Title, Process Name, Process Work, Default Shift, Note</label><textarea id="arBulkCsv" rows="9" class="mono" style="width:100%;resize:vertical" placeholder="000001,1F ELECTRODE,A,PRD,Operator 1,ANODE Mixing,Mixing operation,S10E,New hire"></textarea></div><input type="file" id="arBulkFile" accept=".csv,text/csv"></div>
-      <div class="row" style="margin-top:14px"><button class="btn go" id="arSubmit">Submit for approval</button><span id="arSubmitStatus" style="font-size:12px;color:var(--muted)"></span></div>
+  <div id="accessRequestModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="accessRequestTitle"><div class="modal-card access-modal-card">
+    <div class="modal-hd"><div><div class="pmname" id="accessRequestTitle">Register new Employee Access</div><div class="pmsub">Submit single or bulk employees for admin approval</div></div><button class="x" id="accessRequestClose" aria-label="Close">&times;</button></div>
+    <div class="access-modal-body">
+      <div class="access-modebar"><div class="access-mode-tabs"><button class="btn go" id="arModeSingle">Single employee</button><button class="btn" id="arModeBulk">Bulk employees</button></div><button class="btn access-template" id="arTemplate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>Download template</button></div>
+      <div id="arSingleFields"><div class="access-form-grid">
+        <div class="fld access-id"><label>Employee ID *</label><input id="arId" autocomplete="off"></div>
+        <div class="fld access-workshop"><label>Workshop *</label><input id="arWorkshop" list="arWorkshopOptions" autocomplete="off"><datalist id="arWorkshopOptions"></datalist></div>
+        <div class="fld access-group"><label>Group</label><input id="arGroup" list="arGroupOptions" autocomplete="off"><datalist id="arGroupOptions"></datalist></div>
+        <div class="fld access-dept"><label>Department</label><input id="arDept" list="arDeptOptions" autocomplete="off"><datalist id="arDeptOptions"></datalist></div>
+        <div class="fld access-title"><label>Title / Position</label><input id="arTitle" list="arTitleOptions" autocomplete="off"><datalist id="arTitleOptions"></datalist></div>
+        <div class="fld access-process"><label>Process Name *</label><input id="arProcessName" list="arProcessOptions" placeholder="Search configured process" autocomplete="off"><datalist id="arProcessOptions"></datalist></div>
+        <div class="fld access-work"><label>Process Work</label><input id="arProcessWork" placeholder="Additional work reference" autocomplete="off"></div>
+        <div class="fld access-shift"><label>Default Shift</label><input id="arShift" list="arShiftOptions" autocomplete="off"><datalist id="arShiftOptions"></datalist></div>
+        <div class="fld access-note"><label>Note</label><textarea id="arNote" rows="3" placeholder="Additional information for admin review"></textarea></div>
+      </div></div>
+      <div id="arBulkFields" class="access-bulk hidden"><div class="fld"><label>CSV rows: Employee ID, Workshop, Group, Dept, Title, Process Name, Process Work, Default Shift, Note</label><textarea id="arBulkCsv" rows="9" placeholder="000001,1F ELECTRODE,A,PRD,Operator 1,ANODE Mixing,Mixing operation,S10E,New hire"></textarea></div><label class="access-file">Choose CSV file <input type="file" id="arBulkFile" accept=".csv,text/csv"></label></div>
     </div>
+    <div class="access-modal-footer"><button class="btn go" id="arSubmit">Submit for approval</button><span id="arSubmitStatus"></span></div>
   </div></div>
   <div id="accessReviewModal" class="modal hidden"><div class="modal-card">
     <div class="modal-hd"><div><div class="pmname">Review Employee Access</div><div id="arrInfo" class="pmsub"></div></div><button class="x" id="arrClose">&times;</button></div>
@@ -963,7 +994,7 @@
   }
   if($("pmClose")) $("pmClose").addEventListener("click", closeModal);
   if($("procModal")) $("procModal").addEventListener("click", function(e){ if(e.target===$("procModal")) closeModal(); });
-  document.addEventListener("keydown", function(e){ if(e.key==="Escape") closeModal(); });
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape"){closeModal();if($("accessRequestModal"))closeAccessRequest();if($("accessReviewModal"))closeAccessReview();} });
   function recordEmp(emp, key, proc, dir){
     if(!scanDirectionAllowed("employee",dir,"Emp #"+emp.id_no))return;
     sb.from("ec_presence").upsert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
@@ -1046,7 +1077,7 @@
   function refreshRequestProcessOptions(){var ws=normProcess($("arWorkshop").value),list=processes.filter(function(p){return !ws||normProcess(p.workshop)===ws;});$("arProcessOptions").innerHTML=list.map(function(p){return '<option value="'+esc(p.process_name||p.process_code)+'">'+esc(p.process_code)+' · '+esc(p.workshop||"")+'</option>';}).join("");}
   function fillRequestMasters(){var rr=requestMasterRows();fillRequestList("arWorkshopOptions",allWorkshops);fillRequestList("arGroupOptions",knownGroups);fillRequestList("arDeptOptions",knownDepts.concat(rr.map(function(x){return x.dept;})));fillRequestList("arTitleOptions",rr.map(function(x){return x.title;}));fillRequestList("arShiftOptions",shiftPatterns.map(function(x){return x.shift_code;}));refreshRequestProcessOptions();}
   function resolveRequestProcess(row){return processes.filter(function(p){return normProcess(p.workshop)===normProcess(row.workshop)&&(normProcess(p.process_name)===normProcess(row.process_name)||normProcess(p.process_code)===normProcess(row.process_name));})[0]||null;}
-  function openAccessRequest(){setAccessRequestMode("single");$("arWorkshop").value=(rosterWs&&rosterWs.value)||"";$("arSubmitStatus").textContent="";fillRequestMasters();if(!shiftPatterns.length&&sb)sb.from("ec_shift_pattern").select("shift_code").eq("active",true).order("shift_code").then(function(r){if(!r.error){shiftPatterns=r.data||[];fillRequestList("arShiftOptions",shiftPatterns.map(function(x){return x.shift_code;}));}});$("accessRequestModal").classList.remove("hidden");}
+  function openAccessRequest(){setAccessRequestMode("single");$("arWorkshop").value=(rosterWs&&rosterWs.value)||"";$("arSubmitStatus").textContent="";fillRequestMasters();if(!shiftPatterns.length&&sb)sb.from("ec_shift_pattern").select("shift_code").eq("active",true).order("shift_code").then(function(r){if(!r.error){shiftPatterns=r.data||[];fillRequestList("arShiftOptions",shiftPatterns.map(function(x){return x.shift_code;}));}});$("accessRequestModal").classList.remove("hidden");setTimeout(function(){$("arId").focus();},50);}
   function closeAccessRequest(){$("accessRequestModal").classList.add("hidden");}
   if($("accessRequestOpen"))$("accessRequestOpen").addEventListener("click",openAccessRequest);
   if($("accessRequestClose"))$("accessRequestClose").addEventListener("click",closeAccessRequest);
