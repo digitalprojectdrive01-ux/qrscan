@@ -439,6 +439,7 @@
           <div class="fld" style="margin-top:12px"><label>Manual entry — card (VEN-BK-6) or employee ID</label><div class="inline"><input type="text" id="manualCode" placeholder="Card or employee ID" autocomplete="off"><button class="btn" id="manualBtn">Enter</button></div></div>
           <div class="fld" style="margin-top:12px"><label>Gate / workshop (optional — scopes roster &amp; process list)</label><select id="rosterWs"></select></div>
           <p style="font-size:11.5px;color:var(--muted);margin-top:6px">Mapped employees check in directly. The process picker appears only when the mapping is missing or invalid for this workshop.</p>
+          <button class="btn" id="accessRequestOpen" style="margin-top:8px">Register new Employee Access</button>
         </div>
       </div>
       <div class="card">
@@ -484,6 +485,7 @@
         <button class="setup-tab active" data-setup-tab="process">Processes</button>
         <button class="setup-tab" data-setup-tab="department">Department specs</button>
         <button class="setup-tab" data-setup-tab="roster">Employee access</button>
+        <button class="setup-tab" data-setup-tab="accessrequests">Access requests</button>
         <button class="setup-tab" data-setup-tab="shifts">Working shifts</button>
         <button class="setup-tab" data-setup-tab="weekly">Weekly assignment</button>
         <button class="setup-tab" data-setup-tab="ot">OT registration</button>
@@ -574,6 +576,11 @@
         </div></div></div>
       </div></div></section>
 
+      <section class="setup-panel" data-setup-panel="accessrequests"><div class="card"><div class="card-hd">Employee Access approval queue</div><div class="card-bd">
+        <div class="setup-toolbar"><div class="fld search"><label>Search requests</label><input id="arSearch" placeholder="Employee ID, workshop, process work or requester"></div><div class="fld"><label>Status</label><select id="arStatus"><option value="pending">Pending</option><option value="">All status</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></div><div class="actions"><button class="btn" id="arRefresh">Refresh</button><button class="btn" data-table-export="accessRequestBody">Export CSV</button></div></div>
+        <div class="setup-table-shell"><table class="ptable"><thead><tr><th>Requested</th><th>Employee ID</th><th>Workshop</th><th>Group</th><th>Dept</th><th>Title</th><th>Process Work</th><th>Shift</th><th>Status</th><th>Action</th></tr></thead><tbody id="accessRequestBody"></tbody></table></div>
+      </div></div></section>
+
       <section class="setup-panel" data-setup-panel="hc"><div class="card"><div class="card-hd">Workshop HC specification</div><div class="card-bd">
         <div class="setup-toolbar"><div class="fld search"><label>Search workshop</label><input id="hcSearch" type="text" placeholder="Workshop"></div><div class="actions"><button class="btn" data-setup-clear="hc">Clear filter</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" data-table-export="hcBody">Export CSV</button></div></div>
         <div class="addbar"><div class="fld"><label>Workshop</label><input id="hcWs" placeholder="1F"></div><div class="fld"><label>Spec HC</label><input id="hcSpec" type="number" min="0" value="0"></div><button class="btn go" id="hcSave">Save spec</button></div>
@@ -614,6 +621,18 @@
   <div id="procModal" class="modal hidden"><div class="modal-card">
     <div class="modal-hd"><div><div id="pmName" class="pmname">Employee</div><div id="pmInfo" class="pmsub"></div></div><button class="x" id="pmClose">&times;</button></div>
     <div id="pmBody" class="pmbody"></div>
+  </div></div>
+  <div id="accessRequestModal" class="modal hidden"><div class="modal-card cal-modal-card">
+    <div class="modal-hd"><div><div class="pmname">Register new Employee Access</div><div class="pmsub">Submit single or bulk employees for admin approval</div></div><button class="x" id="accessRequestClose">&times;</button></div>
+    <div class="pmbody"><div class="row"><button class="btn go" id="arModeSingle">Single employee</button><button class="btn" id="arModeBulk">Bulk employees</button><button class="btn" id="arTemplate" style="margin-left:auto">Download template</button></div>
+      <div id="arSingleFields" style="margin-top:14px"><div class="addbar" style="grid-template-columns:repeat(4,1fr)"><div class="fld"><label>Employee ID *</label><input id="arId"></div><div class="fld"><label>Workshop *</label><input id="arWorkshop"></div><div class="fld"><label>Group</label><input id="arGroup"></div><div class="fld"><label>Department</label><input id="arDept"></div><div class="fld"><label>Title / Position</label><input id="arTitle"></div><div class="fld"><label>Process Work *</label><input id="arProcessWork" placeholder="Name/code for admin reference"></div><div class="fld"><label>Default Shift</label><input id="arShift"></div><div class="fld"><label>Note</label><input id="arNote"></div></div></div>
+      <div id="arBulkFields" class="hidden" style="margin-top:14px"><div class="fld"><label>CSV rows: Employee ID, Workshop, Group, Dept, Title, Process Work, Default Shift, Note</label><textarea id="arBulkCsv" rows="9" class="mono" style="width:100%;resize:vertical" placeholder="000001,1F ELECTRODE,A,PRD,Operator 1,ANODE Mixing,S10E,New hire"></textarea></div><input type="file" id="arBulkFile" accept=".csv,text/csv"></div>
+      <div class="row" style="margin-top:14px"><button class="btn go" id="arSubmit">Submit for approval</button><span id="arSubmitStatus" style="font-size:12px;color:var(--muted)"></span></div>
+    </div>
+  </div></div>
+  <div id="accessReviewModal" class="modal hidden"><div class="modal-card">
+    <div class="modal-hd"><div><div class="pmname">Review Employee Access</div><div id="arrInfo" class="pmsub"></div></div><button class="x" id="arrClose">&times;</button></div>
+    <div class="pmbody"><div id="arrSummary" class="empq"></div><div class="fld"><label>Approved Process Access *</label><select id="arrProcess"></select></div><div class="fld"><label>Admin note / rejection reason</label><textarea id="arrNote" rows="3" style="width:100%;resize:vertical"></textarea></div><div class="row"><button class="btn go" id="arrApprove">Approve &amp; create access</button><button class="btn danger" id="arrReject">Reject</button></div></div>
   </div></div>
   <div id="shiftCalModal" class="modal hidden"><div class="modal-card cal-modal-card"><div class="modal-hd"><div><div class="pmname">Shift calendar</div><div id="calInfo" class="pmsub"></div></div><button class="x" id="calClose">&times;</button></div><div id="shiftCalendar" class="shift-calendar"></div><div class="pmbody"><div class="row"><button class="btn go" id="calSave">Save daily schedule</button><button class="btn" id="calFill">Fill empty days</button><select id="calFillShift" style="max-width:180px"></select></div><p style="font-size:12px;color:var(--muted)">Select a shift code for each working day or OFF for any scheduled rest day. Rest days are not tied to Saturday or Sunday.</p></div></div></div>
 
@@ -736,6 +755,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".setup-panel"),function(p){p.classList.toggle("active",p.getAttribute("data-setup-panel")===name);});
     try{localStorage.setItem("entry_setup_tab",name);}catch(e){}
     if(name==="reporting") setReportingUrls();
+    if(name==="accessrequests") loadAccessRequests();
   }
   Array.prototype.forEach.call(document.querySelectorAll(".setup-tab"),function(b){b.addEventListener("click",function(){activateSetupTab(b.getAttribute("data-setup-tab"));});});
   try{activateSetupTab(localStorage.getItem("entry_setup_tab")||"process");}catch(e){activateSetupTab("process");}
@@ -755,8 +775,9 @@
     filterBody("shiftBody",$("shiftSearch")&&$("shiftSearch").value,5,$("shiftStatusFilter")&&$("shiftStatusFilter").value);
     filterBody("weeklyBody",$("weeklySearch")&&$("weeklySearch").value,3,$("weeklyShiftFilter")&&$("weeklyShiftFilter").value);
     filterBody("otBody",$("otSearch")&&$("otSearch").value,5,$("otStatusFilter")&&$("otStatusFilter").value);
+    filterBody("accessRequestBody",$("arSearch")&&$("arSearch").value,8,$("arStatus")&&$("arStatus").value);
   }
-  ["procSearch","procWsFilter","deptSearch","deptProcFilter","rsSearch","hcSearch","shiftSearch","shiftStatusFilter","weeklySearch","weeklyWeekFilter","weeklyShiftFilter","otSearch","otStatusFilter"].forEach(function(id){var el=$(id);if(el){el.addEventListener(el.tagName==="SELECT"||el.type==="date"?"change":"input",function(){if(id==="weeklyWeekFilter")loadWeeklyAssignments();else applySetupFilters();});}});
+  ["procSearch","procWsFilter","deptSearch","deptProcFilter","rsSearch","hcSearch","shiftSearch","shiftStatusFilter","weeklySearch","weeklyWeekFilter","weeklyShiftFilter","otSearch","otStatusFilter","arSearch","arStatus"].forEach(function(id){var el=$(id);if(el){el.addEventListener(el.tagName==="SELECT"||el.type==="date"?"change":"input",function(){if(id==="weeklyWeekFilter")loadWeeklyAssignments();else if(id==="arStatus")loadAccessRequests();else applySetupFilters();});}});
   Array.prototype.forEach.call(document.querySelectorAll("[data-setup-refresh]"),function(b){b.addEventListener("click",function(){fetchState();loadRoster();loadAccessSetup();toast("Data refreshed","ok");});});
   Array.prototype.forEach.call(document.querySelectorAll("[data-setup-clear]"),function(b){b.addEventListener("click",function(){
     var n=b.getAttribute("data-setup-clear"), ids=n==="process"?["procSearch","procWsFilter"]:n==="department"?["deptSearch","deptProcFilter"]:n==="roster"?["rsSearch","rsFilter","rsGroupFilter"]:n==="shifts"?["shiftSearch","shiftStatusFilter"]:n==="weekly"?["weeklySearch","weeklyWeekFilter","weeklyShiftFilter"]:n==="ot"?["otSearch","otStatusFilter"]:["hcSearch"];
@@ -1017,6 +1038,29 @@
     sb.from("ec_roster").delete().eq("workshop",ws).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Cleared "+ws,"ok"); loadRoster(); });
   });
 
+  // ---- Employee Access registration + admin approval ----
+  var accessRequestMode="single", accessRequests=[], reviewAccessRequest=null;
+  function setAccessRequestMode(mode){accessRequestMode=mode;$("arSingleFields").classList.toggle("hidden",mode!=="single");$("arBulkFields").classList.toggle("hidden",mode!=="bulk");$("arModeSingle").classList.toggle("go",mode==="single");$("arModeBulk").classList.toggle("go",mode==="bulk");}
+  function openAccessRequest(){setAccessRequestMode("single");$("arWorkshop").value=(rosterWs&&rosterWs.value)||"";$("arSubmitStatus").textContent="";$("accessRequestModal").classList.remove("hidden");}
+  function closeAccessRequest(){$("accessRequestModal").classList.add("hidden");}
+  if($("accessRequestOpen"))$("accessRequestOpen").addEventListener("click",openAccessRequest);
+  if($("accessRequestClose"))$("accessRequestClose").addEventListener("click",closeAccessRequest);
+  if($("accessRequestModal"))$("accessRequestModal").addEventListener("click",function(e){if(e.target===$("accessRequestModal"))closeAccessRequest();});
+  if($("arModeSingle"))$("arModeSingle").addEventListener("click",function(){setAccessRequestMode("single");});
+  if($("arModeBulk"))$("arModeBulk").addEventListener("click",function(){setAccessRequestMode("bulk");});
+  if($("arTemplate"))$("arTemplate").addEventListener("click",function(){downloadCSV("employee-access-request-template.csv","Employee ID,Workshop,Group,Dept,Title,Process Work,Default Shift,Note\r\n000001,1F ELECTRODE,A,PRD,Operator 1,ANODE Mixing,S10E,New hire");});
+  function csvCells(line){var out=[],v="",q=false;for(var i=0;i<line.length;i++){var c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){v+='"';i++;}else q=!q;}else if(c===","&&!q){out.push(v.trim());v="";}else v+=c;}out.push(v.trim());return out;}
+  function parseAccessRequests(text){var rows=[];String(text||"").split(/\r?\n/).forEach(function(line){if(!line.trim())return;var c=csvCells(line),id=(c[0]||"").trim();if(!id||/^employee\s*id$/i.test(id))return;rows.push({id_no:id,workshop:(c[1]||"").trim(),group_code:(c[2]||"").trim()||null,dept:(c[3]||"").trim()||null,title:(c[4]||"").trim()||null,process_work:(c[5]||"").trim(),shift_code:(c[6]||"").trim()||null,note:(c[7]||"").trim()||null});});return rows;}
+  function submitAccessRows(rows){if(!rows.length){toast("No employee rows to submit","alert");return;}if(rows.some(function(r){return !r.id_no||!r.workshop||!r.process_work;})){toast("Employee ID, Workshop and Process Work are required","alert");return;}rows=rows.map(function(r){r.status="pending";r.requested_by=currentUser.id;return r;});$("arSubmit").disabled=true;$("arSubmitStatus").textContent="Submitting "+rows.length+" employee(s)…";sb.from("ec_access_request").insert(rows).then(function(r){$("arSubmit").disabled=false;if(r.error){toast(r.error.message,"alert");$("arSubmitStatus").textContent="Submission failed";return;}$("arSubmitStatus").textContent=rows.length+" request(s) submitted — pending admin approval";toast("Employee Access request submitted","ok");$("arId").value="";$("arBulkCsv").value="";setTimeout(closeAccessRequest,900);if(isAdmin())loadAccessRequests();});}
+  if($("arSubmit"))$("arSubmit").addEventListener("click",function(){if(accessRequestMode==="single"){submitAccessRows([{id_no:$("arId").value.trim(),workshop:$("arWorkshop").value.trim(),group_code:$("arGroup").value.trim()||null,dept:$("arDept").value.trim()||null,title:$("arTitle").value.trim()||null,process_work:$("arProcessWork").value.trim(),shift_code:$("arShift").value.trim()||null,note:$("arNote").value.trim()||null}]);return;}var f=$("arBulkFile").files&&$("arBulkFile").files[0];if(f){var rd=new FileReader();rd.onload=function(){submitAccessRows(parseAccessRequests(rd.result));};rd.readAsText(f);}else submitAccessRows(parseAccessRequests($("arBulkCsv").value));});
+  function loadAccessRequests(){if(!isAdmin()||!sb||!$("accessRequestBody"))return;var q=sb.from("ec_access_request").select("*").order("requested_at",{ascending:false}).limit(5000),st=$("arStatus").value;if(st)q=q.eq("status",st);q.then(function(r){if(r.error){$("accessRequestBody").innerHTML='<tr><td colspan="10">Run employee-access-request-v18-setup.sql first.</td></tr>';return;}accessRequests=r.data||[];$("accessRequestBody").innerHTML=accessRequests.length?accessRequests.map(function(x){return '<tr data-id="'+x.id+'"><td class="mono">'+new Date(x.requested_at).toLocaleString()+'</td><td class="mono">'+esc(x.id_no)+'</td><td>'+esc(x.workshop)+'</td><td>'+esc(x.group_code||"")+'</td><td>'+esc(x.dept||"")+'</td><td>'+esc(x.title||"")+'</td><td><b>'+esc(x.process_work)+'</b></td><td class="mono">'+esc(x.shift_code||"")+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==="pending"?'<button class="btn sm arReview">Review</button>':'<span class="mono">'+esc(x.admin_note||"—")+'</span>')+'</td></tr>';}).join(""):'<tr><td colspan="10">No access requests.</td></tr>';Array.prototype.forEach.call(document.querySelectorAll(".arReview"),function(b){b.addEventListener("click",function(){openAccessReview(b.closest("tr").getAttribute("data-id"));});});applySetupFilters();});}
+  function openAccessReview(id){reviewAccessRequest=accessRequests.filter(function(x){return String(x.id)===String(id);})[0];if(!reviewAccessRequest)return;var x=reviewAccessRequest,list=processes.filter(function(p){return normProcess(p.workshop)===normProcess(x.workshop);});$("arrInfo").textContent="Employee #"+x.id_no+" · "+x.workshop;$("arrSummary").innerHTML='<b>Requested Process Work:</b> '+esc(x.process_work)+'<br>'+[x.dept,x.title,x.group_code,x.shift_code,x.note].filter(Boolean).map(esc).join(" · ");$("arrProcess").innerHTML='<option value="">— Select approved process —</option>'+list.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+' · '+esc(p.process_code)+'</option>';}).join("");var m=list.filter(function(p){return normProcess(p.process_code)===normProcess(x.process_work)||normProcess(p.process_name)===normProcess(x.process_work);})[0];if(m)$("arrProcess").value=m.process_code;$("arrNote").value="";$("accessReviewModal").classList.remove("hidden");}
+  function closeAccessReview(){$("accessReviewModal").classList.add("hidden");reviewAccessRequest=null;}
+  if($("arrClose"))$("arrClose").addEventListener("click",closeAccessReview);if($("accessReviewModal"))$("accessReviewModal").addEventListener("click",function(e){if(e.target===$("accessReviewModal"))closeAccessReview();});
+  if($("arrApprove"))$("arrApprove").addEventListener("click",function(){if(!reviewAccessRequest)return;var pc=$("arrProcess").value;if(!pc){toast("Select the approved Process Access","alert");return;}sb.rpc("approve_employee_access_request",{p_request_id:reviewAccessRequest.id,p_process_code:pc,p_admin_note:$("arrNote").value.trim()||null}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}toast("Employee Access approved and activated","ok");closeAccessReview();loadAccessRequests();loadRoster();loadRosterCache();});});
+  if($("arrReject"))$("arrReject").addEventListener("click",function(){if(!reviewAccessRequest)return;var note=$("arrNote").value.trim();if(!note){toast("Enter a rejection reason","alert");return;}sb.rpc("reject_employee_access_request",{p_request_id:reviewAccessRequest.id,p_admin_note:note}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}toast("Employee Access request rejected","ok");closeAccessReview();loadAccessRequests();});});
+  if($("arRefresh"))$("arRefresh").addEventListener("click",loadAccessRequests);
+
   // ---- shift patterns, weekly assignment and overtime ----
   function hhmm(v){return v?String(v).slice(0,5):"";}
   function mondayISO(d){d=new Date(d);var day=d.getDay()||7;d.setDate(d.getDate()-day+1);return d.toISOString().slice(0,10);}
@@ -1029,7 +1073,7 @@
   }
   function toggleWaScope(){var group=$("waScope").value==="group";$("waIdField").classList.toggle("hidden",group);$("waGroupField").classList.toggle("hidden",!group);}
   if($("waScope"))$("waScope").addEventListener("change",toggleWaScope);
-  function loadAccessSetup(){if(!sb)return;Promise.all([
+  function loadAccessSetup(){if(!sb)return;if(isAdmin())loadAccessRequests();Promise.all([
     sb.from("ec_shift_pattern").select("*").order("shift_code",{ascending:true}),
     sb.from("ec_ot_registration").select("*").order("start_at",{ascending:false}).limit(3000)
   ]).then(function(r){if(r[0].error){toast("Run entry-access-v2-setup.sql first: "+r[0].error.message,"alert");return;}shiftPatterns=r[0].data||[];otRegistrations=(r[1].data)||[];fillShiftSelects();renderShiftPatterns();renderOtRegistrations();loadWeeklyAssignments();});}
@@ -1399,11 +1443,12 @@
       sb.from("ec_spec").select("*").order("process_code",{ascending:true}),
       fetchAllRows("ec_presence","card_code,person_type,process_code,card_no,dept,status,updated_at",null),
       fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,direction,scanned_by","created_at"),
-      sb.from("ec_scan_control").select("*").eq("id",1).maybeSingle()
+      sb.from("ec_scan_control").select("*").eq("id",1).maybeSingle(),
+      fetchAllRows("ec_access_request","*","requested_at")
     ]).then(function(r){
       if(r[0].error) throw r[0].error; if(r[1].error) throw r[1].error;
       return { version:1, exported_at:new Date().toISOString(),
-        processes:r[0].data||[], specs:r[1].data||[], presence:r[2]||[], events:r[3]||[], scan_control:r[4]&&!r[4].error?r[4].data:null };
+        processes:r[0].data||[], specs:r[1].data||[], presence:r[2]||[], events:r[3]||[], scan_control:r[4]&&!r[4].error?r[4].data:null, access_requests:r[5]||[] };
     });
   }
   if(dlBackup) dlBackup.addEventListener("click", function(){ if(!sb) return;
@@ -1710,6 +1755,7 @@
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_spec" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_scan_control" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_roster" }, function(){ loadRosterCache(); })
+        .on("postgres_changes", { event:"*", schema:"public", table:"ec_access_request" }, function(){ if(isAdmin())loadAccessRequests(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_event" }, function(){ reportLoaded=false; if(!views.scan.classList.contains("hidden")) loadEvents(); })
         .subscribe(function(status){ if(status==="SUBSCRIBED"){ liveTxt.textContent="Live"; led.classList.add("on"); } });
     }catch(e){}
