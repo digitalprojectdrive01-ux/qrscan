@@ -77,6 +77,7 @@
   .btn.go:hover{background:var(--signal-hover)}
   .btn.sm{padding:6px 10px; font-size:12px}
   .btn.danger{color:var(--alert); border-color:var(--danger-border); background:transparent}
+  .scan-lock{margin-bottom:12px;padding:10px 12px;border:1px solid var(--warn-border);border-radius:10px;background:var(--warn-bg);color:var(--warn-ink);font-size:12px;line-height:1.45}.scan-lock b{font-family:var(--mono)}
   .btn.danger:hover{background:var(--alert-bg)}
   .btn[disabled]{opacity:.5; cursor:not-allowed}
   .btn svg{width:15px;height:15px}
@@ -419,6 +420,7 @@
 
   <!-- SCAN -->
   <div id="viewScan" class="hidden">
+    <div class="scan-lock hidden" id="scanLockBanner"></div>
     <div class="scan-grid">
       <div class="card">
         <div class="card-hd">Scan card &middot; entry / exit</div>
@@ -486,6 +488,7 @@
         <button class="setup-tab" data-setup-tab="weekly">Weekly assignment</button>
         <button class="setup-tab" data-setup-tab="ot">OT registration</button>
         <button class="setup-tab" data-setup-tab="hc">Workshop HC</button>
+        <button class="setup-tab" data-setup-tab="scancontrol">Scan control</button>
         <button class="setup-tab" data-setup-tab="reporting">Reporting</button>
       </div>
       <section class="setup-panel active" data-setup-panel="process">
@@ -577,6 +580,17 @@
         <div class="setup-table-shell"><table class="ptable"><thead><tr><th>Workshop</th><th>Spec HC</th><th></th></tr></thead><tbody id="hcBody"></tbody></table></div>
       </div></div></section>
 
+      <section class="setup-panel" data-setup-panel="scancontrol"><div class="card"><div class="card-hd">Scan IN-OUT control by scan type</div><div class="card-bd">
+        <div class="setup-toolbar" style="align-items:flex-end">
+          <div class="fld" style="min-width:250px"><label>Employee ID scan</label><div class="inline"><label class="chip" style="border-radius:9px"><input type="checkbox" id="scEmployeeIn"> <b>IN</b></label><label class="chip" style="border-radius:9px"><input type="checkbox" id="scEmployeeOut"> <b>OUT</b></label></div></div>
+          <div class="fld" style="min-width:250px"><label>Process card / QR scan</label><div class="inline"><label class="chip" style="border-radius:9px"><input type="checkbox" id="scCardIn"> <b>IN</b></label><label class="chip" style="border-radius:9px"><input type="checkbox" id="scCardOut"> <b>OUT</b></label></div></div>
+          <div class="fld" style="flex:2;min-width:320px"><label>Locked message</label><input id="scMessage" placeholder="Function temporarily locked. Please contact Admin."></div>
+          <button class="btn go" id="scSave">Save scan control</button>
+        </div>
+        <div id="scPreview" class="scan-lock" style="margin:0"></div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.55">Employee ID and Process Card / QR are controlled separately. Each type has independent IN and OUT switches. Manual entry follows the detected code type. Admin Force Check out in Tracking remains available for emergency correction.</p>
+      </div></div></section>
+
       <section class="setup-panel" data-setup-panel="reporting"><div class="card"><div class="card-hd">Reporting — download &amp; Power BI feed</div><div class="card-bd">
         <div class="row" style="margin-top:0">
           <button class="btn go" id="dlBackup">Download full backup (JSON)</button>
@@ -656,7 +670,7 @@
 
   var sb=null, currentUser=null, scanner=null, isScanning=false, cameras=[], camIndex=0, audioCtx=null, startWatch=null, rtChannel=null, pollTimer=null;
   var processes=[], countsIn={}, allWorkshops=[], myAllowedWs=[], selectedWs=[], selectedWsInit=false, lastToggle={}, myWorkshops=null;
-  var specByProc={}, workshopSpecs={}, shiftPatterns=[], weeklyAssignments=[], otRegistrations=[], calDates=[], calEmployee="", calEmployeeIds=[], calGroup="", knownGroups=[], countsProc={}, countsProcDept={}, knownDepts=[], deptNames={};
+  var specByProc={}, workshopSpecs={}, scanControl={allow_employee_in:true,allow_employee_out:true,allow_card_in:true,allow_card_out:true,message:"Function temporarily locked. Please contact Admin."}, shiftPatterns=[], weeklyAssignments=[], otRegistrations=[], calDates=[], calEmployee="", calEmployeeIds=[], calGroup="", knownGroups=[], countsProc={}, countsProcDept={}, knownDepts=[], deptNames={};
   var accessToken=null, myRole="view";
 
   // elements
@@ -821,6 +835,15 @@
   }
   function procName(pc){ for(var i=0;i<processes.length;i++){ if(processes[i].process_code===pc) return processes[i].process_name||pc; } return null; }
 
+  function renderScanControl(){
+    var locked=[];if(!scanControl.allow_employee_in)locked.push("EMPLOYEE ID IN");if(!scanControl.allow_employee_out)locked.push("EMPLOYEE ID OUT");if(!scanControl.allow_card_in)locked.push("PROCESS CARD IN");if(!scanControl.allow_card_out)locked.push("PROCESS CARD OUT");var banner=$("scanLockBanner");
+    if(banner){if(locked.length){banner.innerHTML='<b>'+esc(locked.join(" · "))+' TEMPORARILY LOCKED</b><br>'+esc(scanControl.message);banner.classList.remove("hidden");}else{banner.classList.add("hidden");banner.innerHTML="";}}
+    [["scEmployeeIn","allow_employee_in"],["scEmployeeOut","allow_employee_out"],["scCardIn","allow_card_in"],["scCardOut","allow_card_out"]].forEach(function(x){if($(x[0]))$(x[0]).checked=scanControl[x[1]];});if($("scMessage"))$("scMessage").value=scanControl.message;
+    if($("scPreview"))$("scPreview").innerHTML=locked.length?('<b>'+esc(locked.join(" · "))+' LOCKED</b> · '+esc(scanControl.message)):'<b>ALL SCAN TYPES ENABLED</b> · Employee ID and Process Card IN/OUT are available.';
+  }
+  function scanDirectionAllowed(kind,dir,code){var key="allow_"+kind+"_"+dir,ok=scanControl[key]!==false;if(ok)return true;var type=kind==="employee"?"EMPLOYEE ID":"PROCESS CARD",label=type+" SCAN "+dir.toUpperCase(),msg=scanControl.message||"Function temporarily locked. Please contact Admin.";setResult("bad",label+" LOCKED",code||"SCAN DISABLED",msg);toast(label+" temporarily locked — "+msg,"alert");sBad();vibrate(120);return false;}
+  if($("scSave"))$("scSave").addEventListener("click",function(){if(!isAdmin())return;var row={id:1,allow_employee_in:$("scEmployeeIn").checked,allow_employee_out:$("scEmployeeOut").checked,allow_card_in:$("scCardIn").checked,allow_card_out:$("scCardOut").checked,message:$("scMessage").value.trim()||"Function temporarily locked. Please contact Admin.",updated_at:new Date().toISOString(),updated_by:currentUser.id};sb.from("ec_scan_control").upsert(row,{onConflict:"id"}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}scanControl={allow_employee_in:row.allow_employee_in,allow_employee_out:row.allow_employee_out,allow_card_in:row.allow_card_in,allow_card_out:row.allow_card_out,message:row.message};renderScanControl();toast("Scan control updated","ok");});});
+
   // ---- scan handling: auto-detect employee ID (roster) vs process card ----
   function handleScan(raw){
     if(!canScan()){ toast("You don't have scan permission","alert"); return; }
@@ -842,6 +865,7 @@
     sb.from("ec_presence").select("status").eq("card_code",p.code).maybeSingle().then(function(res){
       var cur = (res.data && res.data.status) ? res.data.status : "out";
       var next = cur==="in" ? "out" : "in";
+      if(!scanDirectionAllowed("card",next,p.code))return;
       sb.from("ec_presence").upsert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, status:next, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
         if(up.error){ toast(up.error.message,"alert"); return; }
         sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, direction:next, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
@@ -887,7 +911,8 @@
       setResult("in","AUTHORISED","Emp #"+id,[emp.dept,emp.title,gate,emp.process_code,"Shift "+(a.shift||emp.shift_code||"")].filter(Boolean).join(" · ")); sOk(); vibrate(40);
     sb.from("ec_presence").select("status,process_code").eq("card_code",key).maybeSingle().then(function(pr){
       var inside=pr.data&&pr.data.status==="in";
-      if(inside){ openEmpModal(emp,key,true,pr.data.process_code); return; }
+      if(inside){ if(!scanDirectionAllowed("employee","out","Emp #"+id))return; openEmpModal(emp,key,true,pr.data.process_code); return; }
+      if(!scanDirectionAllowed("employee","in","Emp #"+id))return;
       var empProcess=normProcess(emp.process_code);
       var mapped=processes.filter(function(p){
         return normProcess(p.workshop)===normProcess(gate) &&
@@ -919,6 +944,7 @@
   if($("procModal")) $("procModal").addEventListener("click", function(e){ if(e.target===$("procModal")) closeModal(); });
   document.addEventListener("keydown", function(e){ if(e.key==="Escape") closeModal(); });
   function recordEmp(emp, key, proc, dir){
+    if(!scanDirectionAllowed("employee",dir,"Emp #"+emp.id_no))return;
     sb.from("ec_presence").upsert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
       if(up.error){ toast(up.error.message,"alert"); return; }
       sb.from("ec_event").insert({ card_code:key, person_type:"INT", process_code:proc, card_no:emp.id_no, dept:emp.dept||null, direction:dir, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
@@ -1047,13 +1073,16 @@
       sb.from("ec_process").select("*").order("workshop",{ascending:true}).order("sort_order",{ascending:true}),
       sb.from("ec_presence").select("process_code,person_type,status,dept").eq("status","in"),
       sb.from("ec_spec").select("*").order("process_code",{ascending:true}).order("sort_order",{ascending:true}),
-      sb.from("ec_workshop_spec").select("*")
+      sb.from("ec_workshop_spec").select("*"),
+      sb.from("ec_scan_control").select("allow_employee_in,allow_employee_out,allow_card_in,allow_card_out,message").eq("id",1).maybeSingle()
     ]).then(function(r){
       if(r[0].error){ toast("Load processes: "+r[0].error.message,"alert"); return; }
       processes = r[0].data||[];
       var pres = (r[1].data)||[];
       var specs = (r[2] && r[2].data) || [];
       workshopSpecs={}; ((r[3]&&r[3].data)||[]).forEach(function(x){workshopSpecs[x.workshop]=x.spec_hc||0;});
+      if(r[4]&&!r[4].error&&r[4].data)scanControl={allow_employee_in:r[4].data.allow_employee_in!==false,allow_employee_out:r[4].data.allow_employee_out!==false,allow_card_in:r[4].data.allow_card_in!==false,allow_card_out:r[4].data.allow_card_out!==false,message:r[4].data.message||"Function temporarily locked. Please contact Admin."};
+      renderScanControl();
       // specs by process (per-department INT/VEN caps)
       specByProc={}; knownDepts=[]; deptNames={};
       specs.forEach(function(s){ specByProc[s.process_code]=specByProc[s.process_code]||{};
@@ -1369,11 +1398,12 @@
       sb.from("ec_process").select("*").order("sort_order",{ascending:true}),
       sb.from("ec_spec").select("*").order("process_code",{ascending:true}),
       fetchAllRows("ec_presence","card_code,person_type,process_code,card_no,dept,status,updated_at",null),
-      fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,direction,scanned_by","created_at")
+      fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,direction,scanned_by","created_at"),
+      sb.from("ec_scan_control").select("*").eq("id",1).maybeSingle()
     ]).then(function(r){
       if(r[0].error) throw r[0].error; if(r[1].error) throw r[1].error;
       return { version:1, exported_at:new Date().toISOString(),
-        processes:r[0].data||[], specs:r[1].data||[], presence:r[2]||[], events:r[3]||[] };
+        processes:r[0].data||[], specs:r[1].data||[], presence:r[2]||[], events:r[3]||[], scan_control:r[4]&&!r[4].error?r[4].data:null };
     });
   }
   if(dlBackup) dlBackup.addEventListener("click", function(){ if(!sb) return;
@@ -1678,6 +1708,7 @@
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_presence" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_process" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_spec" }, function(){ fetchState(); })
+        .on("postgres_changes", { event:"*", schema:"public", table:"ec_scan_control" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_roster" }, function(){ loadRosterCache(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_event" }, function(){ reportLoaded=false; if(!views.scan.classList.contains("hidden")) loadEvents(); })
         .subscribe(function(status){ if(status==="SUBSCRIBED"){ liveTxt.textContent="Live"; led.classList.add("on"); } });
