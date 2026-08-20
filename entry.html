@@ -358,6 +358,13 @@
 
   .themebtn{font-family:var(--sans); cursor:pointer; border:1px solid var(--line); background:var(--panel-2); color:var(--ink); width:32px; height:32px; border-radius:8px; font-size:14px; display:inline-flex; align-items:center; justify-content:center; padding:0; line-height:1}
   .themebtn:hover{border-color:var(--hover-border); background:var(--hover-bg)}
+  .notify-wrap{position:relative}.notify-btn{position:relative}.notify-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+  .notify-badge{position:absolute;right:-6px;top:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:10px;background:var(--signal);color:var(--on-signal);border:2px solid var(--panel);font:700 9px/14px var(--mono);text-align:center}
+  .notify-panel{position:absolute;right:0;top:40px;width:min(380px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 90px));overflow:hidden;z-index:90;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:0 18px 50px var(--shadow)}
+  .notify-hd,.notify-actions{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}.notify-hd b{font-size:13px}.notify-hd .x{margin-left:auto}.notify-actions{border:0;border-top:1px solid var(--line);justify-content:flex-end;flex-wrap:wrap}
+  .notify-list{max-height:390px;overflow:auto}.notify-item{display:block;width:100%;padding:11px 14px;border:0;border-bottom:1px solid var(--row-line);background:transparent;color:var(--ink);text-align:left;cursor:pointer;font-family:var(--sans)}.notify-item:hover{background:var(--row-hover)}
+  .notify-title{font-size:12.5px;font-weight:700}.notify-meta{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.4}.notify-empty{padding:26px 16px;text-align:center;color:var(--muted);font-size:12px}
+  @media(max-width:640px){.notify-panel{position:fixed;left:8px;right:8px;top:72px;width:auto}.notify-actions .btn{flex:1;justify-content:center}}
 </style>
 </head>
 <body>
@@ -376,6 +383,10 @@
       <button data-view="tracking">Tracking</button>
     </div>
     <div class="bar-right"><button class="themebtn" id="themeBtn" title="Light / dark" aria-label="Toggle theme">☾</button>
+      <div class="notify-wrap hidden" id="accessNotifyWrap">
+        <button class="themebtn notify-btn" id="accessNotifyBtn" title="Employee Access notifications" aria-label="Open Employee Access notifications" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="notify-badge hidden" id="accessNotifyBadge">0</span></button>
+        <div class="notify-panel hidden" id="accessNotifyPanel"><div class="notify-hd"><b>Employee Access requests</b><button class="x" id="accessNotifyClose" aria-label="Close notifications">&times;</button></div><div class="notify-list" id="accessNotifyList"><div class="notify-empty">No pending requests.</div></div><div class="notify-actions"><button class="btn sm" id="accessNotifyDesktop">Enable desktop alerts</button><button class="btn sm go" id="accessNotifyOpen">Review pending</button></div></div>
+      </div>
       <button class="btn sm tvhide hidden" id="tvBtn" title="Fullscreen TV view">TV</button>
       <div class="live"><span class="led" id="led"></span><span id="liveTxt">—</span></div>
       <div class="chip hidden" id="userChip"><span class="rolebadge view" id="roleBadge">view</span><span class="who" id="userEmail"></span><button class="btn sm" id="signout">Sign out</button></div>
@@ -859,6 +870,8 @@
     navBtn("setup").style.display = isAdmin()?"":"none";
     navBtn("users").style.display = isAdmin()?"":"none";
     navBtn("tracking").style.display = isAdmin()?"":"none";
+    if($("accessNotifyWrap"))$("accessNotifyWrap").classList.toggle("hidden",!isAdmin());
+    if(isAdmin())loadAccessNotifications();else if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");
     var dis=!canScan();
     [startBtn,switchBtn,manualBtn].forEach(function(b){ if(b) b.disabled=dis; });
     if(manualCode) manualCode.disabled=dis;
@@ -866,6 +879,7 @@
     if((v==="report"&&!canViewReport())||((v==="scan"||v==="log")&&!canScan())||((v==="setup"||v==="users"||v==="tracking")&&!isAdmin())) showView("dash");
   }
   function showAuth(){ currentUser=null; userChip.classList.add("hidden"); $("nav").classList.add("hidden"); tvBtn.classList.add("hidden");
+    if($("accessNotifyWrap"))$("accessNotifyWrap").classList.add("hidden");if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");
     Object.keys(views).forEach(function(k){views[k].classList.add("hidden");}); authScreen.classList.remove("hidden");
     led.classList.remove("on"); liveTxt.textContent="—"; stopPolling(); if(rtChannel){ try{sb.removeChannel(rtChannel);}catch(e){} rtChannel=null; } }
 
@@ -1075,6 +1089,17 @@
 
   // ---- Employee Access registration + admin approval ----
   var accessRequestMode="single", accessRequests=[], reviewAccessRequest=null;
+  var accessNotificationRows=[];
+  function desktopAlertLabel(){if(!$("accessNotifyDesktop"))return;var supported="Notification" in window,p=supported?Notification.permission:"unsupported";$("accessNotifyDesktop").textContent=p==="granted"?"Desktop alerts on":p==="denied"?"Desktop alerts blocked":supported?"Enable desktop alerts":"Desktop alerts unavailable";$("accessNotifyDesktop").disabled=p==="granted"||p==="denied"||p==="unsupported";}
+  function openAccessQueue(){if(!isAdmin())return;history.replaceState(null,"","#setup");showView("setup");activateSetupTab("accessrequests");if($("arStatus"))$("arStatus").value="pending";loadAccessRequests();if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");if($("accessNotifyBtn"))$("accessNotifyBtn").setAttribute("aria-expanded","false");}
+  function renderAccessNotifications(count){var badge=$("accessNotifyBadge"),list=$("accessNotifyList");if(!badge||!list)return;count=Number(count||0);badge.textContent=count>99?"99+":String(count);badge.classList.toggle("hidden",count===0);list.innerHTML=accessNotificationRows.length?accessNotificationRows.map(function(x){return '<button class="notify-item" data-id="'+esc(x.id)+'"><div class="notify-title">Emp #'+esc(x.id_no)+' · '+esc(x.workshop||"No workshop")+'</div><div class="notify-meta">Submitted by '+esc(x.requested_by_name||"Unknown / Legacy")+'<br>'+esc(x.process_name||"No process")+' · '+new Date(x.requested_at).toLocaleString()+'</div></button>';}).join(""):'<div class="notify-empty">No pending requests.</div>';Array.prototype.forEach.call(list.querySelectorAll(".notify-item"),function(b){b.addEventListener("click",openAccessQueue);});desktopAlertLabel();}
+  function loadAccessNotifications(){if(!isAdmin()||!sb)return;sb.from("ec_access_request").select("id,id_no,workshop,process_name,requested_by_name,requested_at",{count:"exact"}).eq("status","pending").order("requested_at",{ascending:false}).limit(8).then(function(r){if(r.error)return;accessNotificationRows=r.data||[];renderAccessNotifications(r.count);});}
+  function handleAccessRequestRealtime(payload){if(!isAdmin())return;loadAccessRequests();loadAccessNotifications();var x=payload&&payload.new;if(!x||payload.eventType!=="INSERT"||x.status!=="pending")return;var who=x.requested_by_name||"Unknown / Legacy",body=who+" · Emp #"+(x.id_no||"—")+" · "+(x.workshop||"No workshop");toast("New Employee Access request · "+body,"alert");sOk();if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){var n=new Notification("New Employee Access request",{body:body,tag:"employee-access-"+x.id});n.onclick=function(){window.focus();openAccessQueue();n.close();};}}
+  if($("accessNotifyBtn"))$("accessNotifyBtn").addEventListener("click",function(e){e.stopPropagation();var p=$("accessNotifyPanel"),open=p.classList.contains("hidden");p.classList.toggle("hidden",!open);$("accessNotifyBtn").setAttribute("aria-expanded",String(open));if(open)loadAccessNotifications();});
+  if($("accessNotifyClose"))$("accessNotifyClose").addEventListener("click",function(){$("accessNotifyPanel").classList.add("hidden");$("accessNotifyBtn").setAttribute("aria-expanded","false");});
+  if($("accessNotifyOpen"))$("accessNotifyOpen").addEventListener("click",openAccessQueue);
+  if($("accessNotifyDesktop"))$("accessNotifyDesktop").addEventListener("click",function(){if(!("Notification" in window)){toast("Desktop notifications are not supported","alert");return;}Notification.requestPermission().then(function(p){desktopAlertLabel();toast(p==="granted"?"Desktop alerts enabled":"Desktop alerts were not enabled",p==="granted"?"ok":"alert");});});
+  document.addEventListener("click",function(e){var w=$("accessNotifyWrap");if(w&&!w.contains(e.target)&&$("accessNotifyPanel")){$("accessNotifyPanel").classList.add("hidden");$("accessNotifyBtn").setAttribute("aria-expanded","false");}});
   function setAccessRequestMode(mode){accessRequestMode=mode;$("arSingleFields").classList.toggle("hidden",mode!=="single");$("arBulkFields").classList.toggle("hidden",mode!=="bulk");$("arModeSingle").classList.toggle("go",mode==="single");$("arModeBulk").classList.toggle("go",mode==="bulk");}
   function requestMasterRows(){var out=[];Object.keys(rosterById).forEach(function(k){(rosterById[k]||[]).forEach(function(x){out.push(x);});});return out;}
   function fillRequestList(id,values){values=values.filter(Boolean).filter(function(x,i,a){return a.indexOf(x)===i;}).sort();$(id).innerHTML=values.map(function(v){return '<option value="'+esc(v)+'"></option>';}).join("");}
@@ -1099,8 +1124,8 @@
   function openAccessReview(id){reviewAccessRequest=accessRequests.filter(function(x){return String(x.id)===String(id);})[0];if(!reviewAccessRequest)return;var x=reviewAccessRequest,list=processes.filter(function(p){return normProcess(p.workshop)===normProcess(x.workshop);});$("arrInfo").textContent="Employee #"+x.id_no+" · "+x.workshop+" · Submitted by "+(x.requested_by_name||"Unknown / Legacy");$("arrSummary").innerHTML='<b>Process Name:</b> '+esc(x.process_name||"")+'<br><b>Process Work:</b> '+esc(x.process_work||"—")+'<br>'+[x.dept,x.title,x.group_code,x.shift_code,x.note].filter(Boolean).map(esc).join(" · ");$("arrProcess").innerHTML='<option value="">— Select approved process —</option>'+list.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+' · '+esc(p.process_code)+'</option>';}).join("");var m=list.filter(function(p){return normProcess(p.process_code)===normProcess(x.process_name)||normProcess(p.process_name)===normProcess(x.process_name);})[0];if(m)$("arrProcess").value=m.process_code;$("arrNote").value="";$("accessReviewModal").classList.remove("hidden");}
   function closeAccessReview(){$("accessReviewModal").classList.add("hidden");reviewAccessRequest=null;}
   if($("arrClose"))$("arrClose").addEventListener("click",closeAccessReview);if($("accessReviewModal"))$("accessReviewModal").addEventListener("click",function(e){if(e.target===$("accessReviewModal"))closeAccessReview();});
-  if($("arrApprove"))$("arrApprove").addEventListener("click",function(){if(!reviewAccessRequest)return;var pc=$("arrProcess").value;if(!pc){toast("Select the approved Process Access","alert");return;}sb.rpc("approve_employee_access_request",{p_request_id:reviewAccessRequest.id,p_process_code:pc,p_admin_note:$("arrNote").value.trim()||null}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}toast("Employee Access approved and activated","ok");closeAccessReview();loadAccessRequests();loadRoster();loadRosterCache();});});
-  if($("arrReject"))$("arrReject").addEventListener("click",function(){if(!reviewAccessRequest)return;var note=$("arrNote").value.trim();if(!note){toast("Enter a rejection reason","alert");return;}sb.rpc("reject_employee_access_request",{p_request_id:reviewAccessRequest.id,p_admin_note:note}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}toast("Employee Access request rejected","ok");closeAccessReview();loadAccessRequests();});});
+  if($("arrApprove"))$("arrApprove").addEventListener("click",function(){if(!reviewAccessRequest)return;var pc=$("arrProcess").value;if(!pc){toast("Select the approved Process Access","alert");return;}sb.rpc("approve_employee_access_request",{p_request_id:reviewAccessRequest.id,p_process_code:pc,p_admin_note:$("arrNote").value.trim()||null}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}toast("Employee Access approved and activated","ok");closeAccessReview();loadAccessRequests();loadAccessNotifications();loadRoster();loadRosterCache();});});
+  if($("arrReject"))$("arrReject").addEventListener("click",function(){if(!reviewAccessRequest)return;var note=$("arrNote").value.trim();if(!note){toast("Enter a rejection reason","alert");return;}sb.rpc("reject_employee_access_request",{p_request_id:reviewAccessRequest.id,p_admin_note:note}).then(function(r){if(r.error){toast(r.error.message,"alert");return;}toast("Employee Access request rejected","ok");closeAccessReview();loadAccessRequests();loadAccessNotifications();});});
   if($("arRefresh"))$("arRefresh").addEventListener("click",loadAccessRequests);
 
   // ---- shift patterns, weekly assignment and overtime ----
@@ -1797,7 +1822,7 @@
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_spec" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_scan_control" }, function(){ fetchState(); })
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_roster" }, function(){ loadRosterCache(); })
-        .on("postgres_changes", { event:"*", schema:"public", table:"ec_access_request" }, function(){ if(isAdmin())loadAccessRequests(); })
+        .on("postgres_changes", { event:"*", schema:"public", table:"ec_access_request" }, handleAccessRequestRealtime)
         .on("postgres_changes", { event:"*", schema:"public", table:"ec_event" }, function(){ reportLoaded=false; if(!views.scan.classList.contains("hidden")) loadEvents(); })
         .subscribe(function(status){ if(status==="SUBSCRIBED"){ liveTxt.textContent="Live"; led.classList.add("on"); } });
     }catch(e){}
