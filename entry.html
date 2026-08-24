@@ -113,6 +113,11 @@
   .pcard-hd{display:flex; align-items:baseline; gap:8px; padding:12px 14px 4px}
   .pcard-hd h3{margin:0; font-size:15px; font-weight:600; line-height:1.18; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word}
   .pcard-hd .pcode{font-family:var(--mono); font-size:11px; color:var(--muted); margin-left:auto; border:1px solid var(--line); padding:1px 6px; border-radius:5px}
+  .pcard[data-process]{cursor:help}.detailhint{font:600 9px var(--mono);letter-spacing:.05em;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 5px}.pcard:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+  .dash-card-tip{position:fixed;z-index:160;width:min(470px,calc(100vw - 20px));max-height:min(520px,calc(100vh - 20px));overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);box-shadow:0 18px 55px var(--shadow);pointer-events:none}
+  .dash-card-tip .tiphd{position:sticky;top:0;z-index:2;padding:11px 13px;border-bottom:1px solid var(--line);background:var(--panel-2)}.dash-card-tip .tiptitle{font-size:13px;font-weight:700}.dash-card-tip .tipsub{margin-top:3px;font:10px var(--mono);color:var(--muted)}
+  .dash-card-tip table{width:100%;border-collapse:collapse;font-size:11px}.dash-card-tip th{position:sticky;top:55px;background:var(--panel);color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}.dash-card-tip td{padding:7px 9px;border-bottom:1px solid var(--row-line);white-space:nowrap}.dash-card-tip .mono{font-family:var(--mono)}.dash-card-tip .dur{font-family:var(--mono);font-weight:700;color:var(--signal);text-align:right}.dash-card-tip .empty{padding:22px;text-align:center;color:var(--muted);font-size:12px}
+  @media(max-width:640px){.dash-card-tip{left:8px!important;right:8px!important;bottom:8px!important;top:auto!important;width:auto;max-height:65vh;pointer-events:auto}.dash-card-tip th:nth-child(4),.dash-card-tip td:nth-child(4){display:none}}
   /* overall box (Internal | Vendor) */
   .obox{margin:11px 12px; border:1px solid var(--line); border-radius:11px; display:grid; grid-template-columns:1fr 1fr; background:var(--panel-2,transparent)}
   .ocol{padding:11px 12px; text-align:center; min-width:0} .ocol+.ocol{border-left:1px solid var(--line)}
@@ -368,6 +373,7 @@
 </style>
 </head>
 <body>
+<div class="dash-card-tip hidden" id="dashCardTooltip" role="tooltip"></div>
 <div class="wrap">
 
   <div class="topbar" id="topbar">
@@ -734,7 +740,7 @@
   var $=function(id){return document.getElementById(id);};
 
   var sb=null, currentUser=null, scanner=null, isScanning=false, cameras=[], camIndex=0, audioCtx=null, startWatch=null, rtChannel=null, pollTimer=null;
-  var processes=[], countsIn={}, allWorkshops=[], myAllowedWs=[], selectedWs=[], selectedWsInit=false, lastToggle={}, myWorkshops=null;
+  var processes=[], countsIn={}, presenceIn=[], allWorkshops=[], myAllowedWs=[], selectedWs=[], selectedWsInit=false, lastToggle={}, myWorkshops=null;
   var specByProc={}, workshopSpecs={}, scanControl={allow_employee_in:true,allow_employee_out:true,allow_card_in:true,allow_card_out:true,message:"Function temporarily locked. Please contact Admin."}, shiftPatterns=[], weeklyAssignments=[], otRegistrations=[], calDates=[], calEmployee="", calEmployeeIds=[], calGroup="", knownGroups=[], countsProc={}, countsProcDept={}, knownDepts=[], deptNames={};
   var accessToken=null, myRole="view";
 
@@ -1183,14 +1189,14 @@
     if(!sb) return;
     Promise.all([
       sb.from("ec_process").select("*").order("workshop",{ascending:true}).order("sort_order",{ascending:true}),
-      sb.from("ec_presence").select("process_code,person_type,status,dept").eq("status","in"),
+      sb.from("ec_presence").select("card_code,card_no,process_code,person_type,status,dept,updated_at").eq("status","in"),
       sb.from("ec_spec").select("*").order("process_code",{ascending:true}).order("sort_order",{ascending:true}),
       sb.from("ec_workshop_spec").select("*"),
       sb.from("ec_scan_control").select("allow_employee_in,allow_employee_out,allow_card_in,allow_card_out,message").eq("id",1).maybeSingle()
     ]).then(function(r){
       if(r[0].error){ toast("Load processes: "+r[0].error.message,"alert"); return; }
       processes = r[0].data||[];
-      var pres = (r[1].data)||[];
+      var pres = (r[1].data)||[]; presenceIn=pres;
       var specs = (r[2] && r[2].data) || [];
       workshopSpecs={}; ((r[3]&&r[3].data)||[]).forEach(function(x){workshopSpecs[x.workshop]=x.spec_hc||0;});
       if(r[4]&&!r[4].error&&r[4].data)scanControl={allow_employee_in:r[4].data.allow_employee_in!==false,allow_employee_out:r[4].data.allow_employee_out!==false,allow_card_in:r[4].data.allow_card_in!==false,allow_card_out:r[4].data.allow_card_out!==false,message:r[4].data.message||"Function temporarily locked. Please contact Admin."};
@@ -1283,6 +1289,13 @@
     var st=stateOf(spec,actual);
     return '<div class="ocol"><div class="olabel">Overall '+label+'</div><div class="oval"><span class="onum '+st+'">'+actual+'</span><span class="olim">/'+(spec>0?spec:'\u2013')+'</span>'+(st==="over"?'<span class="obadge">!</span>':'')+'</div></div>';
   }
+  function insideDuration(ms){if(!isFinite(ms)||ms<0)return "—";var sec=Math.floor(ms/1000),h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return h?h+"h "+m+"m":m?m+"m":sec+"s";}
+  function processInsideRows(code){return presenceIn.filter(function(x){return x.process_code===code;}).sort(function(a,b){return new Date(a.updated_at)-new Date(b.updated_at);});}
+  function processTooltipHtml(code){var p=processes.filter(function(x){return x.process_code===code;})[0],rows=processInsideRows(code),now=Date.now();var title=p?(p.process_name||p.process_code):code,ws=p&&p.workshop||"";return '<div class="tiphd"><div class="tiptitle">'+esc(title)+'</div><div class="tipsub">'+esc(ws)+' · '+rows.length+' currently inside · longest duration first</div></div>'+(rows.length?'<table><thead><tr><th>Employee / Card</th><th>Dept</th><th>Type</th><th>Check-in</th><th style="text-align:right">Duration</th></tr></thead><tbody>'+rows.map(function(x){var entered=new Date(x.updated_at),id=x.card_no||x.card_code||"—";return '<tr><td class="mono">'+esc(id)+'</td><td>'+esc(x.dept||"No dept")+'</td><td class="mono">'+esc(x.person_type||"—")+'</td><td class="mono">'+(isNaN(entered)?'—':entered.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}))+'</td><td class="dur">'+insideDuration(now-entered.getTime())+'</td></tr>';}).join("")+'</tbody></table>':'<div class="empty">No employee or card is currently checked in.</div>');}
+  function positionDashTooltip(e){var tip=$("dashCardTooltip");if(!tip||tip.classList.contains("hidden")||window.innerWidth<=640)return;var gap=12,x=(e&&e.clientX||window.innerWidth/2)+gap,y=(e&&e.clientY||80)+gap;var w=tip.offsetWidth,h=tip.offsetHeight;if(x+w>window.innerWidth-8)x=Math.max(8,(e&&e.clientX||window.innerWidth/2)-w-gap);if(y+h>window.innerHeight-8)y=Math.max(8,window.innerHeight-h-8);tip.style.left=x+"px";tip.style.top=y+"px";}
+  function showDashTooltip(card,e){var tip=$("dashCardTooltip");if(!tip||!card)return;tip.innerHTML=processTooltipHtml(card.getAttribute("data-process"));tip.classList.remove("hidden");positionDashTooltip(e);}
+  function hideDashTooltip(){var tip=$("dashCardTooltip");if(tip)tip.classList.add("hidden");}
+  function bindDashboardTooltips(){Array.prototype.forEach.call(pgrid.querySelectorAll(".pcard[data-process]"),function(card){card.addEventListener("mouseenter",function(e){showDashTooltip(card,e);});card.addEventListener("mousemove",positionDashTooltip);card.addEventListener("mouseleave",hideDashTooltip);card.addEventListener("focus",function(){var r=card.getBoundingClientRect();showDashTooltip(card,{clientX:r.right,clientY:r.top});});card.addEventListener("blur",hideDashTooltip);card.addEventListener("click",function(e){if(window.innerWidth<=640){e.stopPropagation();var tip=$("dashCardTooltip"),same=tip.getAttribute("data-process")===card.getAttribute("data-process")&&!tip.classList.contains("hidden");if(same)hideDashTooltip();else{tip.setAttribute("data-process",card.getAttribute("data-process"));showDashTooltip(card,e);}}});});}
   function procCard(p, overList, wsTag){
     var co=countsIn[p.process_code]||{INT:0,VEN:0};
     var depSpecs=specByProc[p.process_code]||{}, deptCounts=countsProcDept[p.process_code]||{};
@@ -1306,8 +1319,8 @@
       dhtml += '</div>';
     }
     var tag=wsTag?'<span class="wstag">'+esc(wsTag)+'</span>':'';
-    return { count:co.INT+co.VEN, html:'<div class="pcard'+(over?' hasover':'')+'">'
-      + '<div class="pcard-hd"><span class="process-order" title="Process display order">'+(parseInt(p.sort_order,10)||0)+'</span><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="pcode">'+esc(p.process_code)+'</span></div>'
+    return { count:co.INT+co.VEN, html:'<div class="pcard'+(over?' hasover':'')+'" data-process="'+esc(p.process_code)+'" tabindex="0" aria-describedby="dashCardTooltip" aria-label="'+esc((p.process_name||p.process_code)+', '+(co.INT+co.VEN)+' people inside. Open for details.')+'">'
+      + '<div class="pcard-hd"><span class="process-order" title="Process display order">'+(parseInt(p.sort_order,10)||0)+'</span><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="detailhint">DETAIL</span><span class="pcode">'+esc(p.process_code)+'</span></div>'
       + '<div class="obox">'+ocol("Internal",p.spec_internal,co.INT)+ocol("Vendor",p.spec_vendor,co.VEN)+'</div>'
       + dhtml + '</div>' };
   }
@@ -1334,11 +1347,13 @@
       sel.forEach(function(ws){var list=processes.filter(function(p){return p.workshop===ws;});if(!list.length)return;var grouped=groupedProcessCards(list,overList,false);total+=grouped.actual;if(multi)html+='<div class="wsgroup-hd"><span>'+esc(ws)+'</span><span class="wssub">'+grouped.actual+' inside</span></div>';html+=grouped.html;});
     }
     pgrid.innerHTML = (html ? ('<div class="legend">Numbers in <b>red</b> exceed the target.</div>'+html) : '<div style="color:var(--muted);padding:30px">No processes for the selected workshop(s). Add them in Setup.</div>');
+    bindDashboardTooltips();
     var totalSpec=sel.reduce(function(s,w){return s+(workshopSpecs[w]||0);},0);
     totalNum.textContent = total+" / "+(totalSpec||"—");
     renderAlerts(overList);
     if(tv) fitTvLayout();
   }
+  document.addEventListener("click",function(e){if(window.innerWidth<=640&&!e.target.closest(".pcard[data-process]")&&!e.target.closest("#dashCardTooltip"))hideDashTooltip();});
   function renderAlerts(overList){
     if(!overList.length){ alertBar.classList.add("hidden"); alertBar.innerHTML=""; tvAlert.classList.remove("show"); tvAlert.innerHTML=""; return; }
     var head='<span class="ahead">\u26A0 OVER SPEC ('+overList.length+')</span>';
