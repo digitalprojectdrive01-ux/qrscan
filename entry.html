@@ -1824,11 +1824,13 @@
 
   // ---- users & roles (admin) ----
   function authHeaders(){ return { Authorization:"Bearer "+(accessToken||"") }; }
+  function apiJson(r){return r.json().catch(function(){return {};}).then(function(data){if(!r.ok)throw new Error(data.message||data.error||("HTTP "+r.status));return data;});}
+  function validateSupervisorRow(tr,notify){var role=tr.querySelector(".urole").value,sel=tr.querySelector(".uws"),ok=role!=="supervisor"||(sel&&sel.selectedOptions.length>0);if(sel){sel.setAttribute("aria-invalid",ok?"false":"true");sel.style.borderColor=ok?"":"var(--alert)";}var note=tr.querySelector(".wsnote");if(note&&role==="supervisor")note.innerHTML=ok?(sel.selectedOptions.length+" workshop(s) assigned"):'<span style="color:var(--alert)">Select at least one workshop *</span>';if(!ok&&notify)toast("Select at least one workshop for Supervisor","alert");return ok;}
   function loadUsers(){
     if(!isAdmin()) return;
     usersBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">Loading…</td></tr>';
     fetch("/api/roles",{ headers:authHeaders(), cache:"no-store" })
-      .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+      .then(apiJson)
       .then(function(list){
         if(!list.length){ usersBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">No users.</td></tr>'; return; }
         usersBody.innerHTML=list.map(function(u){
@@ -1840,6 +1842,7 @@
             : '<span class="wsnote">Add workshops in Setup first</span>';
           return '<tr data-id="'+esc(u.id)+'"><td class="mono">'+esc(u.email||u.id)+'</td><td><select class="urole">'+opts+'</select></td><td>'+wsCell+'</td><td><button class="btn sm usave">Save</button></td></tr>';
         }).join("");
+        Array.prototype.forEach.call(usersBody.querySelectorAll("tr[data-id]"),function(tr){var role=tr.querySelector(".urole"),ws=tr.querySelector(".uws");role.addEventListener("change",function(){validateSupervisorRow(tr,false);});if(ws)ws.addEventListener("change",function(){validateSupervisorRow(tr,false);});validateSupervisorRow(tr,false);});
         Array.prototype.forEach.call(usersBody.querySelectorAll(".usave"), function(b){ b.addEventListener("click", function(){ saveUserRole(b.closest("tr")); }); });
       })
       .catch(function(e){ usersBody.innerHTML='<tr><td colspan="4" style="color:var(--alert);padding:16px">Could not load users ('+esc(String(e.message||e))+'). Check SUPABASE_SERVICE_KEY, or assign roles via SQL.</td></tr>'; });
@@ -1848,12 +1851,14 @@
     var id=tr.getAttribute("data-id"), role=tr.querySelector(".urole").value;
     var sel=tr.querySelector(".uws"), ws=[];
     if(sel){ Array.prototype.forEach.call(sel.selectedOptions, function(o){ ws.push(o.value); }); }
-    if(role==="supervisor"&&!ws.length){toast("Supervisor requires at least one assigned workshop","alert");return;}
+    if(!validateSupervisorRow(tr,true))return;
     var workshops = ws.length ? ws : null;   // null = all workshops
+    var saveBtn=tr.querySelector(".usave");saveBtn.disabled=true;saveBtn.textContent="Saving…";
     fetch("/api/roles",{ method:"POST", headers:Object.assign({ "Content-Type":"application/json" }, authHeaders()), body:JSON.stringify({ user_id:id, role:role, workshops:workshops }) })
-      .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+      .then(apiJson)
       .then(function(){ toast("Saved","ok"); if(id===currentUser.id){ myRole=role; myWorkshops=workshops; applyRole(); selectedWsInit=false; fetchState(); } })
-      .catch(function(e){ toast("Update failed: "+String(e.message||e),"alert"); });
+      .catch(function(e){ toast("Update failed: "+String(e.message||e),"alert"); })
+      .finally(function(){saveBtn.disabled=false;saveBtn.textContent="Save";});
   }
 
   // ---- realtime + polling ----
