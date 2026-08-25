@@ -69,6 +69,7 @@
   .chip .who{font-family:var(--mono); color:var(--muted); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .rolebadge{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:5px; border:1px solid var(--line); color:var(--muted)}
   .rolebadge.admin{color:var(--signal); border-color:var(--warn-border); background:var(--signal-soft)}
+  .rolebadge.supervisor{color:var(--warn-ink); border-color:var(--warn-border); background:var(--warn-bg)}
   .rolebadge.scan{color:var(--ok); border-color:var(--ok-border); background:var(--ok-bg)}
   .rolebadge.view{color:var(--blue); border-color:var(--blue-border)}
   .btn{font-family:var(--sans); font-weight:600; font-size:13px; cursor:pointer; border:1px solid var(--line); background:var(--panel-2); color:var(--ink); padding:8px 12px; border-radius:9px; display:inline-flex; align-items:center; gap:7px}
@@ -785,15 +786,16 @@
   // nav / views
   function showView(name){
     if(!currentUser) return;
-    if(name==="report"&&!canViewReport()){ name="dash"; toast("Report Dashboard is available to viewer and admin only","alert"); }
+    if(name==="report"&&!canViewReport()){ name="dash"; toast("Report Dashboard is available to viewer, supervisor and admin only","alert"); }
     if((name==="scan"||name==="log")&&!canScan()) name="dash";
-    if((name==="setup"||name==="users"||name==="tracking")&&!isAdmin()) name="dash";
+    if(name==="setup"&&!canManageAccessRequests()) name="dash";
+    if((name==="users"||name==="tracking")&&!isAdmin()) name="dash";
     Object.keys(views).forEach(function(k){ views[k].classList.toggle("hidden", k!==name); });
     Array.prototype.forEach.call($("nav").children, function(b){ b.classList.toggle("active", b.getAttribute("data-view")===name); });
     if(name!=="scan"){ stopCamera(); }
     if(name==="users"){ loadUsers(); }
     if(name==="report"){ initReportFilters(); if(!reportLoaded) loadReport(); }
-    if(name==="setup"){ setReportingUrls(); loadAccessSetup(); }
+    if(name==="setup"){ if(isSupervisor()){activateSetupTab("accessrequests");loadAccessRequests();}else{setReportingUrls();loadAccessSetup();} }
     if(name==="log"){ setLogWorkshops(); loadLog(); }
     if(name==="tracking"){ if(!isAdmin()){ showView("dash"); return; } setTrackWorkshops(); loadTracking(); }
   }
@@ -810,6 +812,7 @@
 
   // Setup Worklist tabs, filters and table actions
   function activateSetupTab(name){
+    if(isSupervisor()&&name!=="accessrequests")name="accessrequests";
     Array.prototype.forEach.call(document.querySelectorAll(".setup-tab"),function(b){b.classList.toggle("active",b.getAttribute("data-setup-tab")===name);});
     Array.prototype.forEach.call(document.querySelectorAll(".setup-panel"),function(p){p.classList.toggle("active",p.getAttribute("data-setup-panel")===name);});
     try{localStorage.setItem("entry_setup_tab",name);}catch(e){}
@@ -871,8 +874,12 @@
   // selected workshop is never reset out from under the user).
 
   function isAdmin(){ return myRole==="admin"; }
-  function canScan(){ return myRole==="scan"||myRole==="admin"; }
-  function canViewReport(){ return myRole==="view"||myRole==="admin"; }
+  function isSupervisor(){ return myRole==="supervisor"; }
+  function canManageAccessRequests(){return isAdmin()||isSupervisor();}
+  function canScan(){ return myRole==="scan"||myRole==="supervisor"||myRole==="admin"; }
+  function canViewReport(){ return myRole==="view"||myRole==="supervisor"||myRole==="admin"; }
+  function workshopAllowed(workshop){return isAdmin()||(isSupervisor()&&Array.isArray(myWorkshops)&&myWorkshops.some(function(w){return normProcess(w)===normProcess(workshop);}));}
+  function scopeAccessQuery(q){return isSupervisor()?q.in("workshop",Array.isArray(myWorkshops)&&myWorkshops.length?myWorkshops:["__NO_WORKSHOP_ASSIGNED__"]):q;}
   function scanUserName(){var m=(currentUser&&currentUser.user_metadata)||{};return String(m.full_name||m.display_name||(currentUser&&currentUser.email)||"Unknown").trim();}
   function navBtn(v){ return $("nav").querySelector('[data-view="'+v+'"]'); }
   function applyRole(){
@@ -880,16 +887,18 @@
     navBtn("scan").style.display  = canScan()?"":"none";
     navBtn("report").style.display = canViewReport()?"":"none";
     navBtn("log").style.display   = canScan()?"":"none";
-    navBtn("setup").style.display = isAdmin()?"":"none";
+    navBtn("setup").style.display = canManageAccessRequests()?"":"none";
     navBtn("users").style.display = isAdmin()?"":"none";
     navBtn("tracking").style.display = isAdmin()?"":"none";
-    if($("accessNotifyWrap"))$("accessNotifyWrap").classList.toggle("hidden",!isAdmin());
-    if(isAdmin())loadAccessNotifications();else if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");
+    Array.prototype.forEach.call(document.querySelectorAll(".setup-tab"),function(b){b.style.display=isSupervisor()&&b.getAttribute("data-setup-tab")!=="accessrequests"?"none":"";});
+    if($("accessNotifyWrap"))$("accessNotifyWrap").classList.toggle("hidden",!canManageAccessRequests());
+    if(canManageAccessRequests())loadAccessNotifications();else if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");
     var dis=!canScan();
     [startBtn,switchBtn,manualBtn].forEach(function(b){ if(b) b.disabled=dis; });
     if(manualCode) manualCode.disabled=dis;
     var cur=document.querySelector('.nav button.active'); var v=cur?cur.getAttribute("data-view"):"dash";
-    if((v==="report"&&!canViewReport())||((v==="scan"||v==="log")&&!canScan())||((v==="setup"||v==="users"||v==="tracking")&&!isAdmin())) showView("dash");
+    if((v==="report"&&!canViewReport())||((v==="scan"||v==="log")&&!canScan())||(v==="setup"&&!canManageAccessRequests())||((v==="users"||v==="tracking")&&!isAdmin())) showView("dash");
+    if(v==="setup"&&isSupervisor())activateSetupTab("accessrequests");
   }
   function showAuth(){ currentUser=null; userChip.classList.add("hidden"); $("nav").classList.add("hidden"); tvBtn.classList.add("hidden");
     if($("accessNotifyWrap"))$("accessNotifyWrap").classList.add("hidden");if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");
@@ -1114,11 +1123,11 @@
   var accessRequestMode="single", accessRequests=[], reviewAccessRequest=null;
   var accessNotificationRows=[],accessNotificationKnown={},accessNotificationReady=false;
   function desktopAlertLabel(){if(!$("accessNotifyDesktop"))return;var supported="Notification" in window,p=supported?Notification.permission:"unsupported";$("accessNotifyDesktop").textContent=p==="granted"?"Desktop alerts on":p==="denied"?"Desktop alerts blocked":supported?"Enable desktop alerts":"Desktop alerts unavailable";$("accessNotifyDesktop").disabled=p==="granted"||p==="denied"||p==="unsupported";}
-  function openAccessQueue(){if(!isAdmin())return;history.replaceState(null,"","#setup");showView("setup");activateSetupTab("accessrequests");if($("arStatus"))$("arStatus").value="pending";loadAccessRequests();if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");if($("accessNotifyBtn"))$("accessNotifyBtn").setAttribute("aria-expanded","false");}
+  function openAccessQueue(){if(!canManageAccessRequests())return;history.replaceState(null,"","#setup");showView("setup");activateSetupTab("accessrequests");if($("arStatus"))$("arStatus").value="pending";loadAccessRequests();if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");if($("accessNotifyBtn"))$("accessNotifyBtn").setAttribute("aria-expanded","false");}
   function renderAccessNotifications(count){var badge=$("accessNotifyBadge"),list=$("accessNotifyList");if(!badge||!list)return;count=Number(count||0);badge.textContent=count>99?"99+":String(count);badge.classList.toggle("hidden",count===0);list.innerHTML=accessNotificationRows.length?accessNotificationRows.map(function(x){return '<button class="notify-item" data-id="'+esc(x.id)+'"><div class="notify-title">Emp #'+esc(x.id_no)+' · '+esc(x.workshop||"No workshop")+'</div><div class="notify-meta">Submitted by '+esc(x.requested_by_name||"Unknown / Legacy")+'<br>'+esc(x.process_name||"No process")+' · '+new Date(x.requested_at).toLocaleString()+'</div></button>';}).join(""):'<div class="notify-empty">No pending requests.</div>';Array.prototype.forEach.call(list.querySelectorAll(".notify-item"),function(b){b.addEventListener("click",openAccessQueue);});desktopAlertLabel();}
   function emitAccessRequestAlert(x){if(!x||accessNotificationKnown[String(x.id)])return;accessNotificationKnown[String(x.id)]=true;var who=x.requested_by_name||"Unknown / Legacy",body=who+" · Emp #"+(x.id_no||"—")+" · "+(x.workshop||"No workshop");toast("New Employee Access request · "+body,"alert");sOk();if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){var n=new Notification("New Employee Access request",{body:body,tag:"employee-access-"+x.id});n.onclick=function(){window.focus();openAccessQueue();n.close();};}}
-  function loadAccessNotifications(announceNew){if(!isAdmin()||!sb)return;sb.from("ec_access_request").select("id,id_no,workshop,process_name,requested_by_name,requested_at",{count:"exact"}).eq("status","pending").order("requested_at",{ascending:false}).limit(8).then(function(r){if(r.error)return;var rows=r.data||[];if(accessNotificationReady&&announceNew)rows.slice().reverse().forEach(emitAccessRequestAlert);rows.forEach(function(x){accessNotificationKnown[String(x.id)]=true;});accessNotificationReady=true;accessNotificationRows=rows;renderAccessNotifications(r.count);});}
-  function handleAccessRequestRealtime(payload){if(!isAdmin())return;loadAccessRequests();var x=payload&&payload.new;if(x&&payload.eventType==="INSERT"&&x.status==="pending")emitAccessRequestAlert(x);loadAccessNotifications(false);}
+  function loadAccessNotifications(announceNew){if(!canManageAccessRequests()||!sb)return;var q=sb.from("ec_access_request").select("id,id_no,workshop,process_name,requested_by_name,requested_at",{count:"exact"}).eq("status","pending");q=scopeAccessQuery(q).order("requested_at",{ascending:false}).limit(8);q.then(function(r){if(r.error)return;var rows=r.data||[];if(accessNotificationReady&&announceNew)rows.slice().reverse().forEach(emitAccessRequestAlert);rows.forEach(function(x){accessNotificationKnown[String(x.id)]=true;});accessNotificationReady=true;accessNotificationRows=rows;renderAccessNotifications(r.count);});}
+  function handleAccessRequestRealtime(payload){if(!canManageAccessRequests())return;var x=payload&&payload.new;if(x&&!workshopAllowed(x.workshop))return;loadAccessRequests();if(x&&payload.eventType==="INSERT"&&x.status==="pending")emitAccessRequestAlert(x);loadAccessNotifications(false);}
   if($("accessNotifyBtn"))$("accessNotifyBtn").addEventListener("click",function(e){e.stopPropagation();var p=$("accessNotifyPanel"),open=p.classList.contains("hidden");p.classList.toggle("hidden",!open);$("accessNotifyBtn").setAttribute("aria-expanded",String(open));if(open)loadAccessNotifications();});
   if($("accessNotifyClose"))$("accessNotifyClose").addEventListener("click",function(){$("accessNotifyPanel").classList.add("hidden");$("accessNotifyBtn").setAttribute("aria-expanded","false");});
   if($("accessNotifyOpen"))$("accessNotifyOpen").addEventListener("click",openAccessQueue);
@@ -1143,9 +1152,9 @@
   if($("arTemplate"))$("arTemplate").addEventListener("click",function(){downloadCSV("employee-access-request-template.csv","Employee ID,Workshop,Group,Dept,Title,Process Name,Process Work,Default Shift,Note\r\n000001,1F ELECTRODE,T,PRD,Operator 1,ANODE Mixing,Mixing operation,T,New hire");});
   function csvCells(line){var out=[],v="",q=false;for(var i=0;i<line.length;i++){var c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){v+='"';i++;}else q=!q;}else if(c===","&&!q){out.push(v.trim());v="";}else v+=c;}out.push(v.trim());return out;}
   function parseAccessRequests(text){var rows=[];String(text||"").split(/\r?\n/).forEach(function(line){if(!line.trim())return;var c=csvCells(line),id=(c[0]||"").trim();if(!id||/^employee\s*id$/i.test(id))return;rows.push({id_no:id,workshop:(c[1]||"").trim(),group_code:(c[2]||"").trim()||null,dept:(c[3]||"").trim()||null,title:(c[4]||"").trim()||null,process_name:(c[5]||"").trim(),process_work:(c[6]||"").trim()||null,shift_code:(c[7]||"").trim()||null,note:(c[8]||"").trim()||null});});return rows;}
-  function submitAccessRows(rows){if(!rows.length){toast("No employee rows to submit","alert");return;}if(rows.some(function(r){return !r.id_no||!r.workshop||!r.process_name;})){toast("Employee ID, Workshop and Process Name are required","alert");return;}var invalid=rows.filter(function(r){return !resolveRequestProcess(r);});if(invalid.length){toast("Process Name is not configured for Workshop: "+invalid[0].id_no,"alert");return;}rows=rows.map(function(r){var p=resolveRequestProcess(r);r.group_code=String(r.group_code||"").trim()||"T";r.shift_code=String(r.shift_code||"").trim()||"T";r.process_name=p.process_name||p.process_code;r.status="pending";r.requested_by=currentUser.id;return r;});$("arSubmit").disabled=true;$("arSubmitStatus").textContent="Submitting "+rows.length+" employee(s)…";sb.from("ec_access_request").insert(rows).then(function(r){$("arSubmit").disabled=false;if(r.error){toast(r.error.message,"alert");$("arSubmitStatus").textContent="Submission failed";return;}clearAccessRequestValues();applyAccessRequestDefaults();$("arSubmitStatus").textContent=rows.length+" request(s) submitted — pending admin approval";toast("Employee Access request submitted","ok");setTimeout(closeAccessRequest,900);if(isAdmin())loadAccessRequests();});}
+  function submitAccessRows(rows){if(!rows.length){toast("No employee rows to submit","alert");return;}if(rows.some(function(r){return !r.id_no||!r.workshop||!r.process_name;})){toast("Employee ID, Workshop and Process Name are required","alert");return;}var invalid=rows.filter(function(r){return !resolveRequestProcess(r);});if(invalid.length){toast("Process Name is not configured for Workshop: "+invalid[0].id_no,"alert");return;}rows=rows.map(function(r){var p=resolveRequestProcess(r);r.group_code=String(r.group_code||"").trim()||"T";r.shift_code=String(r.shift_code||"").trim()||"T";r.process_name=p.process_name||p.process_code;r.status="pending";r.requested_by=currentUser.id;return r;});$("arSubmit").disabled=true;$("arSubmitStatus").textContent="Submitting "+rows.length+" employee(s)…";sb.from("ec_access_request").insert(rows).then(function(r){$("arSubmit").disabled=false;if(r.error){toast(r.error.message,"alert");$("arSubmitStatus").textContent="Submission failed";return;}clearAccessRequestValues();applyAccessRequestDefaults();$("arSubmitStatus").textContent=rows.length+" request(s) submitted — pending approval";toast("Employee Access request submitted","ok");setTimeout(closeAccessRequest,900);if(canManageAccessRequests())loadAccessRequests();});}
   if($("arSubmit"))$("arSubmit").addEventListener("click",function(){if(accessRequestMode==="single"){submitAccessRows([{id_no:$("arId").value.trim(),workshop:$("arWorkshop").value.trim(),group_code:$("arGroup").value.trim()||null,dept:$("arDept").value.trim()||null,title:$("arTitle").value.trim()||null,process_name:$("arProcessName").value.trim(),process_work:$("arProcessWork").value.trim()||null,shift_code:$("arShift").value.trim()||null,note:$("arNote").value.trim()||null}]);return;}var f=$("arBulkFile").files&&$("arBulkFile").files[0];if(f){var rd=new FileReader();rd.onload=function(){submitAccessRows(parseAccessRequests(rd.result));};rd.readAsText(f);}else submitAccessRows(parseAccessRequests($("arBulkCsv").value));});
-  function loadAccessRequests(){if(!isAdmin()||!sb||!$("accessRequestBody"))return;var q=sb.from("ec_access_request").select("*").order("requested_at",{ascending:false}).limit(5000),st=$("arStatus").value;if(st)q=q.eq("status",st);q.then(function(r){if(r.error){$("accessRequestBody").innerHTML='<tr><td colspan="12">Run employee-access-request-v21-setup.sql first.</td></tr>';return;}accessRequests=r.data||[];$("accessRequestBody").innerHTML=accessRequests.length?accessRequests.map(function(x){return '<tr data-id="'+x.id+'"><td class="mono">'+new Date(x.requested_at).toLocaleString()+'</td><td>'+esc(x.requested_by_name||"Unknown / Legacy")+'</td><td class="mono">'+esc(x.id_no)+'</td><td>'+esc(x.workshop)+'</td><td>'+esc(x.group_code||"")+'</td><td>'+esc(x.dept||"")+'</td><td>'+esc(x.title||"")+'</td><td><b>'+esc(x.process_name||"")+'</b></td><td>'+esc(x.process_work||"")+'</td><td class="mono">'+esc(x.shift_code||"")+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==="pending"?'<button class="btn sm arReview">Review</button>':'<span class="mono">'+esc(x.admin_note||"—")+'</span>')+'</td></tr>';}).join(""):'<tr><td colspan="12">No access requests.</td></tr>';Array.prototype.forEach.call(document.querySelectorAll(".arReview"),function(b){b.addEventListener("click",function(){openAccessReview(b.closest("tr").getAttribute("data-id"));});});applySetupFilters();});}
+  function loadAccessRequests(){if(!canManageAccessRequests()||!sb||!$("accessRequestBody"))return;var q=scopeAccessQuery(sb.from("ec_access_request").select("*")).order("requested_at",{ascending:false}).limit(5000),st=$("arStatus").value;if(st)q=q.eq("status",st);q.then(function(r){if(r.error){$("accessRequestBody").innerHTML='<tr><td colspan="12">Run supervisor-role-v28-setup.sql first.</td></tr>';return;}accessRequests=r.data||[];$("accessRequestBody").innerHTML=accessRequests.length?accessRequests.map(function(x){return '<tr data-id="'+x.id+'"><td class="mono">'+new Date(x.requested_at).toLocaleString()+'</td><td>'+esc(x.requested_by_name||"Unknown / Legacy")+'</td><td class="mono">'+esc(x.id_no)+'</td><td>'+esc(x.workshop)+'</td><td>'+esc(x.group_code||"")+'</td><td>'+esc(x.dept||"")+'</td><td>'+esc(x.title||"")+'</td><td><b>'+esc(x.process_name||"")+'</b></td><td>'+esc(x.process_work||"")+'</td><td class="mono">'+esc(x.shift_code||"")+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==="pending"?'<button class="btn sm arReview">Review</button>':'<span class="mono">'+esc(x.admin_note||"—")+'</span>')+'</td></tr>';}).join(""):'<tr><td colspan="12">No access requests in assigned workshops.</td></tr>';Array.prototype.forEach.call(document.querySelectorAll(".arReview"),function(b){b.addEventListener("click",function(){openAccessReview(b.closest("tr").getAttribute("data-id"));});});applySetupFilters();});}
   function openAccessReview(id){reviewAccessRequest=accessRequests.filter(function(x){return String(x.id)===String(id);})[0];if(!reviewAccessRequest)return;var x=reviewAccessRequest,list=processes.filter(function(p){return normProcess(p.workshop)===normProcess(x.workshop);});$("arrInfo").textContent="Employee #"+x.id_no+" · "+x.workshop+" · Submitted by "+(x.requested_by_name||"Unknown / Legacy");$("arrSummary").innerHTML='<b>Process Name:</b> '+esc(x.process_name||"")+'<br><b>Process Work:</b> '+esc(x.process_work||"—")+'<br>'+[x.dept,x.title,x.group_code,x.shift_code,x.note].filter(Boolean).map(esc).join(" · ");$("arrProcess").innerHTML='<option value="">— Select approved process —</option>'+list.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+' · '+esc(p.process_code)+'</option>';}).join("");var m=list.filter(function(p){return normProcess(p.process_code)===normProcess(x.process_name)||normProcess(p.process_name)===normProcess(x.process_name);})[0];if(m)$("arrProcess").value=m.process_code;$("arrNote").value="";$("accessReviewModal").classList.remove("hidden");}
   function closeAccessReview(){$("accessReviewModal").classList.add("hidden");reviewAccessRequest=null;}
   if($("arrClose"))$("arrClose").addEventListener("click",closeAccessReview);if($("accessReviewModal"))$("accessReviewModal").addEventListener("click",function(e){if(e.target===$("accessReviewModal"))closeAccessReview();});
@@ -1165,7 +1174,7 @@
   }
   function toggleWaScope(){var group=$("waScope").value==="group";$("waIdField").classList.toggle("hidden",group);$("waGroupField").classList.toggle("hidden",!group);}
   if($("waScope"))$("waScope").addEventListener("change",toggleWaScope);
-  function loadAccessSetup(){if(!sb)return;if(isAdmin())loadAccessRequests();Promise.all([
+  function loadAccessSetup(){if(!sb)return;if(canManageAccessRequests())loadAccessRequests();if(isSupervisor())return;Promise.all([
     sb.from("ec_shift_pattern").select("*").order("shift_code",{ascending:true}),
     sb.from("ec_ot_registration").select("*").order("start_at",{ascending:false}).limit(3000)
   ]).then(function(r){if(r[0].error){toast("Run entry-access-v2-setup.sql first: "+r[0].error.message,"alert");return;}shiftPatterns=r[0].data||[];otRegistrations=(r[1].data)||[];fillShiftSelects();renderShiftPatterns();renderOtRegistrations();loadWeeklyAssignments();});}
@@ -1823,11 +1832,11 @@
       .then(function(list){
         if(!list.length){ usersBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">No users.</td></tr>'; return; }
         usersBody.innerHTML=list.map(function(u){
-          var opts=["view","scan","admin"].map(function(rr){ return '<option value="'+rr+'"'+(u.role===rr?" selected":"")+'>'+rr+'</option>'; }).join("");
+          var opts=["view","scan","supervisor","admin"].map(function(rr){ return '<option value="'+rr+'"'+(u.role===rr?" selected":"")+'>'+rr+'</option>'; }).join("");
           var uws=Array.isArray(u.workshops)?u.workshops:null;
           var wopts=allWorkshops.map(function(w){ var seld=uws&&uws.indexOf(w)!==-1; return '<option value="'+esc(w)+'"'+(seld?" selected":"")+'>'+esc(w)+'</option>'; }).join("");
           var wsCell = allWorkshops.length
-            ? '<select class="uws" multiple size="'+Math.min(4,Math.max(2,allWorkshops.length))+'">'+wopts+'</select><div class="wsnote">'+((!uws||!uws.length)?"All workshops":(uws.length+" selected"))+' &middot; empty = All</div>'
+            ? '<select class="uws" multiple size="'+Math.min(4,Math.max(2,allWorkshops.length))+'">'+wopts+'</select><div class="wsnote">'+((!uws||!uws.length)?"All workshops":(uws.length+" selected"))+' &middot; supervisor requires selection</div>'
             : '<span class="wsnote">Add workshops in Setup first</span>';
           return '<tr data-id="'+esc(u.id)+'"><td class="mono">'+esc(u.email||u.id)+'</td><td><select class="urole">'+opts+'</select></td><td>'+wsCell+'</td><td><button class="btn sm usave">Save</button></td></tr>';
         }).join("");
@@ -1839,6 +1848,7 @@
     var id=tr.getAttribute("data-id"), role=tr.querySelector(".urole").value;
     var sel=tr.querySelector(".uws"), ws=[];
     if(sel){ Array.prototype.forEach.call(sel.selectedOptions, function(o){ ws.push(o.value); }); }
+    if(role==="supervisor"&&!ws.length){toast("Supervisor requires at least one assigned workshop","alert");return;}
     var workshops = ws.length ? ws : null;   // null = all workshops
     fetch("/api/roles",{ method:"POST", headers:Object.assign({ "Content-Type":"application/json" }, authHeaders()), body:JSON.stringify({ user_id:id, role:role, workshops:workshops }) })
       .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
@@ -1861,10 +1871,10 @@
         .subscribe(function(status){ if(status==="SUBSCRIBED"){ liveTxt.textContent="Live"; led.classList.add("on"); } });
     }catch(e){}
   }
-  function startPolling(){ stopPolling(); pollTimer=setInterval(function(){ if(!currentUser) return; fetchState(); if(isAdmin())loadAccessNotifications(true); if(!views.scan.classList.contains("hidden")) loadEvents(); }, 5000); }
+  function startPolling(){ stopPolling(); pollTimer=setInterval(function(){ if(!currentUser) return; fetchState(); if(canManageAccessRequests())loadAccessNotifications(true); if(!views.scan.classList.contains("hidden")) loadEvents(); }, 5000); }
   function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
-  document.addEventListener("visibilitychange",function(){if(!document.hidden&&currentUser&&isAdmin())loadAccessNotifications(true);});
-  window.addEventListener("focus",function(){if(currentUser&&isAdmin())loadAccessNotifications(true);});
+  document.addEventListener("visibilitychange",function(){if(!document.hidden&&currentUser&&canManageAccessRequests())loadAccessNotifications(true);});
+  window.addEventListener("focus",function(){if(currentUser&&canManageAccessRequests())loadAccessNotifications(true);});
 
   // ---- camera ----
   function onScan(txt){ handleScan(txt); }
