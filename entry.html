@@ -521,7 +521,7 @@
     </div>
     <div class="card" style="margin-top:14px"><div class="card-bd" style="padding:0">
       <div class="evt" style="max-height:520px; margin-top:0">
-        <table><thead><tr><th style="width:158px">Time</th><th>Card</th><th style="width:88px">Type</th><th>Process</th><th style="width:70px">Dept</th><th>Scan user</th><th style="width:58px">Dir</th></tr></thead><tbody id="logBody"><tr><td colspan="7" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody></table>
+        <table><thead><tr><th style="width:158px">Time</th><th>Card</th><th style="width:88px">Type</th><th>Process</th><th style="width:70px">Dept</th><th>Vendor sponsor</th><th>Scan user</th><th style="width:58px">Dir</th></tr></thead><tbody id="logBody"><tr><td colspan="8" style="color:var(--muted);padding:16px">Choose a range and press Apply.</td></tr></tbody></table>
       </div>
     </div></div>
     <p id="logNote" style="font-size:11.5px;color:var(--muted);margin-top:8px"></p>
@@ -551,8 +551,8 @@
         <div class="fld"><label>Group name</label><input type="text" id="npGroup" placeholder="Mixing"></div>
         <div class="fld"><label>Group order</label><input type="number" id="npGroupOrder" min="1" value="1"></div>
         <div class="fld"><label>Process order</label><input type="number" id="npOrder" min="1" value="1"></div>
-        <div class="fld"><label>Overall INT</label><input type="number" id="npSi" min="0" value="0"></div>
-        <div class="fld"><label>Overall VEN</label><input type="number" id="npSv" min="0" value="0"></div>
+        <div class="fld"><label>Overall INT</label><input type="number" id="npSi" min="0" placeholder="—"></div>
+        <div class="fld"><label>Overall VEN</label><input type="number" id="npSv" min="0" placeholder="—"></div>
         <button class="btn go" id="npAdd">Add</button>
       </div>
       <div class="setup-table-shell"><div class="card"><div class="card-bd" style="padding:4px 0">
@@ -570,8 +570,8 @@
           <div class="fld"><label>Process</label><select id="spProc"></select></div>
           <div class="fld"><label>Department code</label><input type="text" id="spDept" placeholder="PRD"></div>
           <div class="fld"><label>Dept name</label><input type="text" id="spName" placeholder="Production"></div>
-          <div class="fld"><label>Spec INT</label><input type="number" id="spSi" min="0" value="0"></div>
-          <div class="fld"><label>Spec VEN</label><input type="number" id="spSv" min="0" value="0"></div>
+          <div class="fld"><label>Spec INT</label><input type="number" id="spSi" min="0" placeholder="—"></div>
+          <div class="fld"><label>Spec VEN</label><input type="number" id="spSv" min="0" placeholder="—"></div>
           <div class="fld"><label>Order</label><input type="number" id="spSort" value="0"></div>
           <button class="btn go" id="spAdd">Add / update</button>
         </div>
@@ -581,7 +581,7 @@
             <tbody id="specBody"></tbody>
           </table>
         </div></div></div>
-        <p style="font-size:12px;color:var(--muted);margin-top:10px">Pick a <b>process</b>, then set each department cap. Department code = the last segment of a card, e.g. <b>INT-BK-1-Baking-PRD</b> → <b>PRD</b>. Spec 0 = no limit. The process <b>Spec overall</b> (above) caps the total, so dept caps may sum higher than overall (e.g. PRD 4 + QA 1 with overall 4).</p>
+        <p style="font-size:12px;color:var(--muted);margin-top:10px">Pick a <b>process</b>, then set each department cap. Department code = the last segment of a card, e.g. <b>INT-BK-1-Baking-PRD</b> → <b>PRD</b>. <b>Blank = not configured (—); 0 = zero people allowed.</b> The process <b>Spec overall</b> (above) caps the total, so dept caps may sum higher than overall (e.g. PRD 4 + QA 1 with overall 4).</p>
       </div></div></section>
 
       <section class="setup-panel" data-setup-panel="shifts"><div class="card"><div class="card-hd">Working shift setup</div><div class="card-bd">
@@ -671,6 +671,10 @@
   <div id="procModal" class="modal hidden"><div class="modal-card">
     <div class="modal-hd"><div><div id="pmName" class="pmname">Employee</div><div id="pmInfo" class="pmsub"></div></div><button class="x" id="pmClose">&times;</button></div>
     <div id="pmBody" class="pmbody"></div>
+  </div></div>
+  <div id="vendorSponsorModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="vendorSponsorTitle"><div class="modal-card" style="max-width:520px">
+    <div class="modal-hd"><div><div id="vendorSponsorTitle" class="pmname">Vendor sponsor required</div><div id="vendorSponsorInfo" class="pmsub"></div></div><button class="x" id="vendorSponsorClose">&times;</button></div>
+    <div class="pmbody"><div class="empq">Assign one active Internal Employee as the guarantor for this Vendor card.</div><div class="fld"><label>Sponsor Employee ID *</label><input id="vendorSponsorId" autocomplete="off" placeholder="Scan or enter Internal Employee ID"></div><p id="vendorSponsorStatus" style="font-size:12px;color:var(--muted);margin-top:8px"></p><button class="btn go" id="vendorSponsorSave" style="width:100%;margin-top:12px">Assign sponsor &amp; continue Check IN</button></div>
   </div></div>
   <div id="capacityModal" class="modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="capacityTitle" aria-describedby="capacityMessage"><div class="modal-card capacity-modal-card">
     <div class="capacity-alert-head"><div class="capacity-symbol">!</div><div><h2 id="capacityTitle">CAPACITY OVER SPEC</h2><p id="capacityMessage">Check-in was recorded, but current headcount exceeds the configured specification.</p></div><button class="x" id="capacityClose" aria-label="Close capacity warning">&times;</button></div>
@@ -943,7 +947,20 @@
   function closeCapacityWarning(){$("capacityModal").classList.add("hidden");}
   function showCapacityWarning(scan,breaches){if(!breaches.length)return;$("capacityScanInfo").innerHTML='<div><span>Employee / Card</span><b>'+esc(scan.identity)+'</b></div><div><span>Scan time</span><b>'+new Date().toLocaleString()+'</b></div><div><span>Workshop</span><b>'+esc(scan.workshop||"—")+'</b></div><div><span>Process · Department</span><b>'+esc((scan.processName||scan.process)+(scan.dept?" · "+scan.dept:""))+'</b></div>';$("capacityBreachBody").innerHTML=breaches.map(function(x){var missing=x.alertType==="SPEC_REQUIRED";return '<tr><td>'+esc(x.scope)+'</td><td class="overvalue">'+x.actual+' / '+(missing?'—':x.spec)+'</td><td class="overvalue">'+(missing?'SET SPEC':('+'+(x.actual-x.spec)))+'</td></tr>';}).join("");$("capacityModal").classList.remove("hidden");setTimeout(function(){$("capacityAcknowledge").focus();},30);toast((breaches.some(function(x){return x.alertType==="SPEC_REQUIRED";})?"Vendor spec required":"Capacity over spec")+' · '+(scan.processName||scan.process),"alert");vibrate(140);}
   function publishCapacityAlerts(scan,breaches){if(!sb||!breaches.length)return;var rows=breaches.map(function(x){return {workshop:scan.workshop,process_code:scan.process,process_name:scan.processName||scan.process,dept:scan.dept||null,identity_code:scan.identity,person_type:scan.type||null,alert_type:x.alertType||"OVER_SPEC",scope_label:x.scope,actual:Number(x.actual),spec:Number(x.spec),scan_user_name:scanUserName()};});sb.from("ec_capacity_alert").insert(rows).then(function(r){if(r.error)console.warn("Capacity alert publish failed",r.error.message);});}
-  function checkCapacityAfterIn(identity,proc,dept,type){var p=processes.filter(function(x){return x.process_code===proc;})[0];if(!p||!sb)return;sb.from("ec_presence").select("process_code,person_type,dept").eq("status","in").then(function(r){if(r.error)return;var rows=r.data||[],procRows=rows.filter(function(x){return x.process_code===proc;}),workshopCodes=processes.filter(function(x){return x.workshop===p.workshop;}).map(function(x){return x.process_code;}),workshopActual=rows.filter(function(x){return workshopCodes.indexOf(x.process_code)!==-1;}).length,breaches=[],processSpec=(p.spec_internal||0)+(p.spec_vendor||0),typeSpec=type==="VEN"?(p.spec_vendor||0):(p.spec_internal||0),typeActual=procRows.filter(function(x){return x.person_type===type;}).length,deptKey=dept||"(none)",deptSpec=specByProc[proc]&&specByProc[proc][deptKey]&&specByProc[proc][deptKey][type],deptActual=procRows.filter(function(x){return x.person_type===type&&(x.dept||"(none)")===deptKey;}).length,workshopSpec=workshopSpecs[p.workshop]||0;if(workshopSpec>0&&workshopActual>workshopSpec)breaches.push({scope:"Workshop total · "+p.workshop,actual:workshopActual,spec:workshopSpec});if(processSpec>0&&procRows.length>processSpec)breaches.push({scope:"Process total · "+(p.process_name||proc),actual:procRows.length,spec:processSpec});if(typeSpec>0&&typeActual>typeSpec)breaches.push({scope:"Process "+type+" · "+(p.process_name||proc),actual:typeActual,spec:typeSpec});if(deptSpec>0&&deptActual>deptSpec)breaches.push({scope:"Department "+(dept||"No dept")+" · "+type,actual:deptActual,spec:deptSpec});if(type==="VEN"&&typeActual>0&&typeSpec<=0)breaches.push({alertType:"SPEC_REQUIRED",scope:"VENDOR SPEC REQUIRED · "+(p.process_name||proc),actual:typeActual,spec:0});if(type==="VEN"&&deptActual>0&&dept&&!(deptSpec>0))breaches.push({alertType:"SPEC_REQUIRED",scope:"VENDOR DEPT SPEC REQUIRED · "+dept,actual:deptActual,spec:0});var scan={identity:identity,workshop:p.workshop,process:proc,processName:p.process_name||proc,dept:dept||"",type:type};showCapacityWarning(scan,breaches);publishCapacityAlerts(scan,breaches);});}
+  function checkCapacityAfterIn(identity,proc,dept,type){
+    var p=processes.filter(function(x){return x.process_code===proc;})[0];if(!p||!sb)return;
+    sb.from("ec_presence").select("process_code,person_type,dept").eq("status","in").then(function(r){
+      if(r.error)return;
+      var rows=r.data||[],procRows=rows.filter(function(x){return x.process_code===proc;}),workshopCodes=processes.filter(function(x){return x.workshop===p.workshop;}).map(function(x){return x.process_code;}),workshopActual=rows.filter(function(x){return workshopCodes.indexOf(x.process_code)!==-1;}).length,breaches=[],intSet=p.spec_internal!==null&&p.spec_internal!==undefined,venSet=p.spec_vendor!==null&&p.spec_vendor!==undefined,processSet=intSet&&venSet,processSpec=processSet?Number(p.spec_internal)+Number(p.spec_vendor):null,typeSpec=type==="VEN"?p.spec_vendor:p.spec_internal,typeSet=typeSpec!==null&&typeSpec!==undefined,typeActual=procRows.filter(function(x){return x.person_type===type;}).length,deptKey=dept||"(none)",deptEntry=specByProc[proc]&&specByProc[proc][deptKey],deptSpec=deptEntry&&deptEntry[type],deptSet=deptSpec!==null&&deptSpec!==undefined,deptActual=procRows.filter(function(x){return x.person_type===type&&(x.dept||"(none)")===deptKey;}).length,workshopSpec=workshopSpecs[p.workshop];
+      if(workshopSpec!==null&&workshopSpec!==undefined&&workshopActual>workshopSpec)breaches.push({scope:"Workshop total · "+p.workshop,actual:workshopActual,spec:workshopSpec});
+      if(processSet&&procRows.length>processSpec)breaches.push({scope:"Process total · "+(p.process_name||proc),actual:procRows.length,spec:processSpec});
+      if(typeSet&&typeActual>Number(typeSpec))breaches.push({scope:"Process "+type+" · "+(p.process_name||proc),actual:typeActual,spec:Number(typeSpec)});
+      if(deptSet&&deptActual>Number(deptSpec))breaches.push({scope:"Department "+(dept||"No dept")+" · "+type,actual:deptActual,spec:Number(deptSpec)});
+      if(type==="VEN"&&typeActual>0&&!typeSet)breaches.push({alertType:"SPEC_REQUIRED",scope:"VENDOR SPEC REQUIRED · "+(p.process_name||proc),actual:typeActual,spec:0});
+      if(type==="VEN"&&deptActual>0&&dept&&!deptSet)breaches.push({alertType:"SPEC_REQUIRED",scope:"VENDOR DEPT SPEC REQUIRED · "+dept,actual:deptActual,spec:0});
+      var scan={identity:identity,workshop:p.workshop,process:proc,processName:p.process_name||proc,dept:dept||"",type:type};showCapacityWarning(scan,breaches);publishCapacityAlerts(scan,breaches);
+    });
+  }
   if($("capacityClose"))$("capacityClose").addEventListener("click",closeCapacityWarning);if($("capacityAcknowledge"))$("capacityAcknowledge").addEventListener("click",closeCapacityWarning);if($("capacityModal"))$("capacityModal").addEventListener("click",function(e){if(e.target===$("capacityModal"))closeCapacityWarning();});if($("capacityDashboard"))$("capacityDashboard").addEventListener("click",function(){closeCapacityWarning();history.replaceState(null,"","#dash");showView("dash");});
 
   function renderScanControl(){
@@ -968,6 +985,15 @@
     if(p){ cardToggle(p); return; }
     setResult("bad","NOT RECOGNISED", val.toUpperCase(), "Not on the employee roster and not a valid process card"); sBad(); vibrate(80);
   }
+  var pendingVendorSponsor=null;
+  function processWorkshop(code){var p=processes.filter(function(x){return normProcess(x.process_code)===normProcess(code);})[0];return p&&p.workshop||((rosterWs&&rosterWs.value)||"");}
+  function closeVendorSponsor(){if($("vendorSponsorModal"))$("vendorSponsorModal").classList.add("hidden");pendingVendorSponsor=null;}
+  function openVendorSponsor(vendorKey,workshop,done){pendingVendorSponsor={vendorKey:vendorKey,workshop:workshop,done:done};$("vendorSponsorInfo").textContent=vendorKey+" · "+(workshop||"Workshop not selected");$("vendorSponsorId").value="";$("vendorSponsorStatus").textContent="";$("vendorSponsorModal").classList.remove("hidden");setTimeout(function(){$("vendorSponsorId").focus();},40);}
+  function withVendorSponsor(vendorKey,workshop,personType,direction,done){if(personType!=="VEN"){done(null);return;}sb.rpc("validate_vendor_sponsor",{p_vendor_key:vendorKey,p_workshop:workshop||null}).then(function(r){var x=r.data||{};if(!r.error&&x.valid){done(x.sponsor_id);return;}if(direction==="out"){done(x.sponsor_id||null);return;}openVendorSponsor(vendorKey,workshop,done);});}
+  if($("vendorSponsorClose"))$("vendorSponsorClose").addEventListener("click",closeVendorSponsor);
+  if($("vendorSponsorModal"))$("vendorSponsorModal").addEventListener("click",function(e){if(e.target===$("vendorSponsorModal"))closeVendorSponsor();});
+  if($("vendorSponsorId"))$("vendorSponsorId").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();$("vendorSponsorSave").click();}});
+  if($("vendorSponsorSave"))$("vendorSponsorSave").addEventListener("click",function(){if(!pendingVendorSponsor)return;var id=$("vendorSponsorId").value.trim();if(!id){$("vendorSponsorStatus").textContent="Sponsor Employee ID is required.";return;}var p=pendingVendorSponsor;$("vendorSponsorSave").disabled=true;$("vendorSponsorStatus").textContent="Validating Internal Employee…";sb.rpc("assign_vendor_sponsor",{p_vendor_key:p.vendorKey,p_sponsor_id:id,p_workshop:p.workshop||null}).then(function(r){$("vendorSponsorSave").disabled=false;if(r.error){$("vendorSponsorStatus").textContent=String(r.error.message||"Could not assign sponsor").replace(/_/g," ");sBad();return;}var done=p.done,sponsor=(r.data&&r.data.sponsor_id)||id;closeVendorSponsor();toast("Vendor sponsor assigned · Emp #"+sponsor,"ok");done(sponsor);});});
   function cardToggle(p){
     var now=Date.now();
     if(lastToggle[p.code] && (now-lastToggle[p.code])<3000) return; // debounce same card
@@ -977,15 +1003,17 @@
       var cur = (res.data && res.data.status) ? res.data.status : "out";
       var next = cur==="in" ? "out" : "in";
       if(!scanDirectionAllowed("card",next,p.code))return;
-      sb.from("ec_presence").upsert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, status:next, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
+      withVendorSponsor(p.code,processWorkshop(p.processCode),p.type,next,function(sponsorId){
+      sb.from("ec_presence").upsert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, vendor_sponsor_id:sponsorId, status:next, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
         if(up.error){ toast(up.error.message,"alert"); return; }
-        sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, direction:next, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
+        sb.from("ec_event").insert({ card_code:p.code, person_type:p.type, process_code:p.processCode, card_no:p.cardNo, dept:p.dept, vendor_sponsor_id:sponsorId, direction:next, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
         var nm = procName(p.processCode); var known = nm!==null; var deptTxt = p.dept ? (" · "+ (deptNames[p.dept]||p.dept)) : "";
         setResult(next, next==="in"?"CHECK IN":"CHECK OUT", p.code, (p.type==="VEN"?"Vendor":"Internal")+" · "+(known?nm:(p.processCode+" — not configured"))+deptTxt+" · card "+p.cardNo);
         if(next==="in"){ sIn(); } else { sOut(); } vibrate(45);
         if(next==="in")checkCapacityAfterIn(p.code,p.processCode,p.dept,p.type);
         if(!known) toast("Process "+p.processCode+" not in Setup","alert");
         fetchState(); loadEvents();
+      });
       });
     });
   }
@@ -1055,17 +1083,19 @@
   }
   if($("pmClose")) $("pmClose").addEventListener("click", closeModal);
   if($("procModal")) $("procModal").addEventListener("click", function(e){ if(e.target===$("procModal")) closeModal(); });
-  document.addEventListener("keydown", function(e){ if(e.key==="Escape"){closeModal();closeCapacityWarning();if($("accessRequestModal"))closeAccessRequest();if($("accessReviewModal"))closeAccessReview();} });
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape"){closeModal();closeCapacityWarning();closeVendorSponsor();if($("accessRequestModal"))closeAccessRequest();if($("accessReviewModal"))closeAccessReview();} });
   function recordEmp(emp, key, proc, dir){
     if(!scanDirectionAllowed("employee",dir,"Emp #"+emp.id_no))return;
     var personType=personTypeOf(emp);
-    sb.from("ec_presence").upsert({ card_code:key, person_type:personType, process_code:proc, card_no:emp.id_no, dept:emp.dept||null, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
+    withVendorSponsor(key,emp.workshop||processWorkshop(proc),personType,dir,function(sponsorId){
+    sb.from("ec_presence").upsert({ card_code:key, person_type:personType, process_code:proc, card_no:emp.id_no, dept:emp.dept||null, vendor_sponsor_id:sponsorId, status:dir, updated_at:new Date().toISOString() }, { onConflict:"card_code" }).then(function(up){
       if(up.error){ toast(up.error.message,"alert"); return; }
-      sb.from("ec_event").insert({ card_code:key, person_type:personType, process_code:proc, card_no:emp.id_no, dept:emp.dept||null, direction:dir, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
-      setResult(dir, dir==="in"?"CHECK IN":"CHECK OUT", "Emp #"+emp.id_no, personType+" · "+(procName(proc)||proc)+(emp.dept?(" · "+emp.dept):"")+(emp.title?(" · "+emp.title):""));
+      sb.from("ec_event").insert({ card_code:key, person_type:personType, process_code:proc, card_no:emp.id_no, dept:emp.dept||null, vendor_sponsor_id:sponsorId, direction:dir, created_by:currentUser.id, scanned_by:scanUserName() }).then(function(){});
+      setResult(dir, dir==="in"?"CHECK IN":"CHECK OUT", "Emp #"+emp.id_no, personType+" · "+(procName(proc)||proc)+(emp.dept?(" · "+emp.dept):"")+(sponsorId?(" · Sponsor #"+sponsorId):"")+(emp.title?(" · "+emp.title):""));
       if(dir==="in"){ sIn(); } else { sOut(); } vibrate(45);
       if(dir==="in")checkCapacityAfterIn("Emp #"+emp.id_no,proc,emp.dept||null,personType);
       closeModal(); fetchState(); loadEvents();
+    });
     });
   }
   function populateRosterWs(){
@@ -1272,13 +1302,13 @@
       processes = r[0].data||[];
       var pres = (r[1].data)||[]; presenceIn=pres;
       var specs = (r[2] && r[2].data) || [];
-      workshopSpecs={}; ((r[3]&&r[3].data)||[]).forEach(function(x){workshopSpecs[x.workshop]=x.spec_hc||0;});
+      workshopSpecs={}; ((r[3]&&r[3].data)||[]).forEach(function(x){workshopSpecs[x.workshop]=x.spec_hc;});
       if(r[4]&&!r[4].error&&r[4].data)scanControl={allow_employee_in:r[4].data.allow_employee_in!==false,allow_employee_out:r[4].data.allow_employee_out!==false,allow_card_in:r[4].data.allow_card_in!==false,allow_card_out:r[4].data.allow_card_out!==false,message:r[4].data.message||"Function temporarily locked. Please contact Admin."};
       renderScanControl();
       // specs by process (per-department INT/VEN caps)
       specByProc={}; knownDepts=[]; deptNames={};
       specs.forEach(function(s){ specByProc[s.process_code]=specByProc[s.process_code]||{};
-        specByProc[s.process_code][s.dept]={ INT:s.spec_internal||0, VEN:s.spec_vendor||0, name:s.dept_name||"", sort:s.sort_order||0 };
+        specByProc[s.process_code][s.dept]={ INT:s.spec_internal, VEN:s.spec_vendor, name:s.dept_name||"", sort:s.sort_order||0 };
         if(knownDepts.indexOf(s.dept)===-1) knownDepts.push(s.dept);
         if(s.dept_name) deptNames[s.dept]=s.dept_name; });
       // counts: per-process INT/VEN (countsIn) and per-process/dept INT/VEN (countsProcDept)
@@ -1337,7 +1367,7 @@
   document.addEventListener("click", function(e){ if(wsMenu && !wsMenu.contains(e.target) && e.target!==wsBtn) wsMenu.classList.add("hidden"); });
 
   function stateOf(spec, actual){
-    if(spec<=0) return actual>0?"ok":"none";   // no spec set = not limited
+    if(spec===null||spec===undefined||spec==="") return actual>0?"missing":"none";
     if(actual>spec) return "over";
     if(actual===spec) return "full";
     return actual>0?"ok":"none";
@@ -1355,14 +1385,14 @@
   }
   function ddval(spec, actual){
     var st=stateOf(spec,actual);
-    return '<div class="ddcell"><div class="ddval"><span class="dvn '+st+'">'+actual+'</span><span class="dvl">/'+(spec>0?spec:'\u2013')+'</span></div>'+pctBar(spec,actual)+'</div>';
+    return '<div class="ddcell"><div class="ddval"><span class="dvn '+st+'">'+actual+'</span><span class="dvl">/'+(spec===null||spec===undefined?'\u2013':spec)+'</span></div>'+pctBar(spec,actual)+'</div>';
   }
   function ddept(name, code, iS,iA,vS,vA){
     return '<div class="ddept"><div class="ddname">'+esc(name)+(code?'<span class="ddcode">'+esc(code)+'</span>':'')+'</div>'+ddval(iS,iA)+ddval(vS,vA)+'</div>';
   }
   function ocol(label, spec, actual){
     var st=stateOf(spec,actual);
-    return '<div class="ocol"><div class="olabel">Overall '+label+'</div><div class="oval"><span class="onum '+st+'">'+actual+'</span><span class="olim">/'+(spec>0?spec:'\u2013')+'</span>'+(st==="over"?'<span class="obadge">!</span>':'')+'</div></div>';
+    return '<div class="ocol"><div class="olabel">Overall '+label+'</div><div class="oval"><span class="onum '+st+'">'+actual+'</span><span class="olim">/'+(spec===null||spec===undefined?'\u2013':spec)+'</span>'+(st==="over"?'<span class="obadge">!</span>':'')+'</div></div>';
   }
   function insideDuration(ms){if(!isFinite(ms)||ms<0)return "—";var sec=Math.floor(ms/1000),h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return h?h+"h "+m+"m":m?m+"m":sec+"s";}
   function processInsideRows(code){return presenceIn.filter(function(x){return x.process_code===code;}).sort(function(a,b){return new Date(a.updated_at)-new Date(b.updated_at);});}
@@ -1378,7 +1408,7 @@
     Object.keys(deptCounts).forEach(function(d){ if(depts.indexOf(d)===-1) depts.push(d); });
     depts.sort(function(a,b){ var sa=(depSpecs[a]&&depSpecs[a].sort)||0, sb2=(depSpecs[b]&&depSpecs[b].sort)||0; return (sa-sb2)||(a<b?-1:1); });
     var over=false;
-    var oInt=(p.spec_internal>0&&co.INT>p.spec_internal), oVen=(p.spec_vendor>0&&co.VEN>p.spec_vendor);
+    var oInt=(p.spec_internal!==null&&p.spec_internal!==undefined&&co.INT>p.spec_internal), oVen=(p.spec_vendor!==null&&p.spec_vendor!==undefined&&co.VEN>p.spec_vendor);
     if(oInt||oVen){ over=true; var pp=[]; if(oInt)pp.push("INT "+co.INT+"/"+p.spec_internal); if(oVen)pp.push("VEN "+co.VEN+"/"+p.spec_vendor); overList.push({ name:(p.process_name||p.process_code)+" — overall", detail:pp.join(" \u00b7 ") }); }
     var dhtml="";
     if(depts.length){
@@ -1386,8 +1416,8 @@
       dhtml='<div class="dsec">By department</div><div class="ddgrid">'+hd+hd;
       depts.forEach(function(d){
         var nm=d==="(none)"?"No dept":((depSpecs[d]&&depSpecs[d].name)||d);
-        var sp=(depSpecs[d]||{INT:0,VEN:0}), c=(deptCounts[d]||{INT:0,VEN:0});
-        var di=(sp.INT>0&&c.INT>sp.INT), dv=(sp.VEN>0&&c.VEN>sp.VEN);
+        var sp=(depSpecs[d]||{INT:null,VEN:null}), c=(deptCounts[d]||{INT:0,VEN:0});
+        var di=(sp.INT!==null&&sp.INT!==undefined&&c.INT>sp.INT), dv=(sp.VEN!==null&&sp.VEN!==undefined&&c.VEN>sp.VEN);
         if(di||dv){ over=true; var pp2=[]; if(di)pp2.push("INT "+c.INT+"/"+sp.INT); if(dv)pp2.push("VEN "+c.VEN+"/"+sp.VEN); overList.push({ name:(p.process_name||p.process_code)+" \u00b7 "+nm, detail:pp2.join(" \u00b7 ") }); }
         dhtml += ddept(nm, d==="(none)"?"":d, sp.INT,c.INT, sp.VEN,c.VEN);
       });
@@ -1449,15 +1479,15 @@
   $("rpWorkshop").addEventListener("change",function(){setReportProcesses("");});
   function fetchReportEvents(toISO){return new Promise(function(resolve,reject){var all=[],from=0,size=1000,max=100000;(function next(){sb.from("ec_event").select("created_at,card_code,process_code,direction,person_type,dept,scanned_by").lte("created_at",toISO).order("created_at",{ascending:false}).range(from,from+size-1).then(function(r){if(r.error){reject(r.error);return;}var rows=r.data||[];all=all.concat(rows);if(rows.length<size||all.length>=max){all.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at);});resolve({rows:all,truncated:all.length>=max});}else{from+=size;next();}});})();});}
   function procMap(){var m={};processes.forEach(function(p){m[p.process_code]=p;});return m;}
-  function wsSpec(ws,pm){var s=workshopSpecs[ws]||0;if(s>0)return s;return processes.filter(function(p){return p.workshop===ws;}).reduce(function(n,p){return n+(p.spec_internal||0)+(p.spec_vendor||0);},0);}
-  function scopeSpec(scope,pm){if(scope.process){var p=pm[scope.process];return p?(p.spec_internal||0)+(p.spec_vendor||0):0;}if(scope.workshop)return wsSpec(scope.workshop,pm);return scope.workshops.reduce(function(n,w){return n+wsSpec(w,pm);},0);}
+  function wsSpec(ws,pm){if(Object.prototype.hasOwnProperty.call(workshopSpecs,ws))return workshopSpecs[ws];var list=processes.filter(function(p){return p.workshop===ws;});if(list.some(function(p){return p.spec_internal==null||p.spec_vendor==null;}))return null;return list.reduce(function(n,p){return n+Number(p.spec_internal)+Number(p.spec_vendor);},0);}
+  function scopeSpec(scope,pm){if(scope.process){var p=pm[scope.process];return !p||p.spec_internal==null||p.spec_vendor==null?null:Number(p.spec_internal)+Number(p.spec_vendor);}if(scope.workshop)return wsSpec(scope.workshop,pm);var vals=scope.workshops.map(function(w){return wsSpec(w,pm);});return vals.some(function(v){return v==null;})?null:vals.reduce(function(n,v){return n+v;},0);}
   function replayBefore(events,fromMs,pm){var state={};events.forEach(function(e){if(new Date(e.created_at).getTime()>=fromMs)return;var p=pm[e.process_code];if(!p)return;if(e.direction==="in")state[e.card_code]=e.process_code;else delete state[e.card_code];});return state;}
   function countScope(state,scope,pm){var n=0;Object.keys(state).forEach(function(c){var pc=state[c],p=pm[pc];if(!p)return;if(scope.process){if(pc===scope.process)n++;}else if(scope.workshop){if(p.workshop===scope.workshop)n++;}else if(scope.workshops.indexOf(p.workshop)!==-1)n++;});return n;}
   function applyReplay(state,e){if(e.direction==="in")state[e.card_code]=e.process_code;else delete state[e.card_code];}
   function durationText(ms){if(!isFinite(ms)||ms<0)return "—";var min=Math.round(ms/60000),h=Math.floor(min/60),m=min%60;return h?h+"h "+m+"m":m+"m";}
   function analyzeScope(events,fromMs,toMs,scope,spec,pm){
-    var state=replayBefore(events,fromMs,pm),cur=countScope(state,scope,pm),last=fromMs,integral=0,peak=cur,episodes=[],open=cur>spec&&spec>0?{start:fromMs,peak:cur}:null,samples=[{t:fromMs,v:cur}],flow=[];
-    events.forEach(function(e){var t=new Date(e.created_at).getTime();if(t<fromMs||t>toMs)return;var old=countScope(state,scope,pm);integral+=old*(t-last);last=t;applyReplay(state,e);cur=countScope(state,scope,pm);peak=Math.max(peak,cur);if(cur!==old)samples.push({t:t,v:cur});if(spec>0&&!open&&cur>spec)open={start:t,peak:cur};if(open){open.peak=Math.max(open.peak,cur);if(cur<=spec){open.end=t;episodes.push(open);open=null;}};
+    var specSet=spec!==null&&spec!==undefined,state=replayBefore(events,fromMs,pm),cur=countScope(state,scope,pm),last=fromMs,integral=0,peak=cur,episodes=[],open=specSet&&cur>spec?{start:fromMs,peak:cur}:null,samples=[{t:fromMs,v:cur}],flow=[];
+    events.forEach(function(e){var t=new Date(e.created_at).getTime();if(t<fromMs||t>toMs)return;var old=countScope(state,scope,pm);integral+=old*(t-last);last=t;applyReplay(state,e);cur=countScope(state,scope,pm);peak=Math.max(peak,cur);if(cur!==old)samples.push({t:t,v:cur});if(specSet&&!open&&cur>spec)open={start:t,peak:cur};if(open){open.peak=Math.max(open.peak,cur);if(cur<=spec){open.end=t;episodes.push(open);open=null;}};
       var p=pm[e.process_code],inside=scope.process?e.process_code===scope.process:scope.workshop?p&&p.workshop===scope.workshop:p&&scope.workshops.indexOf(p.workshop)!==-1;if(inside)flow.push(e);
     });integral+=cur*(toMs-last);samples.push({t:toMs,v:cur});if(open){open.end=toMs;episodes.push(open);}var avg=integral/Math.max(1,toMs-fromMs);return {peak:peak,avg:avg,spec:spec,episodes:episodes,samples:samples,flow:flow};
   }
@@ -1475,7 +1505,7 @@
   function renderHeat(peaks,bins,wsList,pm){var head='<tr><th class="area">Workshop · unit: people</th>'+bins.map(function(b){return '<th title="Time bucket: '+new Date(b.start).toLocaleString()+' to '+new Date(b.end).toLocaleString()+'">'+new Date(b.start).toLocaleString([], {month:"2-digit",day:"2-digit",hour:"2-digit"})+'</th>';}).join("")+'</tr>',rows=wsList.map(function(w){var sp=wsSpec(w,pm);return '<tr><td class="area">'+esc(w)+' · Spec '+(sp||'—')+'</td>'+peaks[w].map(function(v,i){var cls=sp>0&&v>sp?'over':sp>0&&v===sp?'warn':'',delta=sp?v-sp:0;return '<td class="'+cls+'" title="'+esc(w)+' · '+new Date(bins[i].start).toLocaleString()+' · Peak actual: '+v+' people · Spec: '+(sp||'not set')+(sp?' people · Difference: '+(delta>0?'+':'')+delta+' people':'')+'">'+v+(sp?'/'+sp:'')+'</td>';}).join("")+'</tr>';}).join("");$("rpHeat").innerHTML='<table class="heat">'+head+rows+'</table><div class="flow-x-title">Columns: time bucket start (local date / time) · Cells: peak actual HC / spec HC (people)</div>';}
   function renderDecision(a,spec,ranking,totalDur,maxOver){
     var box=$("rpDecisionStatus"),ratio=spec>0?a.peak/spec:0,status="controlled",title="CONTROLLED",sub="No over-spec episode in the selected period.";
-    if(!spec){status="watch";title="SPEC REQUIRED";sub="Configure HC spec before making a capacity decision.";}
+    if(spec===null||spec===undefined){status="watch";title="SPEC REQUIRED";sub="Configure HC spec before making a capacity decision.";}
     else if(a.episodes.length&&(ratio>=1.2||totalDur>=120*60000)){status="critical";title="ACTION REQUIRED";sub="Material capacity exposure detected; immediate review is recommended.";}
     else if(a.episodes.length){status="watch";title="WATCH";sub="Short or limited over-spec exposure requires follow-up.";}
     box.className="decision-item "+status;$("rpDecisionStatusText").textContent=title;$("rpDecisionStatusSub").textContent=sub;
@@ -1506,8 +1536,8 @@
         + '<td><input type="text" data-f="group_name" placeholder="UNGROUPED" value="'+esc(p.group_name||"")+'"></td>'
         + '<td><input type="number" class="num" data-f="group_order" min="1" value="'+(p.group_order||0)+'"></td>'
         + '<td><input type="number" class="num" data-f="sort_order" min="1" value="'+(p.sort_order||0)+'"></td>'
-        + '<td><input type="number" class="num" data-f="spec_internal" min="0" value="'+(p.spec_internal||0)+'"></td>'
-        + '<td><input type="number" class="num" data-f="spec_vendor" min="0" value="'+(p.spec_vendor||0)+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_internal" min="0" placeholder="—" value="'+(p.spec_internal===null||p.spec_internal===undefined?'':p.spec_internal)+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_vendor" min="0" placeholder="—" value="'+(p.spec_vendor===null||p.spec_vendor===undefined?'':p.spec_vendor)+'"></td>'
         + '<td style="white-space:nowrap"><button class="btn sm psave">Save</button> <button class="btn sm danger pdel">Del</button></td></tr>';
     }).join("");
     Array.prototype.forEach.call(setupBody.querySelectorAll(".psave"), function(b){ b.addEventListener("click", function(){ saveProc(b.closest("tr")); }); });
@@ -1529,7 +1559,7 @@
   });
   function saveProc(tr){
     var code=tr.getAttribute("data-code"); var patch={updated_at:new Date().toISOString()};
-    Array.prototype.forEach.call(tr.querySelectorAll("[data-f]"), function(inp){ var f=inp.getAttribute("data-f"); patch[f]= (inp.type==="number")? (parseInt(inp.value,10)||0) : inp.value.trim(); });
+    Array.prototype.forEach.call(tr.querySelectorAll("[data-f]"), function(inp){ var f=inp.getAttribute("data-f"),isSpec=f==="spec_internal"||f==="spec_vendor";patch[f]=inp.type==="number"?(isSpec?(inp.value.trim()===""?null:parseInt(inp.value,10)):(parseInt(inp.value,10)||0)):inp.value.trim(); });
     sb.from("ec_process").update(patch).eq("process_code",code).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved "+code,"ok"); fetchState(); });
   }
   function delProc(tr){
@@ -1538,7 +1568,7 @@
   }
   $("npAdd").addEventListener("click", function(){
     var code=$("npCode").value.trim().toUpperCase(); if(!code){ toast("Enter a process code","alert"); return; }
-    var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", group_name:$("npGroup").value.trim()||null, group_order:parseInt($("npGroupOrder").value,10)||0, sort_order:parseInt($("npOrder").value,10)||1, spec_internal:parseInt($("npSi").value,10)||0, spec_vendor:parseInt($("npSv").value,10)||0 };
+    var row={ process_code:code, process_name:$("npName").value.trim(), workshop:$("npWs").value.trim()||"Workshop", group_name:$("npGroup").value.trim()||null, group_order:parseInt($("npGroupOrder").value,10)||0, sort_order:parseInt($("npOrder").value,10)||1, spec_internal:$("npSi").value.trim()===""?null:parseInt($("npSi").value,10), spec_vendor:$("npSv").value.trim()===""?null:parseInt($("npSv").value,10) };
     sb.from("ec_process").upsert(row,{onConflict:"process_code"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Added "+code,"ok"); $("npCode").value="";$("npName").value="";$("npGroup").value="";$("npOrder").value="1";$("npSi").value="0";$("npSv").value="0"; fetchState(); });
   });
 
@@ -1554,8 +1584,8 @@
         + '<td class="mono">'+esc(r.pc)+'</td>'
         + '<td class="mono">'+esc(r.dept)+'</td>'
         + '<td><input type="text" data-f="dept_name" value="'+esc(r.name)+'"></td>'
-        + '<td><input type="number" class="num" data-f="spec_internal" min="0" value="'+r.INT+'"></td>'
-        + '<td><input type="number" class="num" data-f="spec_vendor" min="0" value="'+r.VEN+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_internal" min="0" placeholder="—" value="'+(r.INT===null||r.INT===undefined?'':r.INT)+'"></td>'
+        + '<td><input type="number" class="num" data-f="spec_vendor" min="0" placeholder="—" value="'+(r.VEN===null||r.VEN===undefined?'':r.VEN)+'"></td>'
         + '<td><input type="number" class="num" data-f="sort_order" value="'+r.sort+'"></td>'
         + '<td style="white-space:nowrap"><button class="btn sm ssave">Save</button> <button class="btn sm danger sdel">Del</button></td></tr>';
     }).join("") : '<tr><td colspan="7" style="color:var(--muted);padding:16px">No department caps yet. Pick a process and add PRD, QA, ...</td></tr>';
@@ -1564,7 +1594,7 @@
   }
   function saveSpec(tr){
     var pc=tr.getAttribute("data-pc"), dept=tr.getAttribute("data-dept"), patch={updated_at:new Date().toISOString()};
-    Array.prototype.forEach.call(tr.querySelectorAll("[data-f]"), function(inp){ var f=inp.getAttribute("data-f"); patch[f]=(inp.type==="number")?(parseInt(inp.value,10)||0):inp.value.trim(); });
+    Array.prototype.forEach.call(tr.querySelectorAll("[data-f]"), function(inp){ var f=inp.getAttribute("data-f"),isSpec=f==="spec_internal"||f==="spec_vendor";patch[f]=inp.type==="number"?(isSpec?(inp.value.trim()===""?null:parseInt(inp.value,10)):(parseInt(inp.value,10)||0)):inp.value.trim(); });
     sb.from("ec_spec").update(patch).eq("process_code",pc).eq("dept",dept).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved","ok"); fetchState(); });
   }
   function delSpec(tr){
@@ -1575,7 +1605,7 @@
   if($("spAdd")) $("spAdd").addEventListener("click", function(){
     var pc=$("spProc").value; if(!pc){ toast("Add a process first","alert"); return; }
     var dept=$("spDept").value.trim().toUpperCase(); if(!dept){ toast("Enter a department code","alert"); return; }
-    var row={ process_code:pc, dept:dept, dept_name:$("spName").value.trim(), spec_internal:parseInt($("spSi").value,10)||0, spec_vendor:parseInt($("spSv").value,10)||0, sort_order:parseInt($("spSort").value,10)||0, updated_at:new Date().toISOString() };
+    var row={ process_code:pc, dept:dept, dept_name:$("spName").value.trim(), spec_internal:$("spSi").value.trim()===""?null:parseInt($("spSi").value,10), spec_vendor:$("spSv").value.trim()===""?null:parseInt($("spSv").value,10), sort_order:parseInt($("spSort").value,10)||0, updated_at:new Date().toISOString() };
     sb.from("ec_spec").upsert(row,{onConflict:"process_code,dept"}).then(function(r){ if(r.error){toast(r.error.message,"alert");return;} toast("Saved "+pc+" / "+dept,"ok"); $("spDept").value="";$("spName").value="";$("spSi").value="0";$("spSv").value="0"; fetchState(); });
   });
 
@@ -1599,8 +1629,8 @@
     return Promise.all([
       sb.from("ec_process").select("*").order("sort_order",{ascending:true}),
       sb.from("ec_spec").select("*").order("process_code",{ascending:true}),
-      fetchAllRows("ec_presence","card_code,person_type,process_code,card_no,dept,status,updated_at",null),
-      fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,direction,scanned_by","created_at"),
+      fetchAllRows("ec_presence","card_code,person_type,process_code,card_no,dept,vendor_sponsor_id,status,updated_at",null),
+      fetchAllRows("ec_event","created_at,card_code,person_type,process_code,card_no,dept,vendor_sponsor_id,direction,scanned_by","created_at"),
       sb.from("ec_scan_control").select("*").eq("id",1).maybeSingle(),
       fetchAllRows("ec_access_request","*","requested_at")
     ]).then(function(r){
@@ -1623,11 +1653,11 @@
   }
   function copyField(inp){ try{ inp.select(); inp.setSelectionRange(0,99999); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value); else document.execCommand("copy"); toast("Copied","ok"); }catch(e){ toast("Copy failed — select manually","alert"); } }
   if(dlEvents) dlEvents.addEventListener("click", function(){ if(!sb) return;
-    sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,scanned_by").order("created_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
-      downloadCSV("entry-events-"+stamp()+".csv", toCSV(r.data||[], ["created_at","card_code","person_type","process_code","card_no","direction","scanned_by"])); toast("Exported "+((r.data||[]).length)+" events","ok"); }); });
+    sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,vendor_sponsor_id,direction,scanned_by").order("created_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
+      downloadCSV("entry-events-"+stamp()+".csv", toCSV(r.data||[], ["created_at","card_code","person_type","process_code","card_no","vendor_sponsor_id","direction","scanned_by"])); toast("Exported "+((r.data||[]).length)+" events","ok"); }); });
   if(dlPresence) dlPresence.addEventListener("click", function(){ if(!sb) return;
-    sb.from("ec_presence").select("card_code,person_type,process_code,card_no,status,updated_at").order("updated_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
-      downloadCSV("entry-presence-"+stamp()+".csv", toCSV(r.data||[], ["card_code","person_type","process_code","card_no","status","updated_at"])); toast("Exported "+((r.data||[]).length)+" rows","ok"); }); });
+    sb.from("ec_presence").select("card_code,person_type,process_code,card_no,vendor_sponsor_id,status,updated_at").order("updated_at",{ascending:false}).limit(20000).then(function(r){ if(r.error){ toast(r.error.message,"alert"); return; }
+      downloadCSV("entry-presence-"+stamp()+".csv", toCSV(r.data||[], ["card_code","person_type","process_code","card_no","vendor_sponsor_id","status","updated_at"])); toast("Exported "+((r.data||[]).length)+" rows","ok"); }); });
   if(cpEvents) cpEvents.addEventListener("click", function(){ copyField(pbiEvents); });
   if(cpPresence) cpPresence.addEventListener("click", function(){ copyField(pbiPresence); });
 
@@ -1646,8 +1676,8 @@
     var fromISO, toISO;
     try{ fromISO=new Date(logFrom.value+"T00:00:00").toISOString(); toISO=new Date(logTo.value+"T23:59:59.999").toISOString(); }
     catch(e){ toast("Invalid date range","alert"); return; }
-    logBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">Loading…</td></tr>';
-    var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept,scanned_by")
+    logBody.innerHTML='<tr><td colspan="8" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+    var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept,vendor_sponsor_id,scanned_by")
       .gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false}).limit(5000);
     if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
     if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
@@ -1656,15 +1686,15 @@
       if(!codes.length){ logRows=[]; renderLog(); return; }
       q=q.in("process_code", codes);
     }
-    q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="7" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
+    q.then(function(r){ if(r.error){ toast("Load log: "+r.error.message,"alert"); logBody.innerHTML='<tr><td colspan="8" style="color:var(--alert);padding:16px">'+esc(r.error.message)+'</td></tr>'; return; }
       logRows=r.data||[]; renderLog(); });
   }
   function renderLog(){
     var inC=0,outC=0; logRows.forEach(function(e){ if(e.direction==="in")inC++; else if(e.direction==="out")outC++; });
     logTotal.textContent=logRows.length; logIn.textContent=inC; logOut.textContent=outC;
-    if(!logRows.length){ logBody.innerHTML='<tr><td colspan="7" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
+    if(!logRows.length){ logBody.innerHTML='<tr><td colspan="8" style="color:var(--muted);padding:16px">No records in this range.</td></tr>'; logNote.textContent=""; return; }
     logBody.innerHTML=logRows.map(function(e){ var nm=procName(e.process_code)||e.process_code||""; var d=new Date(e.created_at);
-      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td>"+esc(e.scanned_by||"Unknown / Legacy")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
+      return "<tr><td class=\"mono\">"+esc(d.toLocaleString())+"</td><td class=\"mono\">"+esc(empName(e.card_code))+"</td><td>"+(e.person_type==="VEN"?"Vendor":"Internal")+"</td><td>"+esc(nm)+"</td><td class=\"mono\">"+esc(e.dept||"")+"</td><td class=\"mono\">"+(e.vendor_sponsor_id?("Emp #"+esc(e.vendor_sponsor_id)):"—")+"</td><td>"+esc(e.scanned_by||"Unknown / Legacy")+"</td><td class=\""+(e.direction==="in"?"din":"dout")+"\">"+(e.direction==="in"?"IN":"OUT")+"</td></tr>";
     }).join("");
     logNote.textContent = logRows.length>=5000 ? "Showing the first 5000 records — narrow the range for the rest." : ("Showing "+logRows.length+" records.");
   }
@@ -1680,7 +1710,7 @@
     logDownload.disabled=true; var oldt=logDownload.textContent; logDownload.textContent="Exporting…";
     var all=[], from=0, size=1000;
     (function next(){
-      var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept,scanned_by").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false});
+      var q=sb.from("ec_event").select("created_at,card_code,person_type,process_code,card_no,direction,dept,vendor_sponsor_id,scanned_by").gte("created_at",fromISO).lte("created_at",toISO).order("created_at",{ascending:false});
       if(logDir.value==="in"||logDir.value==="out") q=q.eq("direction",logDir.value);
       if(logType.value==="INT"||logType.value==="VEN") q=q.eq("person_type",logType.value);
       if(codes) q=q.in("process_code",codes);
@@ -1688,8 +1718,8 @@
         if(r.error){ toast("Export: "+r.error.message,"alert"); logDownload.disabled=false; logDownload.textContent=oldt; return; }
         var rows=r.data||[]; all=all.concat(rows);
         if(rows.length<size){
-          var out=all.map(function(e){ return { created_at:e.created_at, card_code:e.card_code, name:empName(e.card_code), person_type:e.person_type, process_code:e.process_code, card_no:e.card_no, dept:e.dept||"", scanned_by:e.scanned_by||"", direction:e.direction }; });
-          downloadCSV("entry-log-"+stamp()+".csv", toCSV(out,["created_at","card_code","name","person_type","process_code","card_no","dept","scanned_by","direction"]));
+          var out=all.map(function(e){ return { created_at:e.created_at, card_code:e.card_code, name:empName(e.card_code), person_type:e.person_type, process_code:e.process_code, card_no:e.card_no, dept:e.dept||"", vendor_sponsor_id:e.vendor_sponsor_id||"", scanned_by:e.scanned_by||"", direction:e.direction }; });
+          downloadCSV("entry-log-"+stamp()+".csv", toCSV(out,["created_at","card_code","name","person_type","process_code","card_no","dept","vendor_sponsor_id","scanned_by","direction"]));
           toast("Exported "+all.length+" records","ok"); logDownload.disabled=false; logDownload.textContent=oldt;
         } else { from+=size; next(); }
       });
