@@ -606,13 +606,13 @@
       <section class="setup-panel" data-setup-panel="roster"><div class="card"><div class="card-hd">Employee roster — who may enter a workshop</div><div class="card-bd">
         <div class="setup-toolbar"><div class="fld search"><label>Search employee access</label><input id="rsSearch" type="text" placeholder="ID, group, department, title, process or shift"></div><div class="fld"><label>Workshop</label><select id="rsFilter"><option value="">All workshops</option></select></div><div class="fld"><label>Group</label><select id="rsGroupFilter"><option value="">All groups</option></select></div><div class="actions"><button class="btn" data-setup-clear="roster">Clear filters</button><button class="btn" data-setup-refresh>Refresh</button><button class="btn" id="rsTemplate">Download template</button><button class="btn" data-table-export="rosterBody">Export CSV</button></div></div>
         <div class="addbar" style="grid-template-columns:repeat(7,1fr) auto">
-          <div class="fld"><label>Workshop</label><input type="text" id="rsWs" placeholder="1F ELECTRODE"></div>
+          <div class="fld"><label>Workshop</label><select id="rsWs"><option value="">— Select workshop —</option></select></div>
           <div class="fld"><label>ID No</label><input type="text" id="rsId"></div>
-          <div class="fld"><label>Group</label><input type="text" id="rsGroup" placeholder="A"></div>
-          <div class="fld"><label>Dept</label><input type="text" id="rsDept" placeholder="PRD"></div>
+          <div class="fld"><label>Group</label><select id="rsGroup"><option value="">— Select group —</option></select></div>
+          <div class="fld"><label>Dept</label><select id="rsDept"><option value="">— Select department —</option></select></div>
           <div class="fld"><label>Title</label><input type="text" id="rsTitle"></div>
-          <div class="fld"><label>Process name</label><input type="text" id="rsProcess" list="processOptions" placeholder="ANODE Mixing"><datalist id="processOptions"></datalist></div>
-          <div class="fld"><label>Default shift</label><input type="text" id="rsShift" placeholder="S10E"></div>
+          <div class="fld"><label>Process name</label><select id="rsProcess"><option value="">— Select process —</option></select></div>
+          <div class="fld"><label>Default shift</label><select id="rsShift"><option value="">— Select shift —</option></select></div>
           <button class="btn go" id="rsAdd">Add</button>
         </div>
         <div class="fld" style="margin-top:12px"><label>Bulk import — CSV columns: <b>ID No, Workshop, Group, Dept, Title, Process Name, Default Shift</b>.</label>
@@ -682,13 +682,13 @@
       <div class="access-modebar"><div class="access-mode-tabs"><button class="btn go" id="arModeSingle">Single employee</button><button class="btn" id="arModeBulk">Bulk employees</button><button class="btn" id="arModeMine">My requests <span id="arMineCount"></span></button></div><button class="btn access-template" id="arTemplate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>Download template</button></div>
       <div id="arSingleFields"><div class="access-form-grid">
         <div class="fld access-id"><label>Employee ID *</label><input id="arId" autocomplete="off"></div>
-        <div class="fld access-workshop"><label>Workshop *</label><input id="arWorkshop" list="arWorkshopOptions" autocomplete="off"><datalist id="arWorkshopOptions"></datalist></div>
-        <div class="fld access-group"><label>Group</label><input id="arGroup" list="arGroupOptions" autocomplete="off"><datalist id="arGroupOptions"></datalist></div>
-        <div class="fld access-dept"><label>Department</label><input id="arDept" list="arDeptOptions" autocomplete="off"><datalist id="arDeptOptions"></datalist></div>
+        <div class="fld access-workshop"><label>Workshop *</label><select id="arWorkshop"><option value="">— Select workshop —</option></select></div>
+        <div class="fld access-group"><label>Group</label><select id="arGroup"><option value="T">T</option></select></div>
+        <div class="fld access-dept"><label>Department</label><select id="arDept"><option value="">— All departments —</option></select></div>
         <div class="fld access-title"><label>Title / Position</label><input id="arTitle" list="arTitleOptions" autocomplete="off"><datalist id="arTitleOptions"></datalist></div>
-        <div class="fld access-process"><label>Process Name *</label><input id="arProcessName" list="arProcessOptions" placeholder="Search configured process" autocomplete="off"><datalist id="arProcessOptions"></datalist></div>
+        <div class="fld access-process"><label>Process Name *</label><select id="arProcessName"><option value="">— Select process —</option></select></div>
         <div class="fld access-work"><label>Process Work</label><input id="arProcessWork" placeholder="Additional work reference" autocomplete="off"></div>
-        <div class="fld access-shift"><label>Default Shift</label><input id="arShift" list="arShiftOptions" autocomplete="off"><datalist id="arShiftOptions"></datalist></div>
+        <div class="fld access-shift"><label>Default Shift</label><select id="arShift"><option value="T">T</option></select></div>
         <div class="fld access-note"><label>Note</label><textarea id="arNote" rows="3" placeholder="Additional information for admin review"></textarea></div>
       </div></div>
       <div id="arBulkFields" class="access-bulk hidden"><div class="fld"><label>CSV rows: Employee ID, Workshop, Group, Dept, Title, Process Name, Process Work, Default Shift, Note</label><textarea id="arBulkCsv" rows="9" placeholder="000001,1F ELECTRODE,A,PRD,Operator 1,ANODE Mixing,Mixing operation,S10E,New hire"></textarea></div><label class="access-file">Choose CSV file <input type="file" id="arBulkFile" accept=".csv,text/csv"></label></div>
@@ -829,9 +829,9 @@
   try{activateSetupTab(localStorage.getItem("entry_setup_tab")||"process");}catch(e){activateSetupTab("process");}
 
   function filterBody(bodyId,query,colIndex,value){
-    var body=$(bodyId); if(!body)return; query=String(query||"").trim().toLowerCase(); value=String(value||"").trim().toLowerCase();
+    var body=$(bodyId); if(!body)return; query=String(query||"").trim().toLowerCase(); value=normProcess(value);
     Array.prototype.forEach.call(body.querySelectorAll("tr"),function(tr){
-      var cells=tr.querySelectorAll("td"), text=tr.textContent.toLowerCase(), cv=(cells[colIndex]&&cells[colIndex].textContent||"").trim().toLowerCase();
+      var cells=tr.querySelectorAll("td"), text=tr.textContent.toLowerCase(),cell=cells[colIndex],control=cell&&cell.querySelector("input,select,textarea"),cv=normProcess(control?control.value:(cell&&cell.textContent||""));
       tr.style.display=(!query||text.indexOf(query)!==-1)&&(!value||cv===value)?"":"none";
     });
   }
@@ -1079,21 +1079,20 @@
   function loadRoster(){
     var body=$("rosterBody"); if(!body||!sb) return;
     if($("rsFilter")){ var cf=$("rsFilter").value; $("rsFilter").innerHTML='<option value="">All workshops</option>'+allWorkshops.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join(""); $("rsFilter").value=cf; }
-    var q=sb.from("ec_roster").select("*").order("workshop",{ascending:true}).order("id_no",{ascending:true}).limit(5000);
-    var f=$("rsFilter")&&$("rsFilter").value, gf=$("rsGroupFilter")&&$("rsGroupFilter").value; if(f) q=q.eq("workshop",f);if(gf)q=q.eq("group_code",gf);
-    q.then(function(res){
-      var rows=(res.data)||[];
+    var f=$("rsFilter")&&$("rsFilter").value, gf=$("rsGroupFilter")&&$("rsGroupFilter").value;
+    function page(from,all){var q=sb.from("ec_roster").select("*").order("workshop",{ascending:true}).order("id_no",{ascending:true}).range(from,from+999);if(f)q=q.eq("workshop",f);if(gf)q=q.eq("group_code",gf);return q.then(function(res){if(res.error)throw res.error;var part=res.data||[],next=all.concat(part);return part.length===1000?page(from+1000,next):next;});}
+    page(0,[]).then(function(rows){
       body.innerHTML = rows.length ? rows.map(function(r){
         return '<tr data-id="'+esc(r.id)+'" data-json="'+esc(JSON.stringify(r))+'"><td class="mono">'+esc(r.workshop||"")+'</td><td class="mono">'+esc(r.id_no)+'</td><td class="mono">'+esc(r.group_code||"")+'</td><td class="mono">'+esc(r.dept||"")+'</td><td>'+esc(r.title||"")+'</td><td>'+esc(r.process_code||"")+'</td><td class="mono">'+esc(r.shift_code||"")+(r.active===false?' · INACTIVE':'')+'</td><td style="white-space:nowrap"><button class="btn sm redit">Edit</button> <button class="btn sm rshift">Change shift</button> <button class="btn sm rot">Register OT</button> <button class="btn sm rtoggle">'+(r.active===false?'Activate':'Deactivate')+'</button> <button class="btn sm danger rdel">Delete</button></td></tr>';
       }).join("") : '<tr><td colspan="8" style="color:var(--muted);padding:16px">No employees yet. Add one or bulk-import a CSV.</td></tr>';
       function rowData(b){try{return JSON.parse(b.closest("tr").getAttribute("data-json"));}catch(e){return {};}}
-      Array.prototype.forEach.call(body.querySelectorAll(".redit"),function(b){b.addEventListener("click",function(){var r=rowData(b);$("rsWs").value=r.workshop||"";$("rsId").value=r.id_no||"";$("rsGroup").value=r.group_code||"";$("rsDept").value=r.dept||"";$("rsTitle").value=r.title||"";$("rsProcess").value=r.process_code||"";$("rsShift").value=r.shift_code||"";window.scrollTo({top:0,behavior:"smooth"});});});
+      Array.prototype.forEach.call(body.querySelectorAll(".redit"),function(b){b.addEventListener("click",function(){var r=rowData(b);$("rsWs").value=r.workshop||"";refreshRosterAddOptions();$("rsDept").value=r.dept||"";refreshRosterAddOptions();$("rsId").value=r.id_no||"";$("rsGroup").value=r.group_code||"";$("rsTitle").value=r.title||"";$("rsProcess").value=r.process_code||"";$("rsShift").value=r.shift_code||"";window.scrollTo({top:0,behavior:"smooth"});});});
       Array.prototype.forEach.call(body.querySelectorAll(".rshift"),function(b){b.addEventListener("click",function(){var r=rowData(b);$("waScope").value="employee";toggleWaScope();$("waId").value=r.id_no||"";$("waWeek").value=dateISO(new Date());activateSetupTab("weekly");openShiftCalendar("week");});});
       Array.prototype.forEach.call(body.querySelectorAll(".rot"),function(b){b.addEventListener("click",function(){var r=rowData(b);$("otId").value=r.id_no||"";$("otWs").value=r.workshop||"";$("otProcess").value=r.process_code||"";prefillOtWindow(r.shift_code);activateSetupTab("ot");});});
       Array.prototype.forEach.call(body.querySelectorAll(".rtoggle"),function(b){b.addEventListener("click",function(){var r=rowData(b);sb.from("ec_roster").update({active:r.active===false,updated_at:new Date().toISOString()}).eq("id",r.id).then(function(x){if(x.error){toast(x.error.message,"alert");return;}toast(r.active===false?"Employee access activated":"Employee access deactivated","ok");loadRoster();loadRosterCache();});});});
       Array.prototype.forEach.call(body.querySelectorAll(".rdel"), function(b){ b.addEventListener("click", function(){ var r=rowData(b); if(!confirm("Delete access for employee "+r.id_no+" at "+r.workshop+"?"))return; sb.from("ec_roster").delete().eq("id",r.id).then(function(x){ if(x.error){toast(x.error.message,"alert");return;} loadRoster();loadRosterCache(); }); }); });
       applySetupFilters();
-    });
+    }).catch(function(e){body.innerHTML='<tr><td colspan="8" style="color:var(--alert);padding:16px">Could not load Employee Access: '+esc(e.message||String(e))+'</td></tr>';});
   }
   if($("rsFilter")) $("rsFilter").addEventListener("change", loadRoster);if($("rsGroupFilter"))$("rsGroupFilter").addEventListener("change",loadRoster);
   if($("rsAdd")) $("rsAdd").addEventListener("click", function(){
@@ -1169,13 +1168,17 @@
   document.addEventListener("click",function(e){var w=$("capacityNotifyWrap");if(w&&!w.contains(e.target)&&$("capacityNotifyPanel")){$("capacityNotifyPanel").classList.add("hidden");$("capacityNotifyBtn").setAttribute("aria-expanded","false");}});
   function setAccessRequestMode(mode){accessRequestMode=mode;$("arSingleFields").classList.toggle("hidden",mode!=="single");$("arBulkFields").classList.toggle("hidden",mode!=="bulk");$("arMyRequests").classList.toggle("hidden",mode!=="mine");$("arModeSingle").classList.toggle("go",mode==="single");$("arModeBulk").classList.toggle("go",mode==="bulk");$("arModeMine").classList.toggle("go",mode==="mine");$("arTemplate").classList.toggle("hidden",mode==="mine");$("arSubmitFooter").classList.toggle("hidden",mode==="mine");if(mode==="mine")loadMyAccessRequests(false,true);}
   function requestMasterRows(){var out=[];Object.keys(rosterById).forEach(function(k){(rosterById[k]||[]).forEach(function(x){out.push(x);});});return out;}
-  function fillRequestList(id,values){values=values.filter(Boolean).filter(function(x,i,a){return a.indexOf(x)===i;}).sort();$(id).innerHTML=values.map(function(v){return '<option value="'+esc(v)+'"></option>';}).join("");}
-  function refreshRequestProcessOptions(){var ws=normProcess($("arWorkshop").value),list=processes.filter(function(p){return !ws||normProcess(p.workshop)===ws;});$("arProcessOptions").innerHTML=list.map(function(p){return '<option value="'+esc(p.process_name||p.process_code)+'">'+esc(p.process_code)+' · '+esc(p.workshop||"")+'</option>';}).join("");}
-  function fillRequestMasters(){var rr=requestMasterRows();fillRequestList("arWorkshopOptions",allWorkshops);fillRequestList("arGroupOptions",knownGroups);fillRequestList("arDeptOptions",knownDepts.concat(rr.map(function(x){return x.dept;})));fillRequestList("arTitleOptions",rr.map(function(x){return x.title;}));fillRequestList("arShiftOptions",shiftPatterns.map(function(x){return x.shift_code;}));refreshRequestProcessOptions();}
+  function uniqueValues(values){return values.filter(Boolean).map(function(x){return String(x).trim();}).filter(function(x,i,a){return x&&a.indexOf(x)===i;}).sort();}
+  function fillSelect(id,values,placeholder,keep){var el=$(id);if(!el)return;var current=keep===undefined?el.value:keep,vals=uniqueValues(values);el.innerHTML='<option value="">'+esc(placeholder||"— Select —")+'</option>'+vals.map(function(v){return '<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join("");if(current&&vals.some(function(v){return normProcess(v)===normProcess(current);}))el.value=vals.filter(function(v){return normProcess(v)===normProcess(current);})[0];}
+  function processesForAccess(ws,dept){var w=normProcess(ws),d=String(dept||"").trim();return processes.filter(function(p){if(w&&normProcess(p.workshop)!==w)return false;if(!d)return true;return !!(specByProc[p.process_code]&&specByProc[p.process_code][d]);});}
+  function deptsForWorkshop(ws){var w=normProcess(ws),out=[];processes.filter(function(p){return !w||normProcess(p.workshop)===w;}).forEach(function(p){Object.keys(specByProc[p.process_code]||{}).forEach(function(d){out.push(d);});});return uniqueValues(out.concat(requestMasterRows().filter(function(r){return !w||normProcess(r.workshop)===w;}).map(function(r){return r.dept;})));}
+  function refreshRequestProcessOptions(){var list=processesForAccess($("arWorkshop").value,$("arDept").value),cur=$("arProcessName").value;$("arProcessName").innerHTML='<option value="">— Select process —</option>'+list.map(function(p){var v=p.process_name||p.process_code;return '<option value="'+esc(v)+'">'+esc(v)+' · '+esc(p.process_code)+'</option>';}).join("");if(cur&&list.some(function(p){return normProcess(p.process_name||p.process_code)===normProcess(cur);}))$("arProcessName").value=cur;}
+  function fillRequestMasters(){var rr=requestMasterRows(),ws=$("arWorkshop").value,dept=$("arDept").value;fillSelect("arWorkshop",allWorkshops,"— Select workshop —",ws);fillSelect("arGroup",["T"].concat(knownGroups),"— Select group —",$("arGroup").value||"T");fillSelect("arDept",deptsForWorkshop(ws),"— All departments —",dept);fillSelect("arShift",["T"].concat(shiftPatterns.map(function(x){return x.shift_code;})),"— Select shift —",$("arShift").value||"T");refreshRequestProcessOptions();}
+  function refreshRosterAddOptions(){var rr=requestMasterRows(),ws=$("rsWs").value,dept=$("rsDept").value,list=processesForAccess(ws,dept),proc=$("rsProcess").value;fillSelect("rsWs",allWorkshops,"— Select workshop —",ws);fillSelect("rsGroup",["T"].concat(knownGroups),"— Select group —",$("rsGroup").value);fillSelect("rsDept",deptsForWorkshop(ws),"— All departments —",dept);$("rsProcess").innerHTML='<option value="">— Select process —</option>'+list.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_name||p.process_code)+' · '+esc(p.process_code)+'</option>';}).join("");if(proc&&list.some(function(p){return normProcess(p.process_code)===normProcess(proc);}))$("rsProcess").value=proc;fillSelect("rsShift",shiftPatterns.map(function(x){return x.shift_code;}),"— Select shift —",$("rsShift").value);}
   function resolveRequestProcess(row){return processes.filter(function(p){return normProcess(p.workshop)===normProcess(row.workshop)&&(normProcess(p.process_name)===normProcess(row.process_name)||normProcess(p.process_code)===normProcess(row.process_name));})[0]||null;}
   function clearAccessRequestValues(){["arId","arWorkshop","arGroup","arDept","arTitle","arProcessName","arProcessWork","arShift","arNote","arBulkCsv"].forEach(function(id){if($(id))$(id).value="";});if($("arBulkFile"))$("arBulkFile").value="";}
   function applyAccessRequestDefaults(){if($("arGroup")&&!$("arGroup").value)$("arGroup").value="T";if($("arShift")&&!$("arShift").value)$("arShift").value="T";}
-  function openAccessRequest(){clearAccessRequestValues();applyAccessRequestDefaults();setAccessRequestMode("single");$("arWorkshop").value=(rosterWs&&rosterWs.value)||"";$("arSubmitStatus").textContent="";fillRequestMasters();if(!shiftPatterns.length&&sb)sb.from("ec_shift_pattern").select("shift_code").eq("active",true).order("shift_code").then(function(r){if(!r.error){shiftPatterns=r.data||[];fillRequestList("arShiftOptions",shiftPatterns.map(function(x){return x.shift_code;}));}});$("accessRequestModal").classList.remove("hidden");setTimeout(function(){$("arId").focus();},50);}
+  function openAccessRequest(){clearAccessRequestValues();applyAccessRequestDefaults();setAccessRequestMode("single");$("arWorkshop").value=(rosterWs&&rosterWs.value)||"";$("arSubmitStatus").textContent="";fillRequestMasters();if(!shiftPatterns.length&&sb)sb.from("ec_shift_pattern").select("*").eq("active",true).order("shift_code").then(function(r){if(!r.error){shiftPatterns=r.data||[];fillRequestMasters();refreshRosterAddOptions();}});$("accessRequestModal").classList.remove("hidden");setTimeout(function(){$("arId").focus();},50);}
   function closeAccessRequest(){$("accessRequestModal").classList.add("hidden");}
   if($("accessRequestOpen"))$("accessRequestOpen").addEventListener("click",openAccessRequest);
   if($("accessRequestClose"))$("accessRequestClose").addEventListener("click",closeAccessRequest);
@@ -1185,7 +1188,10 @@
   if($("arModeMine"))$("arModeMine").addEventListener("click",function(){setAccessRequestMode("mine");markMyAccessRead();});
   if($("arMyStatus"))$("arMyStatus").addEventListener("change",renderMyAccessTable);
   if($("arMyRefresh"))$("arMyRefresh").addEventListener("click",function(){loadMyAccessRequests(false);});
-  if($("arWorkshop"))$("arWorkshop").addEventListener("change",function(){$("arProcessName").value="";refreshRequestProcessOptions();});
+  if($("arWorkshop"))$("arWorkshop").addEventListener("change",function(){$("arDept").value="";$("arProcessName").value="";fillRequestMasters();});
+  if($("arDept"))$("arDept").addEventListener("change",function(){$("arProcessName").value="";refreshRequestProcessOptions();});
+  if($("rsWs"))$("rsWs").addEventListener("change",function(){$("rsDept").value="";$("rsProcess").value="";refreshRosterAddOptions();});
+  if($("rsDept"))$("rsDept").addEventListener("change",function(){$("rsProcess").value="";refreshRosterAddOptions();});
   if($("arTemplate"))$("arTemplate").addEventListener("click",function(){downloadCSV("employee-access-request-template.csv","Employee ID,Workshop,Group,Dept,Title,Process Name,Process Work,Default Shift,Note\r\n000001,1F ELECTRODE,T,PRD,Operator 1,ANODE Mixing,Mixing operation,T,New hire");});
   function csvCells(line){var out=[],v="",q=false;for(var i=0;i<line.length;i++){var c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){v+='"';i++;}else q=!q;}else if(c===","&&!q){out.push(v.trim());v="";}else v+=c;}out.push(v.trim());return out;}
   function parseAccessRequests(text){var rows=[];String(text||"").split(/\r?\n/).forEach(function(line){if(!line.trim())return;var c=csvCells(line),id=(c[0]||"").trim();if(!id||/^employee\s*id$/i.test(id))return;rows.push({id_no:id,workshop:(c[1]||"").trim(),group_code:(c[2]||"").trim()||null,dept:(c[3]||"").trim()||null,title:(c[4]||"").trim()||null,process_name:(c[5]||"").trim(),process_work:(c[6]||"").trim()||null,shift_code:(c[7]||"").trim()||null,note:(c[8]||"").trim()||null});});return rows;}
@@ -1214,7 +1220,7 @@
   function loadAccessSetup(){if(!sb)return;if(canManageAccessRequests())loadAccessRequests();if(isSupervisor())return;Promise.all([
     sb.from("ec_shift_pattern").select("*").order("shift_code",{ascending:true}),
     sb.from("ec_ot_registration").select("*").order("start_at",{ascending:false}).limit(3000)
-  ]).then(function(r){if(r[0].error){toast("Run entry-access-v2-setup.sql first: "+r[0].error.message,"alert");return;}shiftPatterns=r[0].data||[];otRegistrations=(r[1].data)||[];fillShiftSelects();renderShiftPatterns();renderOtRegistrations();loadWeeklyAssignments();});}
+  ]).then(function(r){if(r[0].error){toast("Run entry-access-v2-setup.sql first: "+r[0].error.message,"alert");return;}shiftPatterns=r[0].data||[];otRegistrations=(r[1].data)||[];fillShiftSelects();refreshRosterAddOptions();renderShiftPatterns();renderOtRegistrations();loadWeeklyAssignments();});}
   function renderShiftPatterns(){var b=$("shiftBody");if(!b)return;b.innerHTML=shiftPatterns.length?shiftPatterns.map(function(s){return '<tr data-code="'+esc(s.shift_code)+'"><td class="mono">'+esc(s.shift_code)+'</td><td>'+esc(s.shift_name||"")+'</td><td class="mono">'+hhmm(s.start_time)+' ~ '+hhmm(s.end_time)+'</td><td class="mono">'+(s.ot_start_time?hhmm(s.ot_start_time)+' ~ '+hhmm(s.ot_end_time):'—')+'</td><td class="mono">'+(s.grace_before_min||0)+' / '+(s.grace_after_min||0)+' min</td><td>'+(s.active===false?'inactive':'active')+'</td><td style="white-space:nowrap"><button class="btn sm sfedit">Edit</button> <button class="btn sm sftoggle">'+(s.active===false?'Activate':'Deactivate')+'</button> <button class="btn sm danger sfdel">Delete</button></td></tr>';}).join(""):'<tr><td colspan="7">No shifts configured.</td></tr>';
     Array.prototype.forEach.call(b.querySelectorAll(".sfedit"),function(x){x.addEventListener("click",function(){var s=shiftByCode(x.closest("tr").getAttribute("data-code"));$("sfCode").value=s.shift_code;$("sfName").value=s.shift_name||"";$("sfStart").value=hhmm(s.start_time);$("sfEnd").value=hhmm(s.end_time);$("sfOtStart").value=hhmm(s.ot_start_time);$("sfOtEnd").value=hhmm(s.ot_end_time);$("sfGrace").value=s.grace_before_min||0;});});
     Array.prototype.forEach.call(b.querySelectorAll(".sftoggle"),function(x){x.addEventListener("click",function(){var s=shiftByCode(x.closest("tr").getAttribute("data-code"));sb.from("ec_shift_pattern").update({active:s.active===false}).eq("shift_code",s.shift_code).then(function(r){if(r.error)toast(r.error.message,"alert");else loadAccessSetup();});});});
@@ -1284,6 +1290,7 @@
       var pw=$("procWsFilter"), dp=$("deptProcFilter");
       if(pw){var pv=pw.value;pw.innerHTML='<option value="">All workshops</option>'+allWorkshops.map(function(w){return '<option value="'+esc(w)+'">'+esc(w)+'</option>';}).join("");pw.value=pv;}
       if(dp){var dv=dp.value;dp.innerHTML='<option value="">All processes</option>'+processes.map(function(p){return '<option value="'+esc(p.process_code)+'">'+esc(p.process_code)+' — '+esc(p.process_name||p.process_code)+'</option>';}).join("");dp.value=dv;}
+      refreshRosterAddOptions();
       myAllowedWs = allowedWorkshops(allWorkshops);
       if(!selectedWsInit){ restoreSelectedWs(); selectedWsInit=true; }
       selectedWs = selectedWs.filter(function(w){ return myAllowedWs.indexOf(w)!==-1; });
