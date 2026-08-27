@@ -486,7 +486,7 @@
           </div>
           <div class="fld hidden" id="camField" style="margin-top:12px"><label>Camera source</label><select id="camSelect"></select></div>
           <div class="fld" style="margin-top:12px"><label>Manual entry — card (VEN-BK-6) or employee ID</label><div class="inline"><input type="text" id="manualCode" placeholder="Card or employee ID" autocomplete="off"><button class="btn" id="manualBtn">Enter</button></div></div>
-          <div class="fld" style="margin-top:12px"><label>Gate / workshop (optional — scopes roster &amp; process list)</label><select id="rosterWs"></select></div>
+          <div class="fld" style="margin-top:12px"><label id="rosterWsLabel">Gate / workshop</label><select id="rosterWs"></select><div class="hint" id="rosterWsHint"></div></div>
           <p style="font-size:11.5px;color:var(--muted);margin-top:6px">Mapped employees check in directly. The process picker appears only when the mapping is missing or invalid for this workshop.</p>
           <button class="btn" id="accessRequestOpen" style="margin-top:8px">Register new Employee Access</button>
         </div>
@@ -892,6 +892,11 @@
   function canScan(){ return myRole==="scan"||myRole==="supervisor"||myRole==="admin"; }
   function canViewReport(){ return myRole==="view"||myRole==="supervisor"||myRole==="admin"; }
   function workshopAllowed(workshop){return isAdmin()||(isSupervisor()&&Array.isArray(myWorkshops)&&myWorkshops.some(function(w){return normProcess(w)===normProcess(workshop);}));}
+  function scanWorkshopAllowed(workshop){
+    if(isAdmin())return true;
+    return Array.isArray(myWorkshops)&&myWorkshops.some(function(w){return normProcess(w)===normProcess(workshop);});
+  }
+  function scanWorkshops(){return isAdmin()?allWorkshops.slice():(Array.isArray(myWorkshops)?allWorkshops.filter(scanWorkshopAllowed):[]);}
   function scopeAccessQuery(q){return isSupervisor()?q.in("workshop",Array.isArray(myWorkshops)&&myWorkshops.length?myWorkshops:["__NO_WORKSHOP_ASSIGNED__"]):q;}
   function scanUserName(){var m=(currentUser&&currentUser.user_metadata)||{};return String(m.full_name||m.display_name||(currentUser&&currentUser.email)||"Unknown").trim();}
   function navBtn(v){ return $("nav").querySelector('[data-view="'+v+'"]'); }
@@ -914,6 +919,7 @@
     var cur=document.querySelector('.nav button.active'); var v=cur?cur.getAttribute("data-view"):"dash";
     if((v==="report"&&!canViewReport())||((v==="scan"||v==="log")&&!canScan())||(v==="setup"&&!canManageAccessRequests())||((v==="users"||v==="tracking")&&!isAdmin())) showView("dash");
     if(v==="setup"&&isSupervisor())activateSetupTab("accessrequests");
+    populateRosterWs();
   }
   function showAuth(){ currentUser=null; userChip.classList.add("hidden"); $("nav").classList.add("hidden"); tvBtn.classList.add("hidden");
     if($("accessNotifyWrap"))$("accessNotifyWrap").classList.add("hidden");if($("accessNotifyPanel"))$("accessNotifyPanel").classList.add("hidden");
@@ -977,6 +983,7 @@
     if(!canScan()){ toast("You don't have scan permission","alert"); return; }
     var val=String(raw||"").trim(); if(!val) return;
     var gate=(rosterWs&&rosterWs.value)||null;
+    if(!isAdmin()&&!gate){setResult("bad","WORKSHOP REQUIRED",val.toUpperCase(),"No assigned Gate / Workshop is selected");toast("Select an assigned Gate / Workshop before scanning","alert");sBad();return;}
     var emp=rosterLookup(val, gate);
     if(emp){ onEmployeeScan(emp); return; }
     // an ID that is on the roster for a different workshop than the chosen gate → warn
@@ -999,6 +1006,11 @@
     if(lastToggle[p.code] && (now-lastToggle[p.code])<3000) return; // debounce same card
     lastToggle[p.code]=now;
     if(!sb||!currentUser) return;
+    var cardWorkshop=processWorkshop(p.processCode);
+    if(!cardWorkshop||!scanWorkshopAllowed(cardWorkshop)){
+      setResult("bad","WORKSHOP FORBIDDEN",p.code,cardWorkshop?("You are not assigned to "+cardWorkshop):"Process is not mapped to a workshop");
+      toast(cardWorkshop?("No scan permission for "+cardWorkshop):"Process workshop is not configured","alert");sBad();vibrate(120);return;
+    }
     sb.from("ec_presence").select("status").eq("card_code",p.code).maybeSingle().then(function(res){
       var cur = (res.data && res.data.status) ? res.data.status : "out";
       var next = cur==="in" ? "out" : "in";
@@ -1099,9 +1111,13 @@
     });
   }
   function populateRosterWs(){
-    if(!rosterWs) return; var cur=rosterWs.value;
-    rosterWs.innerHTML='<option value="">Any workshop</option>'+allWorkshops.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join("");
-    if(cur) rosterWs.value=cur;
+    if(!rosterWs) return; var cur=rosterWs.value,list=scanWorkshops(),restricted=!isAdmin();
+    rosterWs.innerHTML=(restricted?'':'<option value="">Any workshop</option>')+list.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join("");
+    if(cur&&list.some(function(w){return normProcess(w)===normProcess(cur);}))rosterWs.value=cur;
+    else if(restricted&&list.length)rosterWs.value=list[0];
+    rosterWs.disabled=restricted&&list.length===1;
+    if($("rosterWsLabel"))$("rosterWsLabel").textContent=restricted?"Gate / workshop (assigned)":"Gate / workshop (optional — scopes roster & process list)";
+    if($("rosterWsHint"))$("rosterWsHint").textContent=restricted?(list.length?(list.length===1?"Locked to your assigned workshop.":"Only assigned workshops are available."):"No workshop assigned. Contact Admin."):"Admin can scan across all workshops.";
   }
   function populateGroupControls(){
     var opts=knownGroups.map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+'</option>';}).join("");
@@ -1903,7 +1919,7 @@
   // ---- users & roles (admin) ----
   function authHeaders(){ return { Authorization:"Bearer "+(accessToken||"") }; }
   function apiJson(r){return r.json().catch(function(){return {};}).then(function(data){if(!r.ok)throw new Error(data.message||data.error||("HTTP "+r.status));return data;});}
-  function validateSupervisorRow(tr,notify){var role=tr.querySelector(".urole").value,sel=tr.querySelector(".uws"),ok=role!=="supervisor"||(sel&&sel.selectedOptions.length>0);if(sel){sel.setAttribute("aria-invalid",ok?"false":"true");sel.style.borderColor=ok?"":"var(--alert)";}var note=tr.querySelector(".wsnote");if(note&&role==="supervisor")note.innerHTML=ok?(sel.selectedOptions.length+" workshop(s) assigned"):'<span style="color:var(--alert)">Select at least one workshop *</span>';if(!ok&&notify)toast("Select at least one workshop for Supervisor","alert");return ok;}
+  function validateSupervisorRow(tr,notify){var role=tr.querySelector(".urole").value,sel=tr.querySelector(".uws"),scoped=role==="scan"||role==="supervisor",ok=!scoped||(sel&&sel.selectedOptions.length>0);if(sel){sel.setAttribute("aria-invalid",ok?"false":"true");sel.style.borderColor=ok?"":"var(--alert)";}var note=tr.querySelector(".wsnote");if(note&&scoped)note.innerHTML=ok?(sel.selectedOptions.length+" workshop(s) assigned"):'<span style="color:var(--alert)">Select at least one workshop *</span>';if(!ok&&notify)toast("Select at least one workshop for Scan or Supervisor","alert");return ok;}
   function loadUsers(){
     if(!isAdmin()) return;
     usersBody.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:16px">Loading…</td></tr>';
@@ -1916,7 +1932,7 @@
           var uws=Array.isArray(u.workshops)?u.workshops:null;
           var wopts=allWorkshops.map(function(w){ var seld=uws&&uws.indexOf(w)!==-1; return '<option value="'+esc(w)+'"'+(seld?" selected":"")+'>'+esc(w)+'</option>'; }).join("");
           var wsCell = allWorkshops.length
-            ? '<select class="uws" multiple size="'+Math.min(4,Math.max(2,allWorkshops.length))+'">'+wopts+'</select><div class="wsnote">'+((!uws||!uws.length)?"All workshops":(uws.length+" selected"))+' &middot; supervisor requires selection</div>'
+            ? '<select class="uws" multiple size="'+Math.min(4,Math.max(2,allWorkshops.length))+'">'+wopts+'</select><div class="wsnote">'+((!uws||!uws.length)?"All workshops":(uws.length+" selected"))+' &middot; scan/supervisor require selection</div>'
             : '<span class="wsnote">Add workshops in Setup first</span>';
           return '<tr data-id="'+esc(u.id)+'"><td class="mono">'+esc(u.email||u.id)+'</td><td><select class="urole">'+opts+'</select></td><td>'+wsCell+'</td><td><button class="btn sm usave">Save</button></td></tr>';
         }).join("");
