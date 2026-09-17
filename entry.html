@@ -132,6 +132,9 @@
   .dsec{padding:0 14px 2px; font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600}
   .ddgrid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 16px; padding:0 14px 12px}
   .ddept{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.95fr) minmax(0,.95fr); align-items:end; gap:6px; padding:7px 0; border-top:1px solid var(--row-line); min-width:0}
+  .ddept.deptover{margin:2px -7px;padding:7px;border:1px solid var(--over-border);border-radius:8px;background:var(--over-bg);box-shadow:0 0 0 1px var(--over-glow);animation:deptalert 1.15s ease-in-out infinite}
+  .ddept.deptover .ddname{color:var(--alert)}
+  @keyframes deptalert{50%{background:transparent;box-shadow:0 0 0 3px transparent}}
   .ddept.hd{border-top:none; padding:5px 0 0} .ddept.hd .h{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)} .ddept.hd .h.r{text-align:right}
   .ddname{font-weight:600; font-size:12px; line-height:1.12; min-width:0; overflow:hidden; text-overflow:ellipsis} .ddname .ddcode{display:block; font-size:9px; color:var(--muted); font-family:var(--mono)}
   .ddcell{text-align:right; min-width:0}
@@ -311,7 +314,7 @@
   .corner.bl{bottom:0;left:0;border-right:0;border-top:0} .corner.br{bottom:0;right:0;border-left:0;border-top:0}
   .scanline{position:absolute; left:5%; right:5%; height:2px; background:linear-gradient(90deg,transparent,var(--signal),transparent); box-shadow:0 0 10px var(--signal); animation:sweep 2.2s ease-in-out infinite}
   @keyframes sweep{0%{top:5%}50%{top:95%}100%{top:5%}}
-  @media (prefers-reduced-motion:reduce){.scanline{animation:none;top:50%}.led.on{animation:none}.pcard.hasover .badge.over{animation:none}}
+  @media (prefers-reduced-motion:reduce){.scanline{animation:none;top:50%}.led.on{animation:none}.pcard.hasover .badge.over,.ddept.deptover{animation:none}}
   .vp-overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; color:var(--muted); font-size:13px}
   .vp-overlay .big{color:var(--ink); font-weight:600; font-size:15px; margin-bottom:6px}
   .row{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
@@ -1415,8 +1418,8 @@
     var st=stateOf(spec,actual);
     return '<div class="ddcell"><div class="ddval"><span class="dvn '+st+'">'+actual+'</span><span class="dvl">/'+(spec===null||spec===undefined?'\u2013':spec)+'</span></div>'+pctBar(spec,actual)+'</div>';
   }
-  function ddept(name, code, iS,iA,vS,vA){
-    return '<div class="ddept"><div class="ddname">'+esc(name)+(code?'<span class="ddcode">'+esc(code)+'</span>':'')+'</div>'+ddval(iS,iA)+ddval(vS,vA)+'</div>';
+  function ddept(name, code, iS,iA,vS,vA,isOver){
+    return '<div class="ddept'+(isOver?' deptover':'')+'"><div class="ddname">'+esc(name)+(code?'<span class="ddcode">'+esc(code)+'</span>':'')+'</div>'+ddval(iS,iA)+ddval(vS,vA)+'</div>';
   }
   function ocol(label, spec, actual){
     var st=stateOf(spec,actual);
@@ -1435,9 +1438,9 @@
     var depts=[]; Object.keys(depSpecs).forEach(function(d){ depts.push(d); });
     Object.keys(deptCounts).forEach(function(d){ if(depts.indexOf(d)===-1) depts.push(d); });
     depts.sort(function(a,b){ var sa=(depSpecs[a]&&depSpecs[a].sort)||0, sb2=(depSpecs[b]&&depSpecs[b].sort)||0; return (sa-sb2)||(a<b?-1:1); });
-    var over=false;
+    var processOver=false;
     var oInt=(p.spec_internal!==null&&p.spec_internal!==undefined&&co.INT>p.spec_internal), oVen=(p.spec_vendor!==null&&p.spec_vendor!==undefined&&co.VEN>p.spec_vendor);
-    if(oInt||oVen){ over=true; var pp=[]; if(oInt)pp.push("INT "+co.INT+"/"+p.spec_internal); if(oVen)pp.push("VEN "+co.VEN+"/"+p.spec_vendor); overList.push({ name:(p.process_name||p.process_code)+" — overall", detail:pp.join(" \u00b7 ") }); }
+    if(oInt||oVen){ processOver=true; var pp=[]; if(oInt)pp.push("INT "+co.INT+"/"+p.spec_internal); if(oVen)pp.push("VEN "+co.VEN+"/"+p.spec_vendor); overList.push({ name:(p.process_name||p.process_code)+" — overall", detail:pp.join(" \u00b7 ") }); }
     var dhtml="";
     if(depts.length){
       var hd='<div class="ddept hd"><div class="h">Department</div><div class="h r">Internal</div><div class="h r">Vendor</div></div>';
@@ -1446,13 +1449,13 @@
         var nm=d==="(none)"?"No dept":((depSpecs[d]&&depSpecs[d].name)||d);
         var sp=(depSpecs[d]||{INT:null,VEN:null}), c=(deptCounts[d]||{INT:0,VEN:0});
         var di=(sp.INT!==null&&sp.INT!==undefined&&c.INT>sp.INT), dv=(sp.VEN!==null&&sp.VEN!==undefined&&c.VEN>sp.VEN);
-        if(di||dv){ over=true; var pp2=[]; if(di)pp2.push("INT "+c.INT+"/"+sp.INT); if(dv)pp2.push("VEN "+c.VEN+"/"+sp.VEN); overList.push({ name:(p.process_name||p.process_code)+" \u00b7 "+nm, detail:pp2.join(" \u00b7 ") }); }
-        dhtml += ddept(nm, d==="(none)"?"":d, sp.INT,c.INT, sp.VEN,c.VEN);
+        if(di||dv){ var pp2=[]; if(di)pp2.push("INT "+c.INT+"/"+sp.INT); if(dv)pp2.push("VEN "+c.VEN+"/"+sp.VEN); overList.push({ name:(p.process_name||p.process_code)+" \u00b7 "+nm, detail:pp2.join(" \u00b7 ") }); }
+        dhtml += ddept(nm, d==="(none)"?"":d, sp.INT,c.INT, sp.VEN,c.VEN,di||dv);
       });
       dhtml += '</div>';
     }
     var tag=wsTag?'<span class="wstag">'+esc(wsTag)+'</span>':'';
-    return { count:co.INT+co.VEN, html:'<div class="pcard'+(over?' hasover':'')+'" data-process="'+esc(p.process_code)+'" tabindex="0" aria-describedby="dashCardTooltip" aria-label="'+esc((p.process_name||p.process_code)+', '+(co.INT+co.VEN)+' people inside. Open for details.')+'">'
+    return { count:co.INT+co.VEN, html:'<div class="pcard'+(processOver?' hasover':'')+'" data-process="'+esc(p.process_code)+'" tabindex="0" aria-describedby="dashCardTooltip" aria-label="'+esc((p.process_name||p.process_code)+', '+(co.INT+co.VEN)+' people inside. Open for details.')+'">'
       + '<div class="pcard-hd"><span class="process-order" title="Process display order">'+(parseInt(p.sort_order,10)||0)+'</span><h3>'+esc(p.process_name||p.process_code)+'</h3>'+tag+'<span class="detailhint">DETAIL</span><span class="pcode">'+esc(p.process_code)+'</span></div>'
       + '<div class="obox">'+ocol("Internal",p.spec_internal,co.INT)+ocol("Vendor",p.spec_vendor,co.VEN)+'</div>'
       + dhtml + '</div>' };
