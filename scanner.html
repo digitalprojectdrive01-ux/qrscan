@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Trang đã chuyển địa chỉ</title>
+<!-- Dự phòng khi trình duyệt tắt JavaScript: đổi URL và số giây ở đây cho khớp với CONFIG bên dưới -->
+<noscript><meta http-equiv="refresh" content="10;url=https://10.148.87.162:3443/entry"></noscript>
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --text: #1d2433; --muted: #5b6577;
+    --accent: #1565c0; --accent-text: #ffffff; --border: #e1e5ec;
+    --soft: #eaf2fd; --warn: #b26a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161d; --card: #1b212b; --text: #e8ecf2; --muted: #9aa5b5;
+      --accent: #5aa3ff; --accent-text: #0d1117; --border: #2a3240;
+      --soft: #1d2a3d; --warn: #f0b354;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 16px; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5;
+  }
+  .card {
+    width: 100%; max-width: 520px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 32px 28px; text-align: center;
+    box-shadow: 0 6px 24px rgba(0,0,0,.06);
+  }
+  .icon {
+    width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%;
+    background: var(--soft); color: var(--accent); display: grid; place-items: center;
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  .app { color: var(--text); font-weight: 600; }
+  .url-box {
+    display: flex; gap: 8px; align-items: center; background: var(--soft);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 0 0 20px;
+    text-align: left;
+  }
+  .url-box a {
+    flex: 1; min-width: 0; color: var(--accent); font-weight: 600; text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .btn {
+    display: inline-block; border: 0; border-radius: 10px; cursor: pointer;
+    font: inherit; font-weight: 600; text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-text); padding: 12px 22px; width: 100%; }
+  .btn-copy {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    padding: 6px 10px; font-size: .85rem; white-space: nowrap;
+  }
+  .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .countdown { margin: 16px 0 0; font-size: .92rem; }
+  .countdown button {
+    background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit;
+    text-decoration: underline; padding: 0;
+  }
+  .note { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); font-size: .88rem; }
+  .note strong { color: var(--warn); }
+</style>
+</head>
+<body>
+<main class="card" role="main">
+  <div class="icon" aria-hidden="true">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+    </svg>
+  </div>
+
+  <h1>Trang đã chuyển sang địa chỉ mới</h1>
+  <p><span class="app" id="appName">Ứng dụng</span> không còn hoạt động tại địa chỉ này.<br>Vui lòng truy cập địa chỉ mới bên dưới.</p>
+
+  <div class="url-box">
+    <a id="newLink" href="#">…</a>
+    <button class="btn btn-copy" id="copyBtn" type="button">Sao chép</button>
+  </div>
+
+  <a class="btn btn-primary" id="goBtn" href="#">Đi đến trang mới</a>
+
+  <p class="countdown" id="countdown" aria-live="polite"></p>
+
+  <div class="note" id="note">
+    <strong>Lưu ý:</strong> hãy cập nhật dấu trang (bookmark) hoặc lối tắt trên màn hình sang địa chỉ mới.
+    <span id="contact"></span>
+  </div>
+</main>
+
+<script>
+  /* ====== CẤU HÌNH — chỉ cần sửa phần này ====== */
+  const CONFIG = {
+    newUrl: "https://10.148.87.162:3443/entry", // Địa chỉ mới
+    appName: "Ứng dụng",                     // Tên hệ thống, vd: "Employee Connect"
+    seconds: 10,                             // Số giây trước khi tự chuyển (0 = không tự chuyển)
+    keepPath: false,                         // true = giữ nguyên đường dẫn + tham số (vd /report?id=5)
+    contact: ""                              // Liên hệ hỗ trợ, vd: "Liên hệ: Phòng Đào tạo – máy lẻ 123"
+  };
+  /* ============================================== */
+
+  function buildTarget() {
+    if (!CONFIG.keepPath) return CONFIG.newUrl;
+    try {
+      const base = new URL(CONFIG.newUrl);
+      const path = base.pathname.replace(/\/$/, "") + location.pathname;
+      return base.origin + path + location.search + location.hash;
+    } catch (e) { return CONFIG.newUrl; }
+  }
+
+  const target = buildTarget();
+  const link = document.getElementById("newLink");
+  link.href = target;
+  link.textContent = target;
+  document.getElementById("goBtn").href = target;
+  document.getElementById("appName").textContent = CONFIG.appName;
+  if (CONFIG.contact) document.getElementById("contact").textContent = " " + CONFIG.contact;
+
+  // Sao chép link
+  const copyBtn = document.getElementById("copyBtn");
+  copyBtn.addEventListener("click", async () => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(target); ok = true; } catch (e) {
+      const t = document.createElement("textarea");
+      t.value = target; document.body.appendChild(t); t.select();
+      try { ok = document.execCommand("copy"); } catch (_) {}
+      t.remove();
+    }
+    copyBtn.textContent = ok ? "Đã chép ✓" : "Không chép được";
+    setTimeout(() => (copyBtn.textContent = "Sao chép"), 2000);
+  });
+
+  // Đếm ngược tự chuyển
+  const cd = document.getElementById("countdown");
+  if (CONFIG.seconds > 0) {
+    let s = CONFIG.seconds, timer;
+    const render = () => {
+      cd.innerHTML = "Tự động chuyển sau <strong>" + s + "</strong> giây · ";
+      const stop = document.createElement("button");
+      stop.type = "button"; stop.textContent = "Ở lại trang này";
+      stop.onclick = () => { clearInterval(timer); cd.textContent = "Đã dừng tự động chuyển."; };
+      cd.appendChild(stop);
+    };
+    render();
+    timer = setInterval(() => {
+      s--;
+      if (s <= 0) { clearInterval(timer); cd.textContent = "Đang chuyển…"; location.replace(target); }
+      else render();
+    }, 1000);
+  }
+</script>
+</body>
+</html>
